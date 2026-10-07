@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hibo1120.github.io/gamefit-lab/sitemap.xml

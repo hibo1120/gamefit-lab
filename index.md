@@ -58,6 +58,17 @@ CPU / GPU / メモリ / モニター解像度 / リフレッシュレート /
 現在FPS、目標FPS、モニターHz、RAM、ストレージ、予算などから、
 「現状維持／モニター／RAM／PC性能／PC買替」の優先順位を表示します。
 
+## 判断ガイド
+
+- [買い替えとアップグレード、どっち？](./guides/upgrade-or-replace.html)
+- [ゲーミング環境に3万円使うなら](./guides/budget-30000.html)
+- [ゲーミング環境に5万円使うなら](./guides/budget-50000.html)
+- [ゲーミング環境に10万円使うなら](./guides/budget-100000.html)
+- [VALORANTでFPSを上げるなら](./guides/valorant-upgrade.html)
+- [ApexのFPS不足で見直す場所](./guides/apex-upgrade.html)
+- [Fortniteの投資優先順位](./guides/fortnite-upgrade.html)
+- [Monster Hunter Wildsが重いとき](./guides/mhwilds-upgrade.html)
+
 ## 広告について
 
 このサイトはアフィリエイト広告を利用する予定です。

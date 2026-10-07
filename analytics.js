@@ -14,8 +14,10 @@
   const VALID_GAMES = new Set(["valorant", "apex", "fortnite", "mhwilds"]);
   const VALID_DEVICES = new Set(["desktop", "laptop"]);
   const VALID_RECOMMENDATIONS = new Set(["keep", "monitor", "ram", "performance", "replacement"]);
+  const VALID_BUDGET_BANDS = new Set(["30000", "50000", "100000"]);
+  const ATTRIBUTION_PROPERTIES = ["utm_source", "utm_medium", "utm_campaign", "source"];
   const EVENT_PROPERTIES = {
-    diagnosis_page_viewed: [],
+    diagnosis_page_viewed: ATTRIBUTION_PROPERTIES,
     diagnosis_started: ["game", "device_type"],
     diagnosis_completed: [
       "game",
@@ -28,9 +30,11 @@
       "budget",
       "streaming",
       "top_recommendation",
-      "recommendation_count"
+      "recommendation_count",
+      ...ATTRIBUTION_PROPERTIES
     ],
     diagnosis_invalid_input: ["reason"],
+    diagnosis_cta_clicked: ["source_page", "content_type", "game", "budget_band"],
     affiliate_clicked: ["merchant", "category", "destination_type", "game", "top_recommendation"]
   };
   const SDK_PROPERTIES = new Set([
@@ -56,11 +60,11 @@
     }
   }
 
-  function safeCapture(eventName, properties) {
+  function safeCapture(eventName, properties, options) {
     try {
       const posthog = root.posthog;
       if (!posthog || typeof posthog.capture !== "function") return false;
-      posthog.capture(eventName, properties || {});
+      posthog.capture(eventName, properties || {}, options);
       return true;
     } catch (_) {
       return false;
@@ -80,6 +84,20 @@
     return typeof value === "string" && /^[a-z0-9][a-z0-9_-]{0,79}$/i.test(value)
       ? value.toLowerCase()
       : "unknown";
+  }
+
+  function attributionProperties() {
+    try {
+      const params = new URLSearchParams(root.location?.search || "");
+      return Object.fromEntries(ATTRIBUTION_PROPERTIES.flatMap(key => {
+        const value = params.get(key);
+        return typeof value === "string" && /^[a-z0-9][a-z0-9_-]{0,79}$/i.test(value)
+          ? [[key, value.toLowerCase()]]
+          : [];
+      }));
+    } catch (_) {
+      return {};
+    }
   }
 
   function bucketCurrentFps(value) {
@@ -110,7 +128,10 @@
   }
 
   function trackPageViewed() {
-    return safeCapture("diagnosis_page_viewed", { $geoip_disable: true });
+    return safeCapture("diagnosis_page_viewed", {
+      ...attributionProperties(),
+      $geoip_disable: true
+    });
   }
 
   function trackDiagnosisStarted(input) {
@@ -157,6 +178,7 @@
       streaming: input?.stream === "yes",
       top_recommendation: topRecommendation,
       recommendation_count: Array.isArray(result?.ranked) ? result.ranked.length : 0,
+      ...attributionProperties(),
       $geoip_disable: true
     };
   }
@@ -169,6 +191,24 @@
     return safeCapture("diagnosis_invalid_input", {
       reason: slugValue(reason),
       $geoip_disable: true
+    });
+  }
+
+  function trackDiagnosisCtaClicked(context) {
+    const properties = {
+      source_page: slugValue(context?.sourcePage),
+      content_type: slugValue(context?.contentType),
+      $geoip_disable: true
+    };
+    const game = enumValue(context?.game, VALID_GAMES, null);
+    const budgetBand = enumValue(String(context?.budgetBand || ""), VALID_BUDGET_BANDS, null);
+
+    if (game) properties.game = game;
+    if (budgetBand) properties.budget_band = budgetBand;
+
+    return safeCapture("diagnosis_cta_clicked", properties, {
+      transport: "sendBeacon",
+      send_instantly: true
     });
   }
 
@@ -193,11 +233,13 @@
   }
 
   return {
+    attributionProperties,
     beforeSend,
     bucketCurrentFps,
     completionProperties,
     safeCapture,
     trackAffiliateClick,
+    trackDiagnosisCtaClicked,
     trackDiagnosisCompleted,
     trackDiagnosisStarted,
     trackInvalidInput,

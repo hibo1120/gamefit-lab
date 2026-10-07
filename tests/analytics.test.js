@@ -15,13 +15,14 @@ function memorySessionStorage() {
   };
 }
 
-function recordingEnvironment() {
+function recordingEnvironment(search = "") {
   const calls = [];
   const root = {
     posthog: {
-      capture(event, properties) { calls.push({ event, properties }); }
+      capture(event, properties, options) { calls.push({ event, properties, options }); }
     },
     sessionStorage: memorySessionStorage(),
+    location: { search },
     document: {
       getElementById() { return { value: "valorant" }; }
     }
@@ -69,7 +70,8 @@ test("first form interaction captures diagnosis_started once per session", () =>
   assert.equal(analytics.trackDiagnosisStarted(input), false);
   assert.deepEqual(calls, [{
     event: "diagnosis_started",
-    properties: { game: "apex", device_type: "laptop", $geoip_disable: true }
+    properties: { game: "apex", device_type: "laptop", $geoip_disable: true },
+    options: undefined
   }]);
 });
 
@@ -105,6 +107,7 @@ test("diagnosis_completed uses the required privacy-safe properties", () => {
     recommendation_count: 2,
     $geoip_disable: true
   });
+  assert.equal(calls[0].options, undefined);
   assert.equal(JSON.stringify(calls[0]).includes("SECRET"), false);
   assert.equal(Object.hasOwn(calls[0].properties, "hardware"), false);
 });
@@ -127,7 +130,8 @@ test("invalid input captures only a normalized reason", () => {
   assert.equal(analytics.trackInvalidInput("current_fps_above_maximum"), true);
   assert.deepEqual(calls[0], {
     event: "diagnosis_invalid_input",
-    properties: { reason: "current_fps_above_maximum", $geoip_disable: true }
+    properties: { reason: "current_fps_above_maximum", $geoip_disable: true },
+    options: undefined
   });
 });
 
@@ -168,18 +172,62 @@ test("affiliate helper is available without adding affiliate links", () => {
       game: "valorant",
       top_recommendation: "unknown",
       $geoip_disable: true
-    }
+    },
+    options: undefined
+  });
+});
+
+test("UTM and source attribution are retained on page view and completion", () => {
+  const { analytics, calls } = recordingEnvironment("?utm_source=gamefit&utm_medium=content&utm_campaign=initial_guides&source=budget_50000&email=private%40example.test");
+  const input = {
+    game: "apex", device: "desktop", currentFps: "100", targetFps: "144",
+    monitorHz: "144", ram: "16", storage: "nvme", budget: "50000", stream: "no"
+  };
+
+  analytics.trackPageViewed();
+  analytics.trackDiagnosisCompleted(input, { ranked: [{ key: "performance" }] });
+
+  for (const call of calls) {
+    assert.equal(call.properties.utm_source, "gamefit");
+    assert.equal(call.properties.utm_medium, "content");
+    assert.equal(call.properties.utm_campaign, "initial_guides");
+    assert.equal(call.properties.source, "budget_50000");
+    assert.equal(Object.hasOwn(call.properties, "email"), false);
+  }
+});
+
+test("guide CTA capture sends only contextual properties with beacon transport", () => {
+  const { analytics, calls } = recordingEnvironment();
+
+  analytics.trackDiagnosisCtaClicked({
+    sourcePage: "valorant_upgrade",
+    contentType: "guide",
+    game: "valorant",
+    budgetBand: "50000",
+    freeText: "must not be sent"
+  });
+
+  assert.deepEqual(calls[0], {
+    event: "diagnosis_cta_clicked",
+    properties: {
+      source_page: "valorant_upgrade",
+      content_type: "guide",
+      game: "valorant",
+      budget_band: "50000",
+      $geoip_disable: true
+    },
+    options: { transport: "sendBeacon", send_instantly: true }
   });
 });
 
 test("PostHog configuration is anonymous, explicit-only, and replay-free", () => {
-  const html = fs.readFileSync(path.join(projectRoot, "diagnose.html"), "utf8");
+  const config = fs.readFileSync(path.join(projectRoot, "posthog-init.js"), "utf8");
 
-  assert.match(html, /person_profiles:\s*"identified_only"/);
-  assert.match(html, /persistence:\s*"sessionStorage"/);
-  assert.match(html, /autocapture:\s*false/);
-  assert.match(html, /capture_pageview:\s*false/);
-  assert.match(html, /capture_pageleave:\s*false/);
-  assert.match(html, /disable_session_recording:\s*true/);
-  assert.doesNotMatch(html, /posthog\.identify\s*\(/);
+  assert.match(config, /person_profiles:\s*"identified_only"/);
+  assert.match(config, /persistence:\s*"sessionStorage"/);
+  assert.match(config, /autocapture:\s*false/);
+  assert.match(config, /capture_pageview:\s*false/);
+  assert.match(config, /capture_pageleave:\s*false/);
+  assert.match(config, /disable_session_recording:\s*true/);
+  assert.doesNotMatch(config, /posthog\.identify\s*\(/);
 });
