@@ -6,6 +6,25 @@
 <meta name="description" content="現在FPS、目標FPS、モニターHz、RAM、ストレージ、予算から、ゲーミング環境の次の投資先を診断します。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
 <title>ゲーミング環境 投資優先度診断 | GameFit Lab</title>
+<script src="./analytics.js"></script>
+<script>
+!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],Object.defineProperty(u,"toString",{configurable:!0,enumerable:!0,writable:!0,value:function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e}}),Object.defineProperty(u.people,"toString",{configurable:!0,enumerable:!0,writable:!0,value:function(){return u.toString(1)+".people (stub)"}}),o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+posthog.init("phc_uEn6vEUcG5vzWxAYwMksaFvUtKqzkk28K9F8o7gJwwSR", {
+  api_host: "https://us.i.posthog.com",
+  defaults: "2026-05-30",
+  persistence: "sessionStorage",
+  person_profiles: "identified_only",
+  autocapture: false,
+  capture_pageview: false,
+  capture_pageleave: false,
+  disable_session_recording: true,
+  advanced_disable_flags: true,
+  save_referrer: false,
+  save_campaign_params: false,
+  before_send: window.GameFitAnalytics.beforeSend
+});
+window.GameFitAnalytics.trackPageViewed();
+</script>
 <style>
 :root {
   color-scheme: dark;
@@ -268,6 +287,7 @@ select:focus, input:focus {
 .info-card { padding: 23px; border-top: 1px solid var(--line); color: var(--muted); }
 .info-card h2 { color: var(--text); font-size: 1.08rem; }
 .info-card p:last-child { margin-bottom: 0; }
+.info-card.privacy { grid-column: 1 / -1; }
 
 .source-links {
   display: flex;
@@ -483,6 +503,11 @@ select:focus, input:focus {
       <p>掲載する性能・価格・仕様等は参考情報です。実際のゲーム性能はPC構成、設定、ドライバ、ゲームアップデート等により変動します。</p>
       <p>最終的な購入判断は各メーカーの公式情報をご確認ください。</p>
     </article>
+
+    <article class="info-card privacy">
+      <h2>プライバシー</h2>
+      <p>匿名の利用状況分析にPostHogを使用し、診断改善のためページ閲覧、診断利用、ゲーム種別、FPS帯、予算帯、推奨結果等を取得する場合があります。診断では氏名・メールアドレス等を取得せず、CPU / GPUの自由入力内容も分析データとして送信しません。</p>
+    </article>
   </section>
 </main>
 
@@ -680,18 +705,43 @@ function renderResult(result, hardware) {
   document.getElementById("result-content").hidden = false;
 }
 
-document.getElementById("diagnosis-form").addEventListener("submit", event => {
+const diagnosisForm = document.getElementById("diagnosis-form");
+
+function formTrackingInput() {
+  const data = Object.fromEntries(new FormData(diagnosisForm));
+  window.GameFitAnalytics?.trackDiagnosisStarted(data);
+}
+
+function invalidReason(input) {
+  if (input.validity?.valueMissing) return "current_fps_missing";
+  if (input.validity?.rangeUnderflow) return "current_fps_below_minimum";
+  if (input.validity?.rangeOverflow) return "current_fps_above_maximum";
+  if (input.validity?.badInput) return "current_fps_not_number";
+  return "current_fps_invalid";
+}
+
+diagnosisForm.addEventListener("input", formTrackingInput);
+diagnosisForm.addEventListener("change", formTrackingInput);
+diagnosisForm.addEventListener("pointerdown", formTrackingInput);
+diagnosisForm.addEventListener("keydown", formTrackingInput);
+diagnosisForm.addEventListener("invalid", event => {
+  window.GameFitAnalytics?.trackInvalidInput(invalidReason(event.target));
+}, true);
+
+diagnosisForm.addEventListener("submit", event => {
   event.preventDefault();
   const data = Object.fromEntries(new FormData(event.currentTarget));
 
   try {
     const result = diagnoseInputs(data);
     renderResult(result, data.hardware.trim());
+    window.GameFitAnalytics?.trackDiagnosisCompleted(data, result);
 
     if (window.matchMedia("(max-width: 860px)").matches) {
       document.getElementById("result-panel").scrollIntoView({ behavior: "smooth", block: "start" });
     }
   } catch (error) {
+    window.GameFitAnalytics?.trackInvalidInput("current_fps_invalid");
     document.getElementById("currentFps").setCustomValidity(error.message);
     document.getElementById("currentFps").reportValidity();
   }
