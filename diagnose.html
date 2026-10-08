@@ -12,6 +12,7 @@
 <script src="./diagnosis-engine.js"></script>
 <script src="./analytics.js"></script>
 <script src="./affiliate.js"></script>
+<script src="./sharing.js"></script>
 <script src="./posthog-init.js"></script>
 <style>
 :root {
@@ -271,6 +272,32 @@ select:focus, input:focus {
 .affiliate-recommendations p { margin: 8px 0 0; }
 .affiliate-disclosure { display: inline-block; margin-left: 8px; color: var(--muted); font-size: .72rem; }
 
+.result-share {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.share-button {
+  min-height: 44px;
+  padding: 10px 15px;
+  border: 1px solid #45617f;
+  border-radius: 10px;
+  color: var(--text);
+  background: #10243b;
+  font: inherit;
+  font-size: .86rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.share-button:hover { border-color: var(--accent); background: #17314f; }
+.share-status { flex-basis: 100%; min-height: 1.5em; color: var(--muted); font-size: .78rem; }
+
 .details {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -473,6 +500,11 @@ select:focus, input:focus {
         <p id="result-summary" class="result-summary"></p>
         <ol id="ranking" class="ranking"></ol>
         <p id="recommendation" class="recommendation"></p>
+        <div class="result-share" aria-label="診断結果を共有">
+          <button id="share-x" class="share-button" type="button">Xで結果を共有</button>
+          <button id="copy-diagnosis-url" class="share-button" type="button">診断URLをコピー</button>
+          <span id="share-status" class="share-status" role="status" aria-live="polite"></span>
+        </div>
         <aside id="affiliate-recommendations" class="affiliate-recommendations" aria-label="広告リンク" hidden></aside>
       </div>
     </section>

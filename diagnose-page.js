@@ -3,11 +3,13 @@
 
   const games = root.GameFitGames;
   const diagnosis = root.GameFitDiagnosis;
-  if (!games || !diagnosis) throw new Error("GameFit diagnosis configuration failed to load");
+  const sharing = root.GameFitSharing;
+  if (!games || !diagnosis || !sharing) throw new Error("GameFit diagnosis configuration failed to load");
 
   const form = document.getElementById("diagnosis-form");
   const gameSelect = document.getElementById("game");
   const sourceLinks = document.getElementById("official-source-links");
+  let latestResult = null;
 
   function populateGames() {
     const requestedGame = new URLSearchParams(root.location.search).get("game");
@@ -70,12 +72,40 @@
     }));
 
     recommendation.textContent = result.advice;
+    latestResult = result;
+    document.getElementById("share-status").textContent = "";
     root.GameFitAffiliate?.render(document.getElementById("affiliate-recommendations"), result, {
       sourcePage: new URLSearchParams(root.location.search).get("source") || "diagnose"
     });
     document.getElementById("initial-state").hidden = true;
     document.getElementById("result-content").hidden = false;
   }
+
+  function sharedContext(platform) {
+    return {
+      platform,
+      game: latestResult?.game?.id,
+      topRecommendation: latestResult?.topRecommendation || latestResult?.ranked?.[0]?.key
+    };
+  }
+
+  document.getElementById("share-x").addEventListener("click", () => {
+    if (!latestResult) return;
+    root.open(sharing.buildXShareUrl(latestResult), "_blank", "noopener,noreferrer");
+    root.GameFitAnalytics?.trackResultShared(sharedContext("x"));
+  });
+
+  document.getElementById("copy-diagnosis-url").addEventListener("click", async () => {
+    if (!latestResult) return;
+    const status = document.getElementById("share-status");
+    try {
+      await sharing.copyDiagnosisUrl();
+      status.textContent = "診断URLをコピーしました。";
+      root.GameFitAnalytics?.trackResultShared(sharedContext("copy"));
+    } catch (_) {
+      status.textContent = "コピーできませんでした。ブラウザーの権限をご確認ください。";
+    }
+  });
 
   function formTrackingInput() {
     const data = Object.fromEntries(new FormData(form));

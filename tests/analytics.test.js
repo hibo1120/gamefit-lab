@@ -194,6 +194,56 @@ test("UTM and source attribution are retained on page view and completion", () =
   }
 });
 
+test("growth attribution is retained from landing through start and affiliate click", () => {
+  const search = "?utm_source=youtube&utm_medium=shorts&utm_campaign=gamefit_growth_v1&utm_content=yt_s01&source=yt_s01&hardware=private";
+  const { analytics, calls } = recordingEnvironment(search);
+
+  analytics.trackPageViewed();
+  analytics.trackDiagnosisStarted({ game: "valorant", device: "desktop" });
+  analytics.trackAffiliateClick({
+    merchant: "example_store",
+    category: "monitor",
+    destinationType: "product_page",
+    game: "valorant",
+    topRecommendation: "monitor",
+    sourcePage: "diagnose"
+  });
+
+  for (const call of calls) {
+    assert.equal(call.properties.utm_source, "youtube");
+    assert.equal(call.properties.utm_medium, "shorts");
+    assert.equal(call.properties.utm_campaign, "gamefit_growth_v1");
+    assert.equal(call.properties.utm_content, "yt_s01");
+    assert.equal(call.properties.source, "yt_s01");
+    assert.equal(JSON.stringify(call).includes("private"), false);
+  }
+});
+
+test("result_shared captures only platform, game, and recommendation", () => {
+  const { analytics, calls } = recordingEnvironment();
+
+  analytics.trackResultShared({
+    platform: "x",
+    game: "fortnite",
+    topRecommendation: "storage",
+    hardware: "SECRET CPU / GPU",
+    shareText: "PRIVATE"
+  });
+
+  assert.deepEqual(calls[0], {
+    event: "result_shared",
+    properties: {
+      platform: "x",
+      game: "fortnite",
+      top_recommendation: "storage",
+      $geoip_disable: true
+    },
+    options: undefined
+  });
+  assert.equal(JSON.stringify(calls[0]).includes("SECRET"), false);
+  assert.equal(JSON.stringify(calls[0]).includes("PRIVATE"), false);
+});
+
 test("guide CTA capture sends only contextual properties with beacon transport", () => {
   const { analytics, calls } = recordingEnvironment();
 

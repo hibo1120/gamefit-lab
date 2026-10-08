@@ -16,10 +16,10 @@
   const VALID_RECOMMENDATIONS = new Set(["keep", "monitor", "ram", "storage", "cpu_gpu", "pc_replacement", "device"]);
   const RECOMMENDATION_ALIASES = { performance: "cpu_gpu", replacement: "pc_replacement" };
   const VALID_BUDGET_BANDS = new Set(["10000", "30000", "50000", "100000", "150000", "200000"]);
-  const ATTRIBUTION_PROPERTIES = ["utm_source", "utm_medium", "utm_campaign", "source"];
+  const ATTRIBUTION_PROPERTIES = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "source"];
   const EVENT_PROPERTIES = {
     diagnosis_page_viewed: ATTRIBUTION_PROPERTIES,
-    diagnosis_started: ["game", "device_type"],
+    diagnosis_started: ["game", "device_type", ...ATTRIBUTION_PROPERTIES],
     diagnosis_completed: [
       "game",
       "device_type",
@@ -36,7 +36,8 @@
     ],
     diagnosis_invalid_input: ["reason"],
     diagnosis_cta_clicked: ["source_page", "content_type", "game", "budget_band"],
-    affiliate_clicked: ["merchant", "category", "destination_type", "game", "top_recommendation", "source_page", "budget_band"]
+    affiliate_clicked: ["merchant", "category", "destination_type", "game", "top_recommendation", "source_page", "budget_band", ...ATTRIBUTION_PROPERTIES],
+    result_shared: ["platform", "game", "top_recommendation"]
   };
   const SDK_PROPERTIES = new Set([
     "token",
@@ -171,6 +172,7 @@
     return safeCapture("diagnosis_started", {
       game: gameValue(input?.game),
       device_type: enumValue(input?.device, VALID_DEVICES, "unknown"),
+      ...attributionProperties(),
       $geoip_disable: true
     });
   }
@@ -261,6 +263,7 @@
       game: gameValue(context.game, currentGame()),
       top_recommendation: recommendationValue(context.topRecommendation || latestDiagnosis.topRecommendation),
       source_page: slugValue(context.sourcePage || currentSourcePage()),
+      ...attributionProperties(),
       $geoip_disable: true
     };
     if (budgetBand) properties.budget_band = budgetBand;
@@ -268,6 +271,15 @@
     return safeCapture("affiliate_clicked", properties, {
       transport: "sendBeacon",
       send_instantly: true
+    });
+  }
+
+  function trackResultShared(context) {
+    return safeCapture("result_shared", {
+      platform: enumValue(context?.platform, new Set(["x", "copy"]), "unknown"),
+      game: gameValue(context?.game, latestDiagnosis.game || "unknown"),
+      top_recommendation: recommendationValue(context?.topRecommendation || latestDiagnosis.topRecommendation),
+      $geoip_disable: true
     });
   }
 
@@ -283,6 +295,7 @@
     trackDiagnosisStarted,
     trackInvalidInput,
     trackPageViewed,
+    trackResultShared,
     createAnalytics
   };
 });

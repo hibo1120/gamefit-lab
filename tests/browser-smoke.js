@@ -46,6 +46,23 @@ async function verifyViewport(browser, origin, viewport) {
     body: ""
   }));
   const page = await context.newPage();
+  await page.addInitScript(() => {
+    window.__openedShareUrl = "";
+    window.__copiedDiagnosisUrl = "";
+    window.open = url => {
+      window.__openedShareUrl = String(url);
+      return null;
+    };
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText(value) {
+          window.__copiedDiagnosisUrl = String(value);
+          return Promise.resolve();
+        }
+      }
+    });
+  });
   const errors = [];
   page.on("console", message => {
     if (message.type() === "error" && !message.text().includes("posthog")) errors.push(message.text());
@@ -69,6 +86,23 @@ async function verifyViewport(browser, origin, viewport) {
     await page.locator("#ranking .rank-card").first().waitFor();
     assert.equal(await page.locator("#ranking .rank-card").count(), 5, game);
   }
+
+  await page.fill("#hardware", "SECRET CPU / GPU FREE TEXT");
+  await page.click("button[type=submit]");
+  await page.click("#share-x");
+  const openedShareUrl = await page.evaluate(() => window.__openedShareUrl);
+  const shareIntent = new URL(openedShareUrl);
+  assert.equal(shareIntent.origin, "https://x.com");
+  assert.equal(shareIntent.pathname, "/intent/post");
+  assert.equal(openedShareUrl.includes("SECRET"), false);
+  assert.equal(new URL(shareIntent.searchParams.get("url")).searchParams.get("utm_content"), "result_share");
+
+  await page.click("#copy-diagnosis-url");
+  await page.getByText("診断URLをコピーしました。").waitFor();
+  const copiedUrl = new URL(await page.evaluate(() => window.__copiedDiagnosisUrl));
+  assert.equal(copiedUrl.searchParams.get("utm_content"), "result_copy");
+  assert.equal(await page.locator("#share-x").isVisible(), true);
+  assert.equal(await page.locator("#copy-diagnosis-url").isVisible(), true);
 
   assert.equal(await page.locator("#affiliate-recommendations").isHidden(), true);
   await page.fill("#currentFps", "0");

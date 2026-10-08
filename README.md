@@ -19,9 +19,11 @@ GitHub Pagesで配信できるよう、ビルド不要のHTML・CSS・JavaScript
 | `data/merchants.js` | 広告主、Affiliate URL、カテゴリ、公開可否 |
 | `data/products.js` | 将来の商品DB向け最小スキーマ。現在の商品データは空 |
 | `affiliate.js` | CTA生成条件、表示、クリック計測の共通処理 |
+| `sharing.js` | 結果カテゴリ別の共有文、X Web Intent、診断URLコピー |
 | `analytics.js` | PostHogイベント、送信値の許可リスト、fail-safe |
 | `posthog-init.js` | 匿名・明示イベントのみのPostHog初期化 |
 | `guides/` | SEO用の8ガイド |
+| `growth/` | Shorts 12本、X 30本、note 6本、30日カレンダー、海外展開チェック |
 | `tests/` | 診断、Affiliate、Analytics、SEO、リンクの回帰テスト |
 
 データの流れは `games.js → diagnosis-engine.js → diagnose-page.js` です。診断結果の上位カテゴリを `affiliate.js` が `merchants.js` と照合します。広告主が無効、URLが空、カテゴリ不一致のいずれかならCTAは生成されません。
@@ -98,13 +100,28 @@ Playwrightを利用できる環境では `node tests/browser-smoke.js` でPC幅�
 | イベント | 発火 | 主なproperties |
 | --- | --- | --- |
 | `diagnosis_page_viewed` | 診断ページ表示 | UTM、`source` |
-| `diagnosis_started` | セッション最初のフォーム操作 | `game`, `device_type` |
+| `diagnosis_started` | セッション最初のフォーム操作 | `game`, `device_type`, UTM、`source` |
 | `diagnosis_completed` | 診断成功 | FPS帯、目標FPS、Hz、RAM、ストレージ、予算、結果 |
 | `diagnosis_invalid_input` | 入力エラー | 正規化済み`reason` |
 | `diagnosis_cta_clicked` | ガイドから診断へ遷移 | ガイド、ゲーム、予算帯 |
-| `affiliate_clicked` | 表示済み広告CTAのクリック | `merchant`, `category`, `destination_type`, `game`, `top_recommendation`, `source_page`, `budget_band` |
+| `affiliate_clicked` | 表示済み広告CTAのクリック | 広告主、カテゴリ、結果、予算帯、UTM、`source` |
+| `result_shared` | X共有または診断URLコピー | `platform`, `game`, `top_recommendation` |
 
 CPU/GPUの自由入力値は画面内の構成メモにだけ使い、Analyticsへ送りません。`analytics.js` の許可リストにないpropertiesとイベントは `beforeSend` で破棄します。PostHogが未読込・停止・例外の場合も診断とリンク遷移は継続します。
+
+### Growth流入の比較
+
+`growth/`内のURLは次の規則で統一しています。
+
+- Shorts: `utm_source=youtube&utm_medium=shorts`
+- X: `utm_source=x&utm_medium=social`
+- note: `utm_source=note&utm_medium=article`
+- 共通campaign: `gamefit_growth_v1`
+- 個別判別: `utm_content`と`source`へcontent IDを設定
+
+PostHogでは`utm_source`、`utm_medium`、`utm_campaign`、`utm_content`、`source`で絞り、`diagnosis_page_viewed → diagnosis_started → diagnosis_completed → affiliate_clicked`のユニークユーザーファネルを作成します。`diagnosis_started`以降にも同じ流入値を明示的に付けるため、媒体別・コンテンツ別の開始率、完了率、将来のAffiliateクリック率を比較できます。URLから許可済みの識別子だけを取得し、任意のクエリや自由入力はイベントへ含めません。
+
+結果画面のX共有はXのWeb Intentを開くだけで、X APIや外部アカウント連携は使いません。共有文は結果カテゴリだけから生成し、CPU/GPU自由入力値を含めません。URLコピーも公開中の診断URLと共有専用UTMだけをコピーします。
 
 ## 本番公開前チェック
 
@@ -114,6 +131,8 @@ CPU/GPUの自由入力値は画面内の構成メモにだけ使い、Analytics�
 - 未承認広告主のCTAが表示されない。
 - 承認済みのテスト設定では正しいリンクと`affiliate_clicked`が生成される。
 - CPU/GPU自由入力値がPostHogへ送られない。
+- 結果共有文にCPU/GPU自由入力値が含まれず、X IntentとコピーURLのUTMが正しい。
+- Growth URLの媒体、campaign、content IDが`content_calendar.csv`と一致する。
 - PC幅と390px幅で横スクロールや重なりがない。
 - ブラウザーのコンソールエラー、内部リンク404がない。
 - `sitemap.xml`と`robots.txt`がHTTP 200である。
