@@ -4,6 +4,8 @@
 
 - 公開サイト: https://hibo1120.github.io/gamefit-lab/
 - 診断: https://hibo1120.github.io/gamefit-lab/diagnose.html
+- Globalテスト: https://hibo1120.github.io/gamefit-lab/en/
+- Global診断: https://hibo1120.github.io/gamefit-lab/en/diagnose.html
 - 初期対応: VALORANT / Apex Legends / Fortnite / Monster Hunter Wilds
 
 ## アーキテクチャ
@@ -24,6 +26,8 @@ GitHub Pagesで配信できるよう、ビルド不要のHTML・CSS・JavaScript
 | `posthog-init.js` | 匿名・明示イベントのみのPostHog初期化 |
 | `guides/` | SEO用の8ガイド |
 | `growth/` | Shorts 12本、X 30本、note 6本、30日カレンダー、海外展開チェック |
+| `en/` | Global最小版。英語UI、USD予算アダプター、英語ガイド4本 |
+| `growth/en/` | Global需要検証用のShorts 6本、X 10本、Reddit調査案5本 |
 | `tests/` | 診断、Affiliate、Analytics、SEO、リンクの回帰テスト |
 
 データの流れは `games.js → diagnosis-engine.js → diagnose-page.js` です。診断結果の上位カテゴリを `affiliate.js` が `merchants.js` と照合します。広告主が無効、URLが空、カテゴリ不一致のいずれかならCTAは生成されません。
@@ -70,6 +74,8 @@ Playwrightを利用できる環境では `node tests/browser-smoke.js` でPC幅�
 
 - `merchant_id`: Analyticsにも使う英数字ID
 - `merchant_name`: 画面表示名
+- `region`: `JP`、`US`などの販売地域
+- `currency`: `JPY`、`USD`などの通貨
 - `enabled`: 公開可否。承認・確認が終わるまでは必ず `false`
 - `affiliate_url`: 承認されたHTTPS URL。未承認時は空文字
 - `categories`: 接続できる推薦カテゴリ
@@ -78,7 +84,7 @@ Playwrightを利用できる環境では `node tests/browser-smoke.js` でPC幅�
 - `priority`: 同カテゴリ内の表示優先度
 - `notes`: 審査状況や運用メモ
 
-現在のMouse Computer、Razer、Amazon、楽天市場はすべて `enabled: false`、URL空欄です。本物のAffiliate URLは登録していません。
+日本向けのMouse Computer、Razer、Amazon、楽天市場と、Global検証用のRazer US、Lenovo US、Newegg、Amazon USはすべて `enabled: false`、URL空欄です。本物のAffiliate URLは登録していません。診断画面は地域が一致する広告主だけを候補にするため、日本向けURLを英語版へ誤表示しません。
 
 ### Affiliateを有効化する手順
 
@@ -93,14 +99,14 @@ Playwrightを利用できる環境では `node tests/browser-smoke.js` でPC幅�
 
 ## 将来の商品DB
 
-`data/products.js` の `PRODUCT_SCHEMA` が最小インターフェースです。商品は広告主ID、公開可否、遷移先、価格の確認時刻、仕様、対応推薦カテゴリを持つ想定です。現在の商品配列は空で、価格スクレイピング、在庫取得、自動巡回は実装していません。
+`data/products.js` の `PRODUCT_SCHEMA` が最小インターフェースです。商品は広告主ID、地域、通貨、公開可否、遷移先、価格の確認時刻、仕様、対応推薦カテゴリを持つ想定です。現在の商品配列は空で、価格スクレイピング、在庫取得、自動巡回は実装していません。
 
 ## PostHogイベント
 
 | イベント | 発火 | 主なproperties |
 | --- | --- | --- |
-| `diagnosis_page_viewed` | 診断ページ表示 | UTM、`source` |
-| `diagnosis_started` | セッション最初のフォーム操作 | `game`, `device_type`, UTM、`source` |
+| `diagnosis_page_viewed` | 診断ページ表示 | UTM、`source`、言語・地域版・ページ |
+| `diagnosis_started` | 地域版ごとのセッション最初のフォーム操作 | `game`, `device_type`, UTM、`source`、言語・地域版・ページ |
 | `diagnosis_completed` | 診断成功 | FPS帯、目標FPS、Hz、RAM、ストレージ、予算、結果 |
 | `diagnosis_invalid_input` | 入力エラー | 正規化済み`reason` |
 | `diagnosis_cta_clicked` | ガイドから診断へ遷移 | ガイド、ゲーム、予算帯 |
@@ -108,6 +114,8 @@ Playwrightを利用できる環境では `node tests/browser-smoke.js` でPC幅�
 | `result_shared` | X共有または診断URLコピー | `platform`, `game`, `top_recommendation` |
 
 CPU/GPUの自由入力値は画面内の構成メモにだけ使い、Analyticsへ送りません。`analytics.js` の許可リストにないpropertiesとイベントは `beforeSend` で破棄します。PostHogが未読込・停止・例外の場合も診断とリンク遷移は継続します。
+
+全イベントに `language`（`ja` / `en`）、`region_version`（`jp` / `global`）、`page_source` を付けます。日本版とGlobal版は同じイベント名と推薦カテゴリを使うため、同じファネルで比較できます。英語版の予算は `$100 / $300 / $500 / $1,000 / $1,500 / $2,000+` の独立した意思決定帯で、円からの為替換算ではありません。`en/locale.js` がこの表示帯を共有診断エンジンの相対予算帯へ接続し、スコア規則のコピーを防ぎます。
 
 ### Growth流入の比較
 
@@ -123,6 +131,19 @@ PostHogでは`utm_source`、`utm_medium`、`utm_campaign`、`utm_content`、`sou
 
 結果画面のX共有はXのWeb Intentを開くだけで、X APIや外部アカウント連携は使いません。共有文は結果カテゴリだけから生成し、CPU/GPU自由入力値を含めません。URLコピーも公開中の診断URLと共有専用UTMだけをコピーします。
 
+### Global小規模検証
+
+`growth/en/` の全URLは `utm_campaign=gamefit_global_test` を使い、`utm_source`は `youtube`、`x`、`reddit`、`utm_medium`は順に `shorts`、`social`、`community`です。content IDはすべて `en_` で始まり、日本向け素材と重複しません。SNSへの投稿は自動化せず、人間が各媒体・コミュニティの規則と最新情報を確認して手動で行います。
+
+初期判断は50〜100訪問を目安に、次を比較します。
+
+- 訪問→診断開始率、開始→完了率、完了数（言語・媒体・content ID別）
+- `keep`を含む推薦カテゴリ分布と結果共有率
+- 自由記述で得る「結果が妥当か」「どの入力が不足か」という明確な反応
+- Affiliate承認後のみ、地域が一致する`affiliate_clicked`の有無
+
+大規模な英語コンテンツDBや商品DBへ進む条件は、Global診断が50件以上完了し、(a) 有効化後のAffiliateクリックが観測できる、または (b) SNS・コミュニティで再訪、共有、具体的改善要求など明確な需要シグナルが得られることです。50件未満や、訪問しても開始・完了されない段階では拡張せず、コピー、入力負荷、流入意図を先に検証します。クリックだけで事業性を断定せず、地域別価格・広告規約・購入意図を別途確認します。
+
 ## 本番公開前チェック
 
 - `git status`で意図したファイルだけが差分になっている。
@@ -137,6 +158,9 @@ PostHogでは`utm_source`、`utm_medium`、`utm_campaign`、`utm_content`、`sou
 - ブラウザーのコンソールエラー、内部リンク404がない。
 - `sitemap.xml`と`robots.txt`がHTTP 200である。
 - 8ガイド、公式動作環境、広告・免責・プライバシー表記を確認する。
+- Globalのトップ、診断、英語4ガイド、言語切替、hreflang、canonical、OG/Twitter、USD 6予算帯を確認する。
+- Globalの全Affiliate CTAが非表示で、US向けプレースホルダーが無効・URL空欄であることを確認する。
+- `language=en`、`region_version=global`、`page_source`が各イベントへ付き、CPU/GPU自由入力が送られないことを確認する。
 - `origin/main`へpush後、GitHub Pagesの反映コミットと公開URLを確認する。
 
 ## 運営方針・広告・免責

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-page-source="en_diagnose">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Free Gaming PC Upgrade Priority Check | GameFit Global</title>
+<meta name="description" content="Rank monitor, RAM, storage, CPU/GPU, PC replacement and keeping your current setup using your FPS goal and USD budget band.">
+<link rel="canonical" href="https://hibo1120.github.io/gamefit-lab/en/diagnose.html">
+<link rel="alternate" hreflang="ja" href="https://hibo1120.github.io/gamefit-lab/diagnose.html"><link rel="alternate" hreflang="en" href="https://hibo1120.github.io/gamefit-lab/en/diagnose.html"><link rel="alternate" hreflang="x-default" href="https://hibo1120.github.io/gamefit-lab/diagnose.html">
+<meta property="og:type" content="website"><meta property="og:locale" content="en_US"><meta property="og:site_name" content="GameFit Lab"><meta property="og:title" content="Free Gaming PC Upgrade Priority Check"><meta property="og:description" content="Find where your next gaming budget is most likely to matter—or why you should keep it."><meta property="og:url" content="https://hibo1120.github.io/gamefit-lab/en/diagnose.html">
+<meta name="twitter:card" content="summary"><meta name="twitter:title" content="GameFit Global Upgrade Check"><meta name="twitter:description" content="Rank your next monitor, RAM, storage, PC performance or replacement decision.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E"><link rel="stylesheet" href="./global.css">
+<script src="./context.js"></script><script src="../data/games.js"></script><script src="../data/merchants.js"></script><script src="../data/products.js"></script><script src="../diagnosis-engine.js"></script><script src="./locale.js"></script><script src="../analytics.js"></script><script src="../affiliate.js"></script><script src="./sharing.js"></script><script src="../posthog-init.js"></script>
+</head>
+<body>
+<header class="shell site-header"><a class="brand" href="./">GameFit Global</a><nav class="header-nav" aria-label="Primary"><a href="./">Home</a><span class="language-switch"><a href="../diagnose.html" lang="ja">日本語</a> / <a href="./diagnose.html" aria-current="page">EN</a></span></nav></header>
+<main>
+  <section class="shell hero"><div><p class="eyebrow">Gaming setup priority check</p><h1>Put the next dollar where it matters.</h1><p class="lead">Compare your current FPS, target, display, memory, storage and budget. The result ranks the most useful next move—including keeping what you have.</p></div><aside class="hero-note"><strong>USD bands are decision ranges, not currency conversions.</strong><p>This Global test uses $100, $300, $500, $1,000, $1,500 and $2,000+ as separate planning bands.</p></aside></section>
+  <section class="shell workspace" aria-label="Gaming setup diagnosis">
+    <form id="diagnosis-form" class="panel">
+      <div class="panel-heading"><div><h2>Describe your setup</h2><p>Use the performance you see in the games and settings you actually play.</p></div><span class="step">01 INPUT</span></div>
+      <div class="form-grid">
+        <div class="field full"><label for="game">Main game</label><select id="game" name="game" required></select></div>
+        <div class="field"><label for="currentFps">Current approximate FPS</label><input id="currentFps" name="currentFps" type="number" min="1" max="1000" step="1" value="100" required inputmode="numeric"></div>
+        <div class="field"><label for="targetFps">Target FPS</label><select id="targetFps" name="targetFps"><option value="60">60 FPS</option><option value="120">120 FPS</option><option value="144" selected>144 FPS</option><option value="165">165 FPS</option><option value="240">240 FPS</option><option value="360">360 FPS</option></select></div>
+        <div class="field"><label for="monitorHz">Monitor refresh rate</label><select id="monitorHz" name="monitorHz"><option value="60">60 Hz</option><option value="75">75 Hz</option><option value="120">120 Hz</option><option value="144" selected>144 Hz</option><option value="165">165 Hz</option><option value="240">240 Hz</option><option value="360">360 Hz+</option></select></div>
+        <div class="field"><label for="ram">RAM</label><select id="ram" name="ram"><option value="4">4 GB or less</option><option value="8">8 GB</option><option value="16" selected>16 GB</option><option value="32">32 GB</option><option value="64">64 GB+</option></select></div>
+        <div class="field"><label for="storage">Game storage</label><select id="storage" name="storage"><option value="hdd">Hard drive</option><option value="ssd">SATA SSD</option><option value="nvme" selected>NVMe SSD</option></select></div>
+        <div class="field"><label for="budget">Additional budget</label><select id="budget" name="budget"><option value="100">$100</option><option value="300">$300</option><option value="500" selected>$500</option><option value="1000">$1,000</option><option value="1500">$1,500</option><option value="2000">$2,000+</option></select></div>
+        <div class="field"><label for="device">PC type</label><select id="device" name="device"><option value="desktop">Desktop</option><option value="laptop">Gaming laptop</option></select></div>
+        <div class="field"><label for="stream">Streaming / video editing</label><select id="stream" name="stream"><option value="no">No</option><option value="yes">Yes</option></select></div>
+        <div class="field full"><label for="hardware">CPU / GPU <span class="hint">optional, shown only in your local result</span></label><input id="hardware" name="hardware" placeholder="Example: Ryzen 5 5600X / RTX 3060" maxlength="120"></div>
+      </div><button class="submit-button" type="submit">Rank my upgrade priorities</button>
+    </form>
+    <section id="result-panel" class="panel results-panel" aria-live="polite"><div class="panel-heading"><div><h2>Priority ranking</h2><p>Five choices, scored with the shared GameFit engine.</p></div><span class="step">02 RESULT</span></div><div id="initial-state" class="initial-state"><div><strong>No result yet</strong>Complete the form and run the check.</div></div><div id="result-content" class="result-content" hidden><p id="result-summary" class="result-summary"></p><ol id="ranking" class="ranking"></ol><p id="recommendation" class="recommendation"></p><div class="result-share" aria-label="Share diagnosis result"><button id="share-x" class="share-button" type="button">Share result on X</button><button id="copy-diagnosis-url" class="share-button" type="button">Copy diagnosis link</button><span id="share-status" class="share-status" role="status" aria-live="polite"></span></div><aside id="affiliate-recommendations" class="affiliate-recommendations" aria-label="Advertising links" hidden></aside></div></section>
+  </section>
+  <section class="shell details">
+    <article class="info-card"><h2>How the ranking works</h2><p>The check combines FPS gap, display limit, game-specific memory and storage guidance, device type and budget. It is an independent GameFit judgment—not an official game requirement.</p><div id="official-source-links" class="source-links" aria-label="Official PC requirement sources"></div></article>
+    <article class="info-card"><h2>Advertising disclosure</h2><p>GameFit may use affiliate links in the future and may receive compensation after a qualifying purchase. All Global merchant links are currently disabled. Compensation never changes diagnosis scores.</p></article>
+    <article class="info-card"><h2>Limitations</h2><p>This is a simplified planning tool, not a benchmark, compatibility decision, price quote or performance guarantee. Verify current publisher and manufacturer information before buying.</p></article>
+    <article class="info-card privacy"><h2>Privacy</h2><p>Anonymous analytics may record page and diagnosis events, language, game, broad FPS and budget bands, and the top result. The optional CPU/GPU free-text field is not sent in diagnosis analytics. Do not enter personal information.</p></article>
+  </section>
+  <section class="shell section"><div class="section-heading"><p class="eyebrow">Read before spending</p><h2>Decision guides</h2></div><div class="guide-grid"><a class="guide-card" href="./guides/upgrade-or-replace.html"><h3>Upgrade or replace?</h3></a><a class="guide-card" href="./guides/gpu-or-monitor.html"><h3>GPU or monitor?</h3></a><a class="guide-card" href="./guides/budget-500.html"><h3>What can $500 change?</h3></a><a class="guide-card" href="./guides/do-i-need-new-gaming-pc.html"><h3>Do you need a new PC?</h3></a></div></section>
+</main>
+<footer class="site-footer"><div class="shell">GameFit Global — find the bottleneck before you buy.</div></footer>
+<script src="./diagnose-page.js"></script>
+</body>
+</html>

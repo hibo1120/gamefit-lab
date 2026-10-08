@@ -22,23 +22,30 @@ test("the four initial games load with official and GameFit fields separated", (
 
 test("all unapproved merchants are disabled and have no affiliate URL", () => {
   assert.deepEqual(merchants.merchants.map(item => item.merchant_id), [
-    "mouse_computer", "razer", "amazon", "rakuten"
+    "mouse_computer", "razer", "amazon", "rakuten",
+    "razer_us", "lenovo_us", "newegg_us", "amazon_us"
   ]);
   for (const merchant of merchants.merchants) {
     assert.equal(merchant.enabled, false, merchant.merchant_id);
     assert.equal(merchant.affiliate_url, "", merchant.merchant_id);
     assert.equal(merchants.isRenderable(merchant), false, merchant.merchant_id);
+    assert.ok(["JP", "US"].includes(merchant.region), merchant.merchant_id);
+    assert.ok(["JPY", "USD"].includes(merchant.currency), merchant.merchant_id);
   }
 });
 
 test("future product schema validates category and safe publication state", () => {
   assert.ok(products.PRODUCT_SCHEMA.required.includes("merchant_id"));
+  assert.ok(products.PRODUCT_SCHEMA.required.includes("region"));
+  assert.ok(products.PRODUCT_SCHEMA.required.includes("currency"));
   assert.deepEqual(products.products, []);
   assert.deepEqual(products.validateProduct({
     product_id: "sample-monitor",
     product_name: "Sample Monitor",
     category: "monitor",
     merchant_id: "sample",
+    region: "US",
+    currency: "USD",
     enabled: false,
     destination_url: ""
   }), []);
@@ -47,6 +54,8 @@ test("future product schema validates category and safe publication state", () =
     product_name: "Sample",
     category: "invalid",
     merchant_id: "sample",
+    region: "JP",
+    currency: "JPY",
     enabled: true,
     destination_url: ""
   }), ["category is invalid", "enabled products require an https destination_url"]);

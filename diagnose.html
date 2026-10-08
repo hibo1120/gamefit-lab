@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="現在FPS、目標FPS、モニターHz、RAM、ストレージ、予算から、ゲーミング環境の次の投資先を診断します。">
+<link rel="canonical" href="https://hibo1120.github.io/gamefit-lab/diagnose.html">
+<link rel="alternate" hreflang="ja" href="https://hibo1120.github.io/gamefit-lab/diagnose.html">
+<link rel="alternate" hreflang="en" href="https://hibo1120.github.io/gamefit-lab/en/diagnose.html">
+<link rel="alternate" hreflang="x-default" href="https://hibo1120.github.io/gamefit-lab/diagnose.html">
+<meta property="og:type" content="website"><meta property="og:locale" content="ja_JP"><meta property="og:site_name" content="GameFit Lab"><meta property="og:title" content="ゲーミング環境 投資優先度診断"><meta property="og:description" content="PC買替だけでなく、モニター、RAM、ストレージ、現状維持も同じ基準で比較します。"><meta property="og:url" content="https://hibo1120.github.io/gamefit-lab/diagnose.html">
+<meta name="twitter:card" content="summary"><meta name="twitter:title" content="GameFit無料診断"><meta name="twitter:description" content="次の予算をゲーミング環境のどこへ使うべきか診断します。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
 <title>ゲーミング環境 投資優先度診断 | GameFit Lab</title>
 <script src="./data/games.js"></script>
@@ -63,6 +69,9 @@ a:hover { color: #a4fff2; }
 }
 
 .back-link { color: var(--muted); font-size: .92rem; text-decoration: none; }
+.header-nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 14px; }
+.language-switch { color: var(--muted); font-size: .86rem; }
+.language-switch [aria-current="page"] { color: var(--text); font-weight: 800; }
 
 .hero {
   display: grid;
@@ -361,7 +370,7 @@ select:focus, input:focus {
 <body>
 <header class="shell site-header">
   <a class="brand" href="./">GameFit Lab</a>
-  <a class="back-link" href="./">トップページへ戻る</a>
+  <nav class="header-nav" aria-label="メインナビゲーション"><a class="back-link" href="./">トップページへ戻る</a><span class="language-switch"><a href="./diagnose.html" aria-current="page">JP</a> / <a href="./en/diagnose.html" lang="en">EN</a></span></nav>
 </header>
 
 <main>

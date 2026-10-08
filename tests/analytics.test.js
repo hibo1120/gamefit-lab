@@ -6,6 +6,7 @@ const test = require("node:test");
 const analyticsModule = require("../analytics.js");
 const diagnosisEngine = require("../diagnosis-engine.js");
 const projectRoot = path.join(__dirname, "..");
+const JP_CONTEXT = { language: "ja", region_version: "jp", page_source: "index" };
 
 function memorySessionStorage() {
   const values = new Map();
@@ -15,14 +16,15 @@ function memorySessionStorage() {
   };
 }
 
-function recordingEnvironment(search = "") {
+function recordingEnvironment(search = "", pageContext = null, pathname = "") {
   const calls = [];
   const root = {
     posthog: {
       capture(event, properties, options) { calls.push({ event, properties, options }); }
     },
     sessionStorage: memorySessionStorage(),
-    location: { search },
+    location: { search, pathname },
+    GameFitPageContext: pageContext,
     document: {
       getElementById() { return { value: "valorant" }; }
     }
@@ -58,7 +60,7 @@ test("first form interaction captures diagnosis_started once per session", () =>
   assert.equal(analytics.trackDiagnosisStarted(input), false);
   assert.deepEqual(calls, [{
     event: "diagnosis_started",
-    properties: { game: "apex", device_type: "laptop", $geoip_disable: true },
+    properties: { game: "apex", device_type: "laptop", ...JP_CONTEXT, $geoip_disable: true },
     options: undefined
   }]);
 });
@@ -93,6 +95,7 @@ test("diagnosis_completed uses the required privacy-safe properties", () => {
     streaming: true,
     top_recommendation: "cpu_gpu",
     recommendation_count: 2,
+    ...JP_CONTEXT,
     $geoip_disable: true
   });
   assert.equal(calls[0].options, undefined);
@@ -118,7 +121,7 @@ test("invalid input captures only a normalized reason", () => {
   assert.equal(analytics.trackInvalidInput("current_fps_above_maximum"), true);
   assert.deepEqual(calls[0], {
     event: "diagnosis_invalid_input",
-    properties: { reason: "current_fps_above_maximum", $geoip_disable: true },
+    properties: { reason: "current_fps_above_maximum", ...JP_CONTEXT, $geoip_disable: true },
     options: undefined
   });
 });
@@ -169,6 +172,7 @@ test("affiliate helper sends the complete normalized context", () => {
       top_recommendation: "monitor",
       source_page: "diagnose",
       budget_band: "50000",
+      ...JP_CONTEXT,
       $geoip_disable: true
     },
     options: { transport: "sendBeacon", send_instantly: true }
@@ -236,6 +240,7 @@ test("result_shared captures only platform, game, and recommendation", () => {
       platform: "x",
       game: "fortnite",
       top_recommendation: "storage",
+      ...JP_CONTEXT,
       $geoip_disable: true
     },
     options: undefined
@@ -262,10 +267,45 @@ test("guide CTA capture sends only contextual properties with beacon transport",
       content_type: "guide",
       game: "valorant",
       budget_band: "50000",
+      ...JP_CONTEXT,
       $geoip_disable: true
     },
     options: { transport: "sendBeacon", send_instantly: true }
   });
+});
+
+test("Global events carry comparable language, region, and page context without hardware text", () => {
+  const { analytics, calls } = recordingEnvironment(
+    "?utm_source=x&utm_medium=social&utm_campaign=gamefit_global_test&utm_content=en_x_09&source=en_x_09",
+    { language: "en", regionVersion: "global", pageSource: "en_diagnose" },
+    "/gamefit-lab/en/diagnose.html"
+  );
+  const input = {
+    game: "valorant", device: "desktop", currentFps: "100", targetFps: "144",
+    monitorHz: "144", ram: "16", storage: "nvme", budget: "500", stream: "no",
+    hardware: "SECRET GLOBAL CPU GPU"
+  };
+  const result = { topRecommendation: "cpu_gpu", ranked: [{ key: "cpu_gpu" }] };
+
+  analytics.trackPageViewed();
+  analytics.trackDiagnosisStarted(input);
+  analytics.trackDiagnosisCompleted(input, result);
+  analytics.trackDiagnosisCtaClicked({ sourcePage: "en_index", contentType: "landing", budgetBand: "500" });
+  analytics.trackAffiliateClick({ merchant: "test_us", category: "cpu_gpu", destinationType: "manufacturer_store", game: "valorant", topRecommendation: "cpu_gpu", sourcePage: "en_diagnose", budgetBand: "500" });
+  analytics.trackResultShared({ platform: "x", game: "valorant", topRecommendation: "cpu_gpu", hardware: "SECRET GLOBAL CPU GPU" });
+
+  assert.deepEqual(calls.map(call => call.event), [
+    "diagnosis_page_viewed", "diagnosis_started", "diagnosis_completed",
+    "diagnosis_cta_clicked", "affiliate_clicked", "result_shared"
+  ]);
+  for (const call of calls) {
+    assert.equal(call.properties.language, "en", call.event);
+    assert.equal(call.properties.region_version, "global", call.event);
+    assert.equal(call.properties.page_source, "en_diagnose", call.event);
+    assert.equal(JSON.stringify(call).includes("SECRET"), false, call.event);
+  }
+  assert.equal(calls[2].properties.budget, 500);
+  assert.equal(calls[4].properties.budget_band, "500");
 });
 
 test("PostHog configuration is anonymous, explicit-only, and replay-free", () => {

@@ -1,5 +1,12 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
 <script>document.head.append(document.currentScript.previousElementSibling);</script>
+<link rel="canonical" href="https://hibo1120.github.io/gamefit-lab/">
+<link rel="alternate" hreflang="ja" href="https://hibo1120.github.io/gamefit-lab/">
+<link rel="alternate" hreflang="en" href="https://hibo1120.github.io/gamefit-lab/en/">
+<link rel="alternate" hreflang="x-default" href="https://hibo1120.github.io/gamefit-lab/">
+<script>document.querySelectorAll('link[rel="canonical"],link[rel="alternate"]').forEach(function(link){document.head.append(link);});</script>
+
+[JP](./) / [EN](./en/)
 
 # GameFit Lab
 

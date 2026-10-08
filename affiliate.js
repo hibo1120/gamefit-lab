@@ -19,7 +19,7 @@
 
     return {
       href: merchant.affiliate_url,
-      label: `${merchant.merchant_name}で候補を見る`,
+      label: context.language === "en" ? `Browse options at ${merchant.merchant_name}` : `${merchant.merchant_name}で候補を見る`,
       disclosureLabel: merchant.disclosure_label,
       rel: "sponsored nofollow noopener",
       target: "_blank",
@@ -41,7 +41,7 @@
 
     for (const recommendation of result?.ranked || []) {
       const category = recommendation.affiliateCategory || recommendation.key;
-      const merchant = merchantCatalog.forCategory(category, catalog)
+      const merchant = merchantCatalog.forCategory(category, catalog, context.region || "JP")
         .find(candidate => !usedMerchants.has(candidate.merchant_id));
       if (!merchant) continue;
 
@@ -49,7 +49,8 @@
         game: result.game?.id,
         topRecommendation: result.topRecommendation || result.ranked?.[0]?.key,
         sourcePage: context.sourcePage,
-        budgetBand: context.budgetBand || String(result.budget || "")
+        budgetBand: context.budgetBand || String(result.budget || ""),
+        language: context.language || "ja"
       });
       if (model) {
         usedMerchants.add(merchant.merchant_id);
@@ -68,7 +69,7 @@
     if (models.length === 0) return models;
 
     const heading = container.ownerDocument.createElement("h3");
-    heading.textContent = "関連する選択肢";
+    heading.textContent = context.language === "en" ? "Relevant options" : "関連する選択肢";
     container.append(heading);
 
     for (const model of models) {

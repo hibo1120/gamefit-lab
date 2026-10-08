@@ -15,11 +15,12 @@
   const VALID_DEVICES = new Set(["desktop", "laptop"]);
   const VALID_RECOMMENDATIONS = new Set(["keep", "monitor", "ram", "storage", "cpu_gpu", "pc_replacement", "device"]);
   const RECOMMENDATION_ALIASES = { performance: "cpu_gpu", replacement: "pc_replacement" };
-  const VALID_BUDGET_BANDS = new Set(["10000", "30000", "50000", "100000", "150000", "200000"]);
+  const VALID_BUDGET_BANDS = new Set(["100", "300", "500", "1000", "1500", "2000", "10000", "30000", "50000", "100000", "150000", "200000"]);
   const ATTRIBUTION_PROPERTIES = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "source"];
+  const PAGE_CONTEXT_PROPERTIES = ["language", "region_version", "page_source"];
   const EVENT_PROPERTIES = {
-    diagnosis_page_viewed: ATTRIBUTION_PROPERTIES,
-    diagnosis_started: ["game", "device_type", ...ATTRIBUTION_PROPERTIES],
+    diagnosis_page_viewed: [...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
+    diagnosis_started: ["game", "device_type", ...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     diagnosis_completed: [
       "game",
       "device_type",
@@ -32,12 +33,13 @@
       "streaming",
       "top_recommendation",
       "recommendation_count",
-      ...ATTRIBUTION_PROPERTIES
+      ...ATTRIBUTION_PROPERTIES,
+      ...PAGE_CONTEXT_PROPERTIES
     ],
-    diagnosis_invalid_input: ["reason"],
-    diagnosis_cta_clicked: ["source_page", "content_type", "game", "budget_band"],
-    affiliate_clicked: ["merchant", "category", "destination_type", "game", "top_recommendation", "source_page", "budget_band", ...ATTRIBUTION_PROPERTIES],
-    result_shared: ["platform", "game", "top_recommendation"]
+    diagnosis_invalid_input: ["reason", ...PAGE_CONTEXT_PROPERTIES],
+    diagnosis_cta_clicked: ["source_page", "content_type", "game", "budget_band", ...PAGE_CONTEXT_PROPERTIES],
+    affiliate_clicked: ["merchant", "category", "destination_type", "game", "top_recommendation", "source_page", "budget_band", ...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
+    result_shared: ["platform", "game", "top_recommendation", ...PAGE_CONTEXT_PROPERTIES]
   };
   const SDK_PROPERTIES = new Set([
     "token",
@@ -116,6 +118,25 @@
     }
   }
 
+  function pageContextProperties() {
+    const configured = root.GameFitPageContext || {};
+    const documentLanguage = root.document?.documentElement?.lang;
+    const language = configured.language === "en" || documentLanguage === "en" ? "en" : "ja";
+    const regionVersion = configured.regionVersion === "global" || language === "en" ? "global" : "jp";
+    let inferredSource = "index";
+    try {
+      const pathname = root.location?.pathname || "";
+      inferredSource = pathname.split("/").filter(Boolean).at(-1)?.replace(/\.html?$/i, "") || "index";
+    } catch (_) {
+      // Stable default is used when location access is unavailable.
+    }
+    return {
+      language,
+      region_version: regionVersion,
+      page_source: slugValue(configured.pageSource || inferredSource)
+    };
+  }
+
   function bucketCurrentFps(value) {
     const fps = numberValue(value);
     if (fps === null || fps < 60) return "under_60";
@@ -146,6 +167,7 @@
   function trackPageViewed() {
     return safeCapture("diagnosis_page_viewed", {
       ...attributionProperties(),
+      ...pageContextProperties(),
       $geoip_disable: true
     });
   }
@@ -155,7 +177,7 @@
     let alreadyStarted = startedInMemory;
 
     try {
-      alreadyStarted = alreadyStarted || storage?.getItem(STARTED_KEY) === "1";
+      alreadyStarted = alreadyStarted || storage?.getItem(`${STARTED_KEY}_${pageContextProperties().region_version}`) === "1";
     } catch (_) {
       // The in-memory guard still prevents duplicate events if storage is unavailable.
     }
@@ -164,7 +186,7 @@
 
     startedInMemory = true;
     try {
-      storage?.setItem(STARTED_KEY, "1");
+      storage?.setItem(`${STARTED_KEY}_${pageContextProperties().region_version}`, "1");
     } catch (_) {
       // Analytics must never interfere with form input.
     }
@@ -173,6 +195,7 @@
       game: gameValue(input?.game),
       device_type: enumValue(input?.device, VALID_DEVICES, "unknown"),
       ...attributionProperties(),
+      ...pageContextProperties(),
       $geoip_disable: true
     });
   }
@@ -197,6 +220,7 @@
       top_recommendation: topRecommendation,
       recommendation_count: Array.isArray(result?.ranked) ? result.ranked.length : 0,
       ...attributionProperties(),
+      ...pageContextProperties(),
       $geoip_disable: true
     };
   }
@@ -208,6 +232,7 @@
   function trackInvalidInput(reason) {
     return safeCapture("diagnosis_invalid_input", {
       reason: slugValue(reason),
+      ...pageContextProperties(),
       $geoip_disable: true
     });
   }
@@ -216,6 +241,7 @@
     const properties = {
       source_page: slugValue(context?.sourcePage),
       content_type: slugValue(context?.contentType),
+      ...pageContextProperties(),
       $geoip_disable: true
     };
     const game = gameValue(context?.game, null);
@@ -264,6 +290,7 @@
       top_recommendation: recommendationValue(context.topRecommendation || latestDiagnosis.topRecommendation),
       source_page: slugValue(context.sourcePage || currentSourcePage()),
       ...attributionProperties(),
+      ...pageContextProperties(),
       $geoip_disable: true
     };
     if (budgetBand) properties.budget_band = budgetBand;
@@ -279,12 +306,14 @@
       platform: enumValue(context?.platform, new Set(["x", "copy"]), "unknown"),
       game: gameValue(context?.game, latestDiagnosis.game || "unknown"),
       top_recommendation: recommendationValue(context?.topRecommendation || latestDiagnosis.topRecommendation),
+      ...pageContextProperties(),
       $geoip_disable: true
     });
   }
 
   return {
     attributionProperties,
+    pageContextProperties,
     beforeSend,
     bucketCurrentFps,
     completionProperties,

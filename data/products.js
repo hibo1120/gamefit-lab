@@ -11,15 +11,17 @@
   const PRODUCT_CATEGORIES = Object.freeze(["pc", "gpu", "monitor", "mouse", "keyboard"]);
   const PRODUCT_SCHEMA = Object.freeze({
     version: 1,
-    required: ["product_id", "product_name", "category", "merchant_id", "enabled"],
+    required: ["product_id", "product_name", "category", "merchant_id", "region", "currency", "enabled"],
     fields: Object.freeze({
       product_id: "string: stable internal identifier",
       product_name: "string: display name",
       category: "enum: pc | gpu | monitor | mouse | keyboard",
       merchant_id: "string: data/merchants.js merchant_id",
+      region: "string: ISO-style sales region such as JP or US",
+      currency: "string: ISO 4217 currency such as JPY or USD",
       enabled: "boolean: false until listing is reviewed",
       destination_url: "string: empty until an approved destination exists",
-      price_yen: "number|null: manually verified snapshot only",
+      price_amount: "number|null: manually verified snapshot in currency",
       specs: "object: category-specific normalized attributes",
       recommendation_categories: "string[]: diagnosis categories this product may support",
       last_verified_at: "string|null: ISO-8601 timestamp",

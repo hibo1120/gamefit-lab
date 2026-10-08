@@ -52,3 +52,21 @@ test("missing URL, non-https URL, disabled state, and category mismatch stay hid
   assert.equal(affiliate.buildLinkModel(base, "ram"), null);
   assert.equal(merchants.isRenderable(base), true);
 });
+
+test("regional catalog never crosses JP and US merchant destinations", () => {
+  const catalog = [
+    {
+      merchant_id: "jp_store", merchant_name: "JP", region: "JP", currency: "JPY", enabled: true,
+      affiliate_url: "https://jp.example.test/", categories: ["monitor"], destination_type: "product_page",
+      disclosure_label: "広告", priority: 10, notes: ""
+    },
+    {
+      merchant_id: "us_store", merchant_name: "US", region: "US", currency: "USD", enabled: true,
+      affiliate_url: "https://us.example.test/", categories: ["monitor"], destination_type: "product_page",
+      disclosure_label: "Affiliate link", priority: 10, notes: ""
+    }
+  ];
+  assert.equal(affiliate.modelsForResult(diagnosis, { region: "JP" }, catalog)[0].tracking.merchant, "jp_store");
+  assert.equal(affiliate.modelsForResult(diagnosis, { region: "US", language: "en" }, catalog)[0].tracking.merchant, "us_store");
+  assert.match(affiliate.modelsForResult(diagnosis, { region: "US", language: "en" }, catalog)[0].label, /Browse options/);
+});

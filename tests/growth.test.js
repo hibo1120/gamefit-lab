@@ -70,3 +70,39 @@ test("each note article ends with its own tracked diagnosis CTA", () => {
     assert.match(content, /source=note_\d{2}/);
   });
 });
+
+test("Global test pack has 6 Shorts, 10 X drafts, and 5 Reddit research drafts", () => {
+  const shorts = read(path.join("en", "youtube-shorts.md"));
+  const xPosts = read(path.join("en", "x-posts.md"));
+  const reddit = read(path.join("en", "reddit-research.md"));
+  const ids = [
+    ...headingIds(shorts, "en_yt_s"),
+    ...headingIds(xPosts, "en_x_"),
+    ...headingIds(reddit, "en_reddit_")
+  ];
+  assert.equal(headingIds(shorts, "en_yt_s").length, 6);
+  assert.equal(headingIds(xPosts, "en_x_").length, 10);
+  assert.equal(headingIds(reddit, "en_reddit_").length, 5);
+  assert.equal(new Set(ids).size, 21);
+  assert.equal(ids.every(id => id.startsWith("en_")), true);
+});
+
+test("Global draft links use the English diagnosis and unified test campaign", () => {
+  const files = ["youtube-shorts.md", "x-posts.md", "reddit-research.md"];
+  const expected = {
+    "youtube-shorts.md": ["youtube", "shorts", "en_yt_s"],
+    "x-posts.md": ["x", "social", "en_x_"],
+    "reddit-research.md": ["reddit", "community", "en_reddit_"]
+  };
+  for (const file of files) {
+    const urls = [...read(path.join("en", file)).matchAll(/https:\/\/hibo1120\.github\.io\/gamefit-lab\/en\/diagnose\.html\?[^\s)]+/g)].map(match => new URL(match[0]));
+    assert.equal(urls.length, file === "youtube-shorts.md" ? 6 : file === "x-posts.md" ? 10 : 5, file);
+    for (const url of urls) {
+      assert.equal(url.searchParams.get("utm_source"), expected[file][0]);
+      assert.equal(url.searchParams.get("utm_medium"), expected[file][1]);
+      assert.equal(url.searchParams.get("utm_campaign"), "gamefit_global_test");
+      assert.match(url.searchParams.get("utm_content"), new RegExp(`^${expected[file][2]}`));
+      assert.equal(url.searchParams.get("source"), url.searchParams.get("utm_content"));
+    }
+  }
+});

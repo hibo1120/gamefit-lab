@@ -12,6 +12,8 @@
     Object.freeze({
       merchant_id: "mouse_computer",
       merchant_name: "Mouse Computer",
+      region: "JP",
+      currency: "JPY",
       enabled: false,
       affiliate_url: "",
       categories: ["pc_replacement", "cpu_gpu"],
@@ -22,7 +24,9 @@
     }),
     Object.freeze({
       merchant_id: "razer",
-      merchant_name: "Razer",
+      merchant_name: "Razer Japan",
+      region: "JP",
+      currency: "JPY",
       enabled: false,
       affiliate_url: "",
       categories: ["device"],
@@ -33,7 +37,9 @@
     }),
     Object.freeze({
       merchant_id: "amazon",
-      merchant_name: "Amazon",
+      merchant_name: "Amazon Japan",
+      region: "JP",
+      currency: "JPY",
       enabled: false,
       affiliate_url: "",
       categories: ["monitor", "ram", "storage", "device"],
@@ -45,6 +51,8 @@
     Object.freeze({
       merchant_id: "rakuten",
       merchant_name: "楽天市場",
+      region: "JP",
+      currency: "JPY",
       enabled: false,
       affiliate_url: "",
       categories: ["monitor", "ram", "storage", "device"],
@@ -52,6 +60,58 @@
       disclosure_label: "広告・商品検索",
       priority: 50,
       notes: "提携承認前。商品カテゴリ別URLへ将来分割可能。"
+    }),
+    Object.freeze({
+      merchant_id: "razer_us",
+      merchant_name: "Razer US",
+      region: "US",
+      currency: "USD",
+      enabled: false,
+      affiliate_url: "",
+      categories: ["device"],
+      destination_type: "manufacturer_store",
+      disclosure_label: "Affiliate link · Official store",
+      priority: 80,
+      notes: "Global test placeholder. No Affiliate URL has been added."
+    }),
+    Object.freeze({
+      merchant_id: "lenovo_us",
+      merchant_name: "Lenovo US",
+      region: "US",
+      currency: "USD",
+      enabled: false,
+      affiliate_url: "",
+      categories: ["pc_replacement", "cpu_gpu"],
+      destination_type: "manufacturer_store",
+      disclosure_label: "Affiliate link · Official store",
+      priority: 75,
+      notes: "Global test placeholder. No Affiliate URL has been added."
+    }),
+    Object.freeze({
+      merchant_id: "newegg_us",
+      merchant_name: "Newegg",
+      region: "US",
+      currency: "USD",
+      enabled: false,
+      affiliate_url: "",
+      categories: ["monitor", "ram", "storage", "cpu_gpu", "device"],
+      destination_type: "marketplace_search",
+      disclosure_label: "Affiliate link · Product search",
+      priority: 65,
+      notes: "Global test placeholder. No Affiliate URL has been added."
+    }),
+    Object.freeze({
+      merchant_id: "amazon_us",
+      merchant_name: "Amazon US",
+      region: "US",
+      currency: "USD",
+      enabled: false,
+      affiliate_url: "",
+      categories: ["monitor", "ram", "storage", "device"],
+      destination_type: "marketplace_search",
+      disclosure_label: "Affiliate link · Product search",
+      priority: 60,
+      notes: "Global test placeholder. No Affiliate URL has been added."
     })
   ]);
 
@@ -70,9 +130,10 @@
     return catalog.find(merchant => merchant.merchant_id === merchantId) || null;
   }
 
-  function forCategory(category, catalog = merchants) {
+  function forCategory(category, catalog = merchants, region = "JP") {
     return catalog
       .filter(merchant => isRenderable(merchant) && merchant.categories.includes(category))
+      .filter(merchant => !region || (merchant.region || "JP") === region || merchant.region === "GLOBAL")
       .sort((a, b) => b.priority - a.priority);
   }
 
