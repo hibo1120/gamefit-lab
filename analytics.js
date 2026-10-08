@@ -11,10 +11,11 @@
   "use strict";
 
   const STARTED_KEY = "gamefit_lab_diagnosis_started";
-  const VALID_GAMES = new Set(["valorant", "apex", "fortnite", "mhwilds"]);
+  const FALLBACK_GAMES = new Set(["valorant", "apex", "fortnite", "mhwilds"]);
   const VALID_DEVICES = new Set(["desktop", "laptop"]);
-  const VALID_RECOMMENDATIONS = new Set(["keep", "monitor", "ram", "performance", "replacement"]);
-  const VALID_BUDGET_BANDS = new Set(["30000", "50000", "100000"]);
+  const VALID_RECOMMENDATIONS = new Set(["keep", "monitor", "ram", "storage", "cpu_gpu", "pc_replacement", "device"]);
+  const RECOMMENDATION_ALIASES = { performance: "cpu_gpu", replacement: "pc_replacement" };
+  const VALID_BUDGET_BANDS = new Set(["10000", "30000", "50000", "100000", "150000", "200000"]);
   const ATTRIBUTION_PROPERTIES = ["utm_source", "utm_medium", "utm_campaign", "source"];
   const EVENT_PROPERTIES = {
     diagnosis_page_viewed: ATTRIBUTION_PROPERTIES,
@@ -35,7 +36,7 @@
     ],
     diagnosis_invalid_input: ["reason"],
     diagnosis_cta_clicked: ["source_page", "content_type", "game", "budget_band"],
-    affiliate_clicked: ["merchant", "category", "destination_type", "game", "top_recommendation"]
+    affiliate_clicked: ["merchant", "category", "destination_type", "game", "top_recommendation", "source_page", "budget_band"]
   };
   const SDK_PROPERTIES = new Set([
     "token",
@@ -50,7 +51,7 @@
   ]);
 
   let startedInMemory = false;
-  let latestDiagnosis = { game: null, topRecommendation: null };
+  let latestDiagnosis = { game: null, topRecommendation: null, budgetBand: null };
 
   function safeSessionStorage() {
     try {
@@ -73,6 +74,20 @@
 
   function enumValue(value, allowed, fallback) {
     return allowed.has(value) ? value : fallback;
+  }
+
+  function gameValue(value, fallback = "unknown") {
+    try {
+      if (root.GameFitGames?.get?.(value)) return value;
+    } catch (_) {
+      // Fall through to the stable MVP list when configuration is unavailable.
+    }
+    return enumValue(value, FALLBACK_GAMES, fallback);
+  }
+
+  function recommendationValue(value) {
+    const normalized = RECOMMENDATION_ALIASES[value] || value;
+    return enumValue(normalized, VALID_RECOMMENDATIONS, "unknown");
   }
 
   function numberValue(value) {
@@ -154,17 +169,18 @@
     }
 
     return safeCapture("diagnosis_started", {
-      game: enumValue(input?.game, VALID_GAMES, "unknown"),
+      game: gameValue(input?.game),
       device_type: enumValue(input?.device, VALID_DEVICES, "unknown"),
       $geoip_disable: true
     });
   }
 
   function completionProperties(input, result) {
-    const topRecommendation = enumValue(result?.ranked?.[0]?.key, VALID_RECOMMENDATIONS, "unknown");
-    const game = enumValue(input?.game, VALID_GAMES, "unknown");
+    const topRecommendation = recommendationValue(result?.topRecommendation || result?.ranked?.[0]?.key);
+    const game = gameValue(input?.game);
+    const budgetBand = enumValue(String(input?.budget || ""), VALID_BUDGET_BANDS, null);
 
-    latestDiagnosis = { game, topRecommendation };
+    latestDiagnosis = { game, topRecommendation, budgetBand };
 
     return {
       game,
@@ -200,7 +216,7 @@
       content_type: slugValue(context?.contentType),
       $geoip_disable: true
     };
-    const game = enumValue(context?.game, VALID_GAMES, null);
+    const game = gameValue(context?.game, null);
     const budgetBand = enumValue(String(context?.budgetBand || ""), VALID_BUDGET_BANDS, null);
 
     if (game) properties.game = game;
@@ -215,20 +231,43 @@
   function currentGame() {
     try {
       const game = root.document?.getElementById("game")?.value;
-      return enumValue(game, VALID_GAMES, latestDiagnosis.game || "unknown");
+      return gameValue(game, latestDiagnosis.game || "unknown");
     } catch (_) {
       return latestDiagnosis.game || "unknown";
     }
   }
 
-  function trackAffiliateClick(merchant, category, destinationType) {
-    return safeCapture("affiliate_clicked", {
-      merchant: slugValue(merchant),
-      category: slugValue(category),
-      destination_type: slugValue(destinationType),
-      game: currentGame(),
-      top_recommendation: latestDiagnosis.topRecommendation || "unknown",
+  function currentSourcePage() {
+    const attributed = attributionProperties().source;
+    if (attributed) return attributed;
+    try {
+      const pathname = root.location?.pathname || "";
+      const file = pathname.split("/").filter(Boolean).at(-1) || "index";
+      return slugValue(file.replace(/\.html?$/i, ""));
+    } catch (_) {
+      return "unknown";
+    }
+  }
+
+  function trackAffiliateClick(merchantOrContext, category, destinationType) {
+    const context = typeof merchantOrContext === "object" && merchantOrContext !== null
+      ? merchantOrContext
+      : { merchant: merchantOrContext, category, destinationType };
+    const budgetBand = enumValue(String(context.budgetBand || latestDiagnosis.budgetBand || ""), VALID_BUDGET_BANDS, null);
+    const properties = {
+      merchant: slugValue(context.merchant),
+      category: slugValue(context.category),
+      destination_type: slugValue(context.destinationType),
+      game: gameValue(context.game, currentGame()),
+      top_recommendation: recommendationValue(context.topRecommendation || latestDiagnosis.topRecommendation),
+      source_page: slugValue(context.sourcePage || currentSourcePage()),
       $geoip_disable: true
+    };
+    if (budgetBand) properties.budget_band = budgetBand;
+
+    return safeCapture("affiliate_clicked", properties, {
+      transport: "sendBeacon",
+      send_instantly: true
     });
   }
 

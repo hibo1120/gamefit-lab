@@ -159,6 +159,7 @@ test("all guide, SEO, CTA, and internal asset URLs return HTTP 200 locally", asy
   const origin = `http://127.0.0.1:${server.address().port}`;
   const paths = [
     ...guides.map(file => `/gamefit-lab/guides/${file}`),
+    "/gamefit-lab/diagnose.html",
     "/gamefit-lab/sitemap.xml",
     "/gamefit-lab/robots.txt"
   ];
@@ -179,8 +180,17 @@ test("all guide, SEO, CTA, and internal asset URLs return HTTP 200 locally", asy
       if (url.origin === origin) localUrls.add(url.href);
     }
   }
+  const diagnosis = fs.readFileSync(path.join(projectRoot, "diagnose.html"), "utf8");
+  const diagnosisBase = new URL("/gamefit-lab/diagnose.html", origin);
+  for (const match of diagnosis.matchAll(/(?:href|src)="([^"]+)"/gi)) {
+    const value = match[1].replaceAll("&amp;", "&");
+    if (value.startsWith("data:") || value.startsWith("#") || /^https?:/i.test(value)) continue;
+    localUrls.add(new URL(value, diagnosisBase).href);
+  }
   for (const url of localUrls) {
     const response = await fetch(url);
     assert.equal(response.status, 200, url);
   }
+  const missing = await fetch(`${origin}/gamefit-lab/does-not-exist.html`);
+  assert.equal(missing.status, 404);
 });

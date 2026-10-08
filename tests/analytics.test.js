@@ -2,9 +2,9 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
-const vm = require("node:vm");
 
 const analyticsModule = require("../analytics.js");
+const diagnosisEngine = require("../diagnosis-engine.js");
 const projectRoot = path.join(__dirname, "..");
 
 function memorySessionStorage() {
@@ -32,21 +32,7 @@ function recordingEnvironment(search = "") {
 }
 
 test("diagnosis works when PostHog is unavailable", () => {
-  const html = fs.readFileSync(path.join(projectRoot, "diagnose.html"), "utf8");
-  const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)];
-  const diagnosisScript = scripts.at(-1)[1];
-  const inertElement = { addEventListener() {} };
-  const window = {};
-  const sandbox = {
-    window,
-    document: { getElementById() { return inertElement; } },
-    FormData: function FormData() {},
-    console
-  };
-  window.window = window;
-
-  vm.runInNewContext(diagnosisScript, sandbox, { filename: "diagnose-inline.js" });
-  const result = window.GameFitLab.diagnoseInputs({
+  const result = diagnosisEngine.diagnoseInputs({
     game: "valorant",
     currentFps: "100",
     targetFps: "144",
@@ -58,8 +44,10 @@ test("diagnosis works when PostHog is unavailable", () => {
     stream: "no"
   });
 
-  assert.equal(result.game.name, "VALORANT");
+  const analytics = analyticsModule.createAnalytics({ location: { search: "" } });
+  assert.equal(result.game.display_name, "VALORANT");
   assert.equal(result.ranked.length, 5);
+  assert.equal(analytics.trackDiagnosisCompleted({}, result), false);
 });
 
 test("first form interaction captures diagnosis_started once per session", () => {
@@ -89,7 +77,7 @@ test("diagnosis_completed uses the required privacy-safe properties", () => {
     stream: "yes",
     hardware: "SECRET CPU / GPU FREE TEXT"
   };
-  const result = { ranked: [{ key: "performance" }, { key: "ram" }] };
+  const result = { ranked: [{ key: "cpu_gpu" }, { key: "ram" }] };
 
   assert.equal(analytics.trackDiagnosisCompleted(input, result), true);
   assert.equal(calls[0].event, "diagnosis_completed");
@@ -103,7 +91,7 @@ test("diagnosis_completed uses the required privacy-safe properties", () => {
     storage_type: "nvme",
     budget: 100000,
     streaming: true,
-    top_recommendation: "performance",
+    top_recommendation: "cpu_gpu",
     recommendation_count: 2,
     $geoip_disable: true
   });
@@ -159,21 +147,31 @@ test("before_send rejects unrelated events and strips non-allowlisted data", () 
   assert.equal(Object.hasOwn(event, "$set"), false);
 });
 
-test("affiliate helper is available without adding affiliate links", () => {
+test("affiliate helper sends the complete normalized context", () => {
   const { analytics, calls } = recordingEnvironment();
 
-  analytics.trackAffiliateClick("example_store", "monitor", "product_page");
+  analytics.trackAffiliateClick({
+    merchant: "example_store",
+    category: "monitor",
+    destinationType: "product_page",
+    game: "apex",
+    topRecommendation: "monitor",
+    sourcePage: "diagnose",
+    budgetBand: "50000"
+  });
   assert.deepEqual(calls[0], {
     event: "affiliate_clicked",
     properties: {
       merchant: "example_store",
       category: "monitor",
       destination_type: "product_page",
-      game: "valorant",
-      top_recommendation: "unknown",
+      game: "apex",
+      top_recommendation: "monitor",
+      source_page: "diagnose",
+      budget_band: "50000",
       $geoip_disable: true
     },
-    options: undefined
+    options: { transport: "sendBeacon", send_instantly: true }
   });
 });
 
@@ -185,7 +183,7 @@ test("UTM and source attribution are retained on page view and completion", () =
   };
 
   analytics.trackPageViewed();
-  analytics.trackDiagnosisCompleted(input, { ranked: [{ key: "performance" }] });
+  analytics.trackDiagnosisCompleted(input, { ranked: [{ key: "cpu_gpu" }] });
 
   for (const call of calls) {
     assert.equal(call.properties.utm_source, "gamefit");

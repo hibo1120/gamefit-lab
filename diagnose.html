@@ -6,9 +6,13 @@
 <meta name="description" content="現在FPS、目標FPS、モニターHz、RAM、ストレージ、予算から、ゲーミング環境の次の投資先を診断します。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
 <title>ゲーミング環境 投資優先度診断 | GameFit Lab</title>
+<script src="./data/games.js"></script>
+<script src="./data/merchants.js"></script>
+<script src="./data/products.js"></script>
+<script src="./diagnosis-engine.js"></script>
 <script src="./analytics.js"></script>
+<script src="./affiliate.js"></script>
 <script src="./posthog-init.js"></script>
-<script>window.GameFitAnalytics.trackPageViewed();</script>
 <style>
 :root {
   color-scheme: dark;
@@ -261,6 +265,12 @@ select:focus, input:focus {
   font-size: .88rem;
 }
 
+.affiliate-recommendations { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: rgba(10, 23, 40, .75); }
+.affiliate-recommendations[hidden] { display: none; }
+.affiliate-recommendations h3 { margin-bottom: 8px; font-size: .96rem; }
+.affiliate-recommendations p { margin: 8px 0 0; }
+.affiliate-disclosure { display: inline-block; margin-left: 8px; color: var(--muted); font-size: .72rem; }
+
 .details {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -332,7 +342,7 @@ select:focus, input:focus {
     <div>
       <p class="eyebrow">Gaming setup priority check</p>
       <h1>次の1円を、<br>効く場所へ。</h1>
-      <p class="lead">いまのFPSと目標、モニター、メモリ、ストレージ、予算を比べて、5つの投資先を同じ基準で順位付けします。</p>
+      <p class="lead">いまのFPSと目標、モニター、メモリ、ストレージ、予算を比べて、主な投資先を同じ基準で順位付けします。</p>
     </div>
     <aside class="hero-note">
       <strong>買わない判断も、診断結果です。</strong>
@@ -353,12 +363,7 @@ select:focus, input:focus {
       <div class="form-grid">
         <div class="field full">
           <label for="game">主に遊ぶゲーム</label>
-          <select id="game" name="game">
-            <option value="valorant">VALORANT</option>
-            <option value="apex">Apex Legends</option>
-            <option value="fortnite">Fortnite</option>
-            <option value="mhwilds">Monster Hunter Wilds</option>
-          </select>
+          <select id="game" name="game" required></select>
         </div>
 
         <div class="field">
@@ -452,7 +457,7 @@ select:focus, input:focus {
       <div class="panel-heading">
         <div>
           <h2>優先順位</h2>
-          <p>5つの選択肢をスコア順に表示します。</p>
+          <p>主な5つの選択肢をスコア順に表示します。</p>
         </div>
         <span class="step">02 RESULT</span>
       </div>
@@ -468,6 +473,7 @@ select:focus, input:focus {
         <p id="result-summary" class="result-summary"></p>
         <ol id="ranking" class="ranking"></ol>
         <p id="recommendation" class="recommendation"></p>
+        <aside id="affiliate-recommendations" class="affiliate-recommendations" aria-label="広告リンク" hidden></aside>
       </div>
     </section>
   </section>
@@ -476,12 +482,7 @@ select:focus, input:focus {
     <article class="info-card">
       <h2>判定の考え方</h2>
       <p>FPSの達成度、モニターで表示できる上限、ゲーム別のRAM・ストレージ目安、予算、PCタイプを組み合わせた簡易診断です。</p>
-      <div class="source-links" aria-label="ゲーム別公式動作環境">
-        <a href="https://playvalorant.com/ja-jp/specs/">VALORANT</a>
-        <a href="https://www.ea.com/ja-jp/games/apex-legends/about/pc-system-requirements">Apex Legends</a>
-        <a href="https://www.epicgames.com/help/ja/c-Category_TechnicalSupport/c-0/a000084912">Fortnite</a>
-        <a href="https://store.captown.capcom.com/products/805461-jp">Monster Hunter Wilds</a>
-      </div>
+      <div id="official-source-links" class="source-links" aria-label="ゲーム別公式動作環境"></div>
     </article>
 
     <article class="info-card">
@@ -518,245 +519,6 @@ select:focus, input:focus {
 
 <footer class="shell site-footer">GameFit Lab — 買い替える前に、効く場所を見つける。</footer>
 
-<script>
-const games = {
-  valorant: {
-    name: "VALORANT", minimumRam: 4, comfortableRam: 16, storage: "any",
-    note: "高FPSを狙いやすいタイトルです。現在FPSが十分なら、まずモニター側で活かせるかを確認します。"
-  },
-  apex: {
-    name: "Apex Legends", minimumRam: 8, comfortableRam: 16, storage: "ssd",
-    note: "高FPS目標ではPC性能の余裕が重要です。目標との差とモニターHzを分けて判定します。"
-  },
-  fortnite: {
-    name: "Fortnite", minimumRam: 8, comfortableRam: 16, storage: "nvme",
-    note: "設定による負荷差が大きいタイトルです。推奨環境を意識し、RAMとストレージも評価します。"
-  },
-  mhwilds: {
-    name: "Monster Hunter Wilds", minimumRam: 16, comfortableRam: 32, storage: "ssd-required",
-    note: "負荷の高いタイトルです。SSD必須の動作環境を踏まえ、FPS不足時はPC性能を強めに評価します。"
-  }
-};
-
-const categoryTemplates = {
-  keep: { title: "現状維持", base: 18, defaultReason: "大きな投資を急がず、設定調整や予算確保を優先する選択です。" },
-  monitor: { title: "モニター", base: 8, defaultReason: "現在のFPSを十分に活かせる表示環境かを基準にします。" },
-  ram: { title: "RAM", base: 7, defaultReason: "ゲーム要件と、配信・同時作業に必要な余裕を基準にします。" },
-  performance: { title: "PC性能", base: 12, defaultReason: "CPU・GPU・ストレージの部分アップグレードを想定します。" },
-  replacement: { title: "PC買替", base: 3, defaultReason: "部分交換より本体更新の方が合理的かを基準にします。" }
-};
-
-function makeCategories() {
-  return Object.fromEntries(Object.entries(categoryTemplates).map(([key, value]) => [key, {
-    key, title: value.title, score: value.base, reasons: [value.defaultReason]
-  }]));
-}
-
-function boost(category, points, reason) {
-  category.score += points;
-  if (reason) category.reasons.unshift(reason);
-}
-
-function clampScore(score) { return Math.max(0, Math.min(100, Math.round(score))); }
-
-function diagnoseInputs(input) {
-  const game = games[input.game];
-  const categories = makeCategories();
-  const current = Number(input.currentFps);
-  const target = Number(input.targetFps);
-  const monitor = Number(input.monitorHz);
-  const ram = Number(input.ram);
-  const budget = Number(input.budget);
-  const ratio = current / target;
-  const stream = input.stream === "yes";
-  const laptop = input.device === "laptop";
-
-  if (!game || !Number.isFinite(current) || current <= 0 || current > 1000) {
-    throw new Error("現在FPSは1〜1000の範囲で入力してください。");
-  }
-
-  if (ratio >= .95) {
-    boost(categories.keep, 54, `現在${current}FPSで、目標${target}FPSをほぼ満たしています。`);
-    boost(categories.performance, -5);
-    boost(categories.replacement, -3);
-  } else if (ratio >= .8) {
-    boost(categories.performance, 30, `目標まであと約${Math.max(0, target - current)}FPSです。まず設定とCPU・GPU使用率を確認する価値があります。`);
-    boost(categories.keep, 14, "目標との差が比較的小さく、設定調整だけで改善する可能性があります。");
-  } else if (ratio >= .55) {
-    boost(categories.performance, 52, `現在${current}FPSに対して目標${target}FPSで、PC性能側の改善余地が大きい状態です。`);
-    boost(categories.replacement, laptop ? 32 : 14, laptop
-      ? "ノートPCは主要パーツの交換が難しく、本体更新も比較対象になります。"
-      : "世代の古い構成では、複数パーツ交換より本体更新が合理的な場合があります。"
-    );
-  } else {
-    boost(categories.performance, 60, `現在${current}FPSに対して目標${target}FPSと差が大きく、モニターよりPC性能側が先です。`);
-    boost(categories.replacement, laptop ? 58 : 34, laptop
-      ? "ノートPCで性能差が大きいため、部分交換より買替が現実的です。"
-      : "必要な性能差が大きいため、CPU・GPUを含む全体更新も比較してください。"
-    );
-  }
-
-  const usableFps = Math.min(current, target);
-  if (monitor < usableFps * .85) {
-    boost(categories.monitor, 68, `PCは約${current}FPSを出せますが、${monitor}Hzでは表示性能を活かし切れない可能性があります。`);
-  } else if (current > monitor * 1.12) {
-    boost(categories.monitor, 47, `現在FPSが${monitor}Hzを上回っています。高リフレッシュレート化の体感効果を見込みやすい状態です。`);
-  } else if (monitor >= target * .9) {
-    boost(categories.monitor, -4, `現在の${monitor}Hzは目標${target}FPSに概ね対応しています。`);
-  }
-
-  if (monitor >= target && ratio < .75) {
-    boost(categories.performance, 16, "モニター性能は足りているため、追加のモニター投資よりPC側が先です。");
-    boost(categories.monitor, -8);
-  }
-
-  if (ram < game.minimumRam) {
-    boost(categories.ram, 72, `${game.name}の動作目安に対してRAM容量が不足しています。`);
-  } else if (ram < game.comfortableRam) {
-    boost(categories.ram, 34, `${game.name}を快適に遊ぶ余裕として、${game.comfortableRam}GBを検討できます。`);
-  } else {
-    boost(categories.ram, -3, `${ram}GBあれば、ゲーム単体ではRAM増設の優先度は低めです。`);
-  }
-
-  if (stream && ram < 32) {
-    boost(categories.ram, 32, "配信・編集を同時に行うなら、32GBへの増設が安定性の改善につながります。");
-  }
-
-  if (game.storage === "ssd-required" && input.storage === "hdd") {
-    boost(categories.performance, 48, `${game.name}はSSDが必要です。CPU・GPU交換より先にSSDへ移行してください。`);
-  } else if (game.storage === "nvme" && input.storage !== "nvme") {
-    boost(categories.performance, input.storage === "hdd" ? 30 : 16, `${game.name}の推奨環境に合わせ、NVMe SSDへの移行をPC性能改善に含めて検討できます。`);
-  } else if (input.storage === "hdd") {
-    boost(categories.performance, 15, "HDD利用中のため、ロードやデータ読み込みの改善にはSSD化が有効です。");
-  }
-
-  if (budget < 30000) {
-    boost(categories.keep, ratio < .8 ? 64 : 22, "予算内で効果の大きいPC更新が難しい場合は、今回は貯める判断が堅実です。");
-    boost(categories.performance, -12);
-    boost(categories.replacement, -24);
-  } else if (budget < 50000) {
-    boost(categories.ram, 8, "RAM増設は比較的予算に収めやすい選択肢です。");
-    boost(categories.replacement, -18);
-  } else if (budget < 100000) {
-    boost(categories.performance, 8, "一部パーツやSSDの更新を検討しやすい予算帯です。");
-    boost(categories.replacement, -10);
-  } else if (budget >= 150000) {
-    boost(categories.replacement, ratio < .7 ? 24 : 6, "買替も現実的に比較できる予算帯です。");
-  }
-
-  if (laptop && ratio < .8) {
-    boost(categories.replacement, 14, "ゲーミングノートはCPU・GPUの交換自由度が低いため、買替の優先度が上がります。");
-    boost(categories.performance, -6);
-  }
-
-  const ranked = Object.values(categories)
-    .map(category => ({ ...category, score: clampScore(category.score) }))
-    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, "ja"));
-
-  let advice = "購入前に、ゲーム中のCPU・GPU使用率と温度も確認すると、より正確にボトルネックを判断できます。";
-  if (ranked[0].key === "keep") {
-    advice = "まず設定調整と実測の確認を行い、残った予算は次の大きな更新に備えるのがおすすめです。";
-  } else if (ranked[0].key === "monitor") {
-    advice = "解像度、パネル方式、可変リフレッシュレート対応も確認し、PCが安定して出せるFPSに合う製品を選んでください。";
-  } else if (ranked[0].key === "ram") {
-    advice = "空きスロット、規格、最大容量、同一キットでの増設可否をPCまたはマザーボードの仕様で確認してください。";
-  } else if (ranked[0].key === "replacement") {
-    advice = "買替時は目標FPSだけでなく、解像度・画質設定・将来の配信有無まで揃えて比較してください。";
-  }
-
-  return { game, current, target, monitor, ram, budget, ranked, advice };
-}
-
-function renderResult(result, hardware) {
-  const summary = document.getElementById("result-summary");
-  const ranking = document.getElementById("ranking");
-  const recommendation = document.getElementById("recommendation");
-
-  summary.replaceChildren();
-  const title = document.createElement("strong");
-  title.textContent = result.game.name;
-  summary.append(title, document.createElement("br"));
-  summary.append(`現在 ${result.current} FPS → 目標 ${result.target} FPS / ${result.monitor} Hz / RAM ${result.ram} GB / 予算 ${result.budget.toLocaleString("ja-JP")}円`);
-  if (hardware) summary.append(document.createElement("br"), `構成メモ：${hardware}`);
-  summary.append(document.createElement("br"), result.game.note);
-
-  ranking.replaceChildren(...result.ranked.map((item, index) => {
-    const card = document.createElement("li");
-    card.className = "rank-card";
-
-    const number = document.createElement("span");
-    number.className = "rank-number";
-    number.textContent = String(index + 1);
-
-    const body = document.createElement("div");
-    const heading = document.createElement("h3");
-    heading.className = "rank-title";
-    heading.textContent = item.title;
-    const reason = document.createElement("p");
-    reason.className = "rank-reason";
-    reason.textContent = item.reasons[0];
-    body.append(heading, reason);
-
-    const score = document.createElement("span");
-    score.className = "rank-score";
-    score.textContent = `${item.score} pt`;
-
-    card.append(number, body, score);
-    return card;
-  }));
-
-  recommendation.textContent = result.advice;
-  document.getElementById("initial-state").hidden = true;
-  document.getElementById("result-content").hidden = false;
-}
-
-const diagnosisForm = document.getElementById("diagnosis-form");
-
-function formTrackingInput() {
-  const data = Object.fromEntries(new FormData(diagnosisForm));
-  window.GameFitAnalytics?.trackDiagnosisStarted(data);
-}
-
-function invalidReason(input) {
-  if (input.validity?.valueMissing) return "current_fps_missing";
-  if (input.validity?.rangeUnderflow) return "current_fps_below_minimum";
-  if (input.validity?.rangeOverflow) return "current_fps_above_maximum";
-  if (input.validity?.badInput) return "current_fps_not_number";
-  return "current_fps_invalid";
-}
-
-diagnosisForm.addEventListener("input", formTrackingInput);
-diagnosisForm.addEventListener("change", formTrackingInput);
-diagnosisForm.addEventListener("pointerdown", formTrackingInput);
-diagnosisForm.addEventListener("keydown", formTrackingInput);
-diagnosisForm.addEventListener("invalid", event => {
-  window.GameFitAnalytics?.trackInvalidInput(invalidReason(event.target));
-}, true);
-
-diagnosisForm.addEventListener("submit", event => {
-  event.preventDefault();
-  const data = Object.fromEntries(new FormData(event.currentTarget));
-
-  try {
-    const result = diagnoseInputs(data);
-    renderResult(result, data.hardware.trim());
-    window.GameFitAnalytics?.trackDiagnosisCompleted(data, result);
-
-    if (window.matchMedia("(max-width: 860px)").matches) {
-      document.getElementById("result-panel").scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  } catch (error) {
-    window.GameFitAnalytics?.trackInvalidInput("current_fps_invalid");
-    document.getElementById("currentFps").setCustomValidity(error.message);
-    document.getElementById("currentFps").reportValidity();
-  }
-});
-
-document.getElementById("currentFps").addEventListener("input", event => {
-  event.currentTarget.setCustomValidity("");
-});
-
-window.GameFitLab = { diagnoseInputs, games };
-</script>
+<script src="./diagnose-page.js"></script>
 </body>
 </html>
