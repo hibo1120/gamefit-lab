@@ -8,7 +8,13 @@
   const STORAGE_KEY = "gamefit.personal_gear.v1";
   const SCHEMA_VERSION = 1;
   const MAX_BYTES = 512 * 1024;
+  const MAX_RECORDS = 500;
+  const RETENTION_DAYS = 365;
   const FORBIDDEN_KEYS = new Set(["__proto__", "prototype", "constructor"]);
+  const SENSITIVE_KEYS = new Set(["email","phone","address","full_name","real_name","secret","token","password","free_text","ip_address","device_id"]);
+  const ROOT_KEYS = new Set(["schema_version","profile","setup","recommendations","feedback","outcomes","rerank_events","confidence_samples","updated_at"]);
+  const PROFILE_KEYS = new Set(["version","product_feedback","attribute_preferences","hard_avoids","hard_avoid_rules","game_context","recommendation_feedback","personal_adjustments"]);
+  const SETUP_KEYS = new Set(["category","current_product_id","budget_band","game_id","input_method","platform"]);
 
   function createState() {
     return {
@@ -37,6 +43,7 @@
       if (!isPlainObject(value)) return [path + " must be a plain object"];
       for (const [key, child] of Object.entries(value)) {
         if (FORBIDDEN_KEYS.has(key)) errors.push(path + "." + key + " is prohibited");
+        else if (SENSITIVE_KEYS.has(key.toLowerCase())) errors.push(path + "." + key + " is not permitted in local storage");
         else errors.push(...validateSafeTree(child, path + "." + key, depth + 1));
       }
       return errors;
@@ -52,8 +59,12 @@
     if (!Number.isInteger(state.schema_version)) errors.push("schema_version must be an integer");
     if (state.schema_version !== SCHEMA_VERSION) errors.push("schema_version is unsupported");
     if (!isPlainObject(state.profile)) errors.push("profile must be an object");
+    for (const key of Object.keys(state)) if (!ROOT_KEYS.has(key)) errors.push("root." + key + " is not allowed");
+    if (isPlainObject(state.profile)) for (const key of Object.keys(state.profile)) if (!PROFILE_KEYS.has(key)) errors.push("root.profile." + key + " is not allowed");
+    if (isPlainObject(state.setup)) for (const key of Object.keys(state.setup)) if (!SETUP_KEYS.has(key)) errors.push("root.setup." + key + " is not allowed");
     for (const key of ["recommendations", "feedback", "outcomes", "rerank_events", "confidence_samples"]) {
       if (!Array.isArray(state[key])) errors.push(key + " must be an array");
+      else if (state[key].length > MAX_RECORDS) errors.push(key + " exceeds retention limit");
     }
     errors.push(...validateSafeTree(state));
     return [...new Set(errors)];
@@ -146,7 +157,7 @@
   }
 
   return {
-    STORAGE_KEY, SCHEMA_VERSION, MAX_BYTES, FORBIDDEN_KEYS,
+    STORAGE_KEY, SCHEMA_VERSION, MAX_BYTES, MAX_RECORDS, RETENTION_DAYS, FORBIDDEN_KEYS, SENSITIVE_KEYS,
     createState, validateState, migrateState, parse, load, save, exportState, exportRecovery, deleteAll, reset
   };
 });

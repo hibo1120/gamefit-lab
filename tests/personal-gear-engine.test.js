@@ -104,16 +104,19 @@ test("ranking uses exact Apex context and ignores affiliate economics", () => {
     profile:prefs.createProfile(),
     current_gear:{ category:"mouse", performance_score:0.5 },
     budget:20000,
+    fix_before_buy:[],
     candidates:[
       {
         product_id:"best-fit-no-affiliate", category:"mouse", evidence_grade:"A", current_gear_delta:0.3,
-        game_fitness:{ apex_mnk:0.95, valorant_mnk:0.1 }, value_score:0.8,
-        similarity_to_current:0.5, attributes:{ weight:55 }, affiliate:false, commission_rate:0
+        game_fitness:{ apex_mnk:{ score:0.95, evidence_grade:"B" }, valorant_mnk:{ score:0.1, evidence_grade:"B" } }, price:10000,
+        similarity_to_current:0.5, attributes:{ weight:55 }, affiliate:false, commission_rate:0,
+        compatible:true, compatibility_status:"compatible"
       },
       {
         product_id:"paid-but-worse", category:"mouse", evidence_grade:"A", current_gear_delta:0.2,
-        game_fitness:{ apex_mnk:0.55, valorant_mnk:1 }, value_score:0.6,
-        similarity_to_current:0.5, attributes:{ weight:58 }, affiliate:true, commission_rate:30
+        game_fitness:{ apex_mnk:{ score:0.55, evidence_grade:"B" }, valorant_mnk:{ score:1, evidence_grade:"B" } }, price:14000,
+        similarity_to_current:0.5, attributes:{ weight:58 }, affiliate:true, commission_rate:30,
+        compatible:true, compatibility_status:"compatible"
       }
     ]
   });
@@ -147,7 +150,7 @@ test("evidence grade D cannot become purchase advice from self-reported fit scor
   });
   assert.equal(result.recommendations[0].confidence, "Low");
   assert.equal(result.recommendations[0].upgrade_match, "DONT_UPGRADE");
-  assert.equal(result.recommendations[0].components.compatibility, 1);
+  assert.equal(result.recommendations[0].components.compatibility, null);
   assert.equal(result.decision, "DONT_UPGRADE");
 });
 

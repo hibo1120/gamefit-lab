@@ -13,9 +13,9 @@
     mousepad:Object.freeze(["surface_speed", "stopping_power", "texture", "base_thickness", "humidity_resistance", "durability", "size"]),
     mouse_skates:Object.freeze(["material", "speed", "control", "edge_rounding", "thickness", "break_in", "durability"]),
     audio:Object.freeze(["fit", "bass", "mid", "treble", "imaging", "soundstage", "latency", "isolation", "mic"]),
-    controller:Object.freeze(["layout", "stick_tension", "stick_latency", "deadzone", "trigger", "back_buttons", "weight", "grip", "wireless_latency"]),
-    network:Object.freeze(["connection_type", "latency", "jitter", "packet_loss", "stability", "bufferbloat", "wifi_standard", "ethernet_speed"]),
-    cable:Object.freeze(["connector", "length", "flexibility", "weight", "drag", "durability", "bandwidth", "power_delivery"])
+    controller:Object.freeze(["layout", "stick_type", "stick_tension", "stick_latency", "polling_rate", "deadzone", "trigger", "trigger_type", "back_buttons", "weight", "grip", "wireless_latency"]),
+    network:Object.freeze(["connection_type", "latency", "jitter", "packet_loss", "stability", "bufferbloat", "wifi_standard", "wifi_generation", "bands", "ethernet_speed", "wired_wan_speed", "wired_lan_speed", "coverage", "mesh", "wired_backhaul", "qos", "firmware_stability"]),
+    cable:Object.freeze(["connector", "standard", "certified_bandwidth", "length", "active_passive", "compatibility", "certification", "flexibility", "weight", "drag", "durability", "bandwidth", "power_delivery"])
   });
   const HARD_AVOID_OPERATORS = Object.freeze(["equals", "includes", "gt", "gte", "lt", "lte"]);
 

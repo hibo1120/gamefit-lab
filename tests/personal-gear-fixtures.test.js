@@ -9,6 +9,11 @@ test("real-product pilot has six role-diverse products in every priority categor
     assert.equal(fixtures.byCategory[category].length, 6, category);
     assert.deepEqual(fixtures.byCategory[category].map(item => item.fixture_role).sort(), [...requiredRoles].sort(), category);
   }
+  const expansionRoles = ["staple","current_flagship","value","niche","new_low_evidence","legacy"];
+  for (const category of ["controller","network","cable"]) {
+    assert.equal(fixtures.byCategory[category].length,6,category);
+    assert.deepEqual(fixtures.byCategory[category].map(item => item.fixture_role).sort(),[...expansionRoles].sort(),category);
+  }
 });
 
 test("fixture evidence is traceable, rights-conservative and strictly valid", () => {
@@ -50,8 +55,9 @@ test("requested named products exist without filling unknown attributes", () => 
     assert.equal(names.has(name), true, name);
   }
   const lowEvidenceMonitor = fixtures.products.find(item => item.product_id === "monitor-sony-inzone-m10s-ii");
-  assert.deepEqual(lowEvidenceMonitor.attributes, {});
-  assert.equal(lowEvidenceMonitor.evidence_grade, "D");
+  assert.equal(lowEvidenceMonitor.attributes.refresh_rate.normalized_value,540);
+  assert.equal(lowEvidenceMonitor.attributes.response_time,undefined);
+  assert.notEqual(lowEvidenceMonitor.evidence_grade,"A");
 });
 
 test("attribute evidence never inherits the product grade without a matching claim", () => {

@@ -211,7 +211,7 @@
       const evidenceMeta = exact && typeof exact === "object" ? exact : candidate?.game_fitness_evidence?.[exactKey];
       const grade = evidenceMeta?.evidence_grade || evidenceMeta?.grade || "D";
       return {
-        score:clamp01(exactScore), confidence:confidenceFromGrade(grade), coverage:1, incompatible:false,
+        score:grade === "D" ? 0.5 : clamp01(exactScore), confidence:confidenceFromGrade(grade), coverage:grade === "D" ? 0 : 1, incompatible:false,
         evidence_grade:grade, data_gaps:grade === "D" ? ["game_fitness_evidence_missing"] : []
       };
     }
@@ -237,6 +237,9 @@
   }
 
   function calculateCurrentGearDelta(candidate, currentGear) {
+    if (["known", "partial"].includes(candidate?.current_gear_delta_assessment?.status) && hasFiniteValue(candidate.current_gear_delta_assessment.model_score)) {
+      return clamp01(candidate.current_gear_delta_assessment.model_score);
+    }
     if (hasFiniteValue(candidate?.current_gear_delta)) return clamp01(candidate.current_gear_delta);
     if (!hasFiniteValue(candidate?.performance_score) || !hasFiniteValue(currentGear?.performance_score)) return 0;
     const candidateScore = Number(candidate.performance_score) > 1 ? Number(candidate.performance_score) / 100 : Number(candidate.performance_score);
@@ -248,12 +251,37 @@
     return value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value));
   }
 
+  function highConfidenceGate(input={}) {
+    const criticalGrades = input.critical_attribute_grades || [];
+    const severeErrors = Number(input.severe_error_count || 0);
+    const gate = {
+      critical_attributes_supported:criticalGrades.length > 0 && criticalGrades.every(grade => ["A", "B"].includes(grade)),
+      game_fit_supported:["A", "B"].includes(input.game_fit_grade),
+      delta_verified:input.delta_verified === true,
+      compatibility_verified:input.compatibility_verified === true,
+      no_critical_gaps:(input.critical_data_gaps || []).length === 0,
+      affiliate_invariant:input.affiliate_permutation_passed === true,
+      adversarial_passed:input.adversarial_pass_rate === 1,
+      enough_decided_feedback:Number(input.decided_feedback_count || 0) >= 30,
+      enough_purchase_outcomes:Number(input.purchase_outcome_count || 0) >= 10,
+      calibration_gap_ok:Number.isFinite(Number(input.calibration_gap)) && Number(input.calibration_gap) <= 0.15,
+      brier_score_ok:Number.isFinite(Number(input.brier_score)) && Number(input.brier_score) <= 0.20,
+      regret_rate_ok:Number.isFinite(Number(input.regret_rate)) && Number(input.regret_rate) <= 0.15,
+      no_severe_errors:severeErrors === 0
+    };
+    return { eligible:Object.values(gate).every(Boolean), checks:gate, provisional:true };
+  }
+
   function hasCurrentGearDelta(candidate, currentGear) {
-    return hasFiniteValue(candidate?.current_gear_delta) ||
+    return (["known", "partial"].includes(candidate?.current_gear_delta_assessment?.status) && hasFiniteValue(candidate.current_gear_delta_assessment.model_score)) ||
+      hasFiniteValue(candidate?.current_gear_delta) ||
       (hasFiniteValue(candidate?.performance_score) && hasFiniteValue(currentGear?.performance_score));
   }
 
   function calculateValue(candidate, budget) {
+    if (Number.isFinite(Number(candidate?.price)) && Number.isFinite(Number(budget)) && Number(budget) > 0) {
+      return clamp01(1 - Math.max(0, Number(candidate.price) - Number(budget)) / Number(budget));
+    }
     if (Number.isFinite(Number(candidate?.value_score))) return clamp01(candidate.value_score);
     if (!Number.isFinite(Number(candidate?.price)) || !Number.isFinite(Number(budget)) || Number(budget) <= 0) return 0.5;
     return clamp01(1 - Math.max(0, Number(candidate.price) - Number(budget)) / Number(budget));
@@ -267,8 +295,17 @@
     const currentDelta = calculateCurrentGearDelta(candidate, context.current_gear);
     const value = calculateValue(candidate, context.budget);
     const evidence = ({ A:1, B:0.8, C:0.55, D:0.25 })[candidate?.evidence_grade] || 0.15;
-    const compatibilityUnknown = candidate?.compatibility_status === "unknown";
-    const compatibility = candidate?.compatible === false || gameFit.incompatible ? 0 : compatibilityUnknown ? null : 1;
+    const compatibilityVerified = candidate?.compatibility_status === "compatible" && candidate?.compatible === true;
+    const compatibilityIncompatible = candidate?.compatibility_status === "incompatible" || candidate?.compatible === false || gameFit.incompatible;
+    const compatibility = compatibilityIncompatible ? 0 : compatibilityVerified ? 1 : null;
+    const compatibilityUnknown = compatibility === null;
+    const budgetProvided = Number.isFinite(Number(context.budget)) && Number(context.budget) > 0;
+    const priceKnown = Number.isFinite(Number(candidate?.price)) && Number(candidate.price) >= 0;
+    const budgetExceeded = budgetProvided && priceKnown && Number(candidate.price) > Number(context.budget);
+    const priceUnknownForBudget = budgetProvided && !priceKnown;
+    const lifecycleBlocked = ["announced", "preorder", "prototype"].includes(candidate?.lifecycle_state);
+    const categoryUnknown = !candidate?.category || !["mouse","keyboard","monitor","mousepad","mouse_skates","audio","controller","network","cable"].includes(candidate.category);
+    const cableNeedUnknown = candidate?.category === "cable" && candidate?.verified_need !== true;
     const regretPenalty = regret.risk_level === "high" ? (regret.confidence === "Low" ? 0.18 : 0.35) :
       regret.risk_level === "medium" ? 0.12 : 0;
     const raw = gameFit.score * 0.25 + preferenceFit.score * 0.30 + currentDelta * 0.20 +
@@ -282,27 +319,42 @@
       game_id:context.game_id,
       input_method:context.input_method,
       recommendation_score:Math.round(clamp01(raw) * 100),
-      confidence:candidateEvidenceConfidence === "Low" || !currentDeltaKnown ? "Low" : confidencePoints >= 5 ? "High" : confidencePoints >= 2 ? "Medium" : "Low",
+      // Real purchase outcomes do not exist yet. Recommendation confidence is
+      // intentionally capped at Medium until highConfidenceGate is satisfied.
+      confidence:candidateEvidenceConfidence === "Low" || !currentDeltaKnown ? "Low" : confidencePoints >= 2 ? "Medium" : "Low",
       evidence_grade:candidate?.evidence_grade || "D",
       components:{ game_fit:gameFit.score, preference_fit:preferenceFit.score, current_gear_delta:currentDelta, value, evidence, compatibility },
+      current_gear_delta_assessment:candidate?.current_gear_delta_assessment || null,
+      compatibility_assessment:candidate?.compatibility_assessment || null,
+      fix_before_buy:[...(candidate?.fix_before_buy || [])],
       coverage:{ game:gameFit.coverage, preference:preferenceFit.coverage },
       regret_shield:regret,
       familiar_score:clamp01(candidate.similarity_to_current),
       direction_codes:[...(candidate.direction_codes || [])],
       compatible:compatibility === 1,
       compatibility_status:compatibility === null ? "unknown" : compatibility === 1 ? "compatible" : "incompatible",
+      safety_gate:{ budget_exceeded:budgetExceeded, price_unknown_for_budget:priceUnknownForBudget, lifecycle_blocked:lifecycleBlocked, category_unknown:categoryUnknown, cable_need_unverified:cableNeedUnknown },
       data_gaps:[
         ...(candidateEvidenceConfidence === "Low" ? ["evidence_insufficient"] : []),
         ...(!currentDeltaKnown ? ["current_gear_delta_missing"] : []),
         ...(gameFit.data_gaps || []),
         ...(compatibilityUnknown ? ["compatibility_unknown"] : []),
-        ...(regret.data_gaps || [])
+        ...(budgetExceeded ? ["budget_exceeded"] : []),
+        ...(priceUnknownForBudget ? ["price_unknown_for_budget"] : []),
+        ...(lifecycleBlocked ? ["non_buyable_lifecycle"] : []),
+        ...(categoryUnknown ? ["category_unknown"] : []),
+        ...(cableNeedUnknown ? ["cable_need_unverified"] : []),
+        ...(regret.data_gaps || []),
+        "confidence_calibration_incomplete"
       ]
     };
   }
 
   function classifyUpgradeMatch(scored) {
     if (scored.compatibility_status === "incompatible" || scored.regret_shield.should_block) return "AVOID";
+    if (scored.safety_gate && Object.values(scored.safety_gate).some(Boolean)) return "DONT_UPGRADE";
+    if ((scored.data_gaps || []).includes("game_fitness_evidence_missing")) return "DONT_UPGRADE";
+    if ((scored.data_gaps || []).includes("setup_assessment_missing")) return "DONT_UPGRADE";
     if (scored.compatibility_status === "unknown" || scored.regret_shield.requires_clarification) return "DONT_UPGRADE";
     if (scored.evidence_grade === "D" || scored.components.evidence < 0.55) return "DONT_UPGRADE";
     if (scored.components.current_gear_delta <= 0.05) return "DONT_UPGRADE";
@@ -322,6 +374,7 @@
         recommendations:[]
       };
     }
+    const setupAssessmentMissing = !Array.isArray(input.fix_before_buy);
     const highPriorityFix = (input.fix_before_buy || []).some(item => Number(item.priority) >= 90);
     const scored = (input.candidates || []).map(candidate => {
       const currentGear = Array.isArray(input.current_gear) ?
@@ -334,16 +387,17 @@
         current_gear:currentGear || null,
         budget:input.budget
       });
-      return { ...result, upgrade_match:classifyUpgradeMatch(result) };
+      const guarded = setupAssessmentMissing ? { ...result, data_gaps:[...result.data_gaps, "setup_assessment_missing"] } : result;
+      return { ...guarded, upgrade_match:classifyUpgradeMatch(guarded) };
     });
     const classOrder = { "BETTER_FIT":0, "SAFE / FAMILIAR":1, "VALUE_ALTERNATIVE":2, "EXPLORE":3, "DONT_UPGRADE":4, "AVOID":5 };
-    scored.sort((a,b) => classOrder[a.upgrade_match] - classOrder[b.upgrade_match] || b.recommendation_score - a.recommendation_score);
+    scored.sort((a,b) => classOrder[a.upgrade_match] - classOrder[b.upgrade_match] || b.recommendation_score - a.recommendation_score || String(a.product_id).localeCompare(String(b.product_id)));
     const purchasable = scored.filter(item => !["AVOID", "DONT_UPGRADE"].includes(item.upgrade_match));
     const decision = highPriorityFix || !purchasable.length || purchasable[0].recommendation_score < 45 ? "DONT_UPGRADE" : "CONSIDER_UPGRADE";
     return {
       status:"ok",
       decision,
-      reason_codes:highPriorityFix ? ["fix_before_buy"] : [],
+      reason_codes:highPriorityFix ? ["fix_before_buy"] : setupAssessmentMissing ? ["setup_assessment_missing"] : [],
       game_context:{ game_id:dnaProfile.game_id, input_method:dnaProfile.input_method },
       recommendations:scored
     };
@@ -351,7 +405,7 @@
 
   return {
     UPGRADE_MATCHES, CONFIDENCE_LEVELS, CATEGORY_INPUT_METHODS, evaluateRegretShield, calculatePreferenceFit,
-    calculateGameFit, calculateCurrentGearDelta, hasCurrentGearDelta, scoreCandidate, classifyUpgradeMatch,
+    calculateGameFit, calculateCurrentGearDelta, hasCurrentGearDelta, highConfidenceGate, scoreCandidate, classifyUpgradeMatch,
     recommendUpgrades
   };
 });

@@ -9,7 +9,9 @@
     g:"g", gram:"g", grams:"g", kg:"kg",
     mm:"mm", millimeter:"mm", millimeters:"mm", cm:"cm", in:"in", inch:"in", inches:"in",
     hz:"hz", khz:"khz", mhz:"mhz",
-    ms:"ms", millisecond:"ms", milliseconds:"ms", us:"us", "µs":"us"
+    ms:"ms", millisecond:"ms", milliseconds:"ms", us:"us", "µs":"us",
+    bps:"bps", kbps:"kbps", mbps:"mbps", gbps:"gbps", tbps:"tbps",
+    w:"w", watt:"w", watts:"w", "%":"pct", pct:"pct", percent:"pct"
   });
   const PANEL_ALIASES = Object.freeze({
     ips:"ips", "fast ips":"fast_ips", fastips:"fast_ips", tn:"tn", "fast tn":"fast_tn", fasttn:"fast_tn",
@@ -85,6 +87,22 @@
       else if (unit === "ms") normalizedUnit = "ms";
       else throw new Error("time unit is invalid");
       if (value < 0 || value > 600000) throw new Error("time is outside the accepted range");
+    } else if (["bandwidth", "throughput", "data rate"].includes(dimension)) {
+      if (unit === "bps") { value /= 1000000; normalizedUnit = "mbps"; }
+      else if (unit === "kbps") { value /= 1000; normalizedUnit = "mbps"; }
+      else if (unit === "mbps") normalizedUnit = "mbps";
+      else if (unit === "gbps") { value *= 1000; normalizedUnit = "mbps"; }
+      else if (unit === "tbps") { value *= 1000000; normalizedUnit = "mbps"; }
+      else throw new Error("data-rate unit is invalid");
+      if (value < 0 || value > 1000000000) throw new Error("data rate is outside the accepted range");
+    } else if (dimension === "power") {
+      if (unit !== "w") throw new Error("power unit is invalid");
+      normalizedUnit = "w";
+      if (value < 0 || value > 1000000) throw new Error("power is outside the accepted range");
+    } else if (dimension === "percentage") {
+      if (unit !== "pct") throw new Error("percentage unit is invalid");
+      normalizedUnit = "pct";
+      if (value < 0 || value > 100) throw new Error("percentage is outside the accepted range");
     } else {
       throw new Error("measurement dimension is invalid");
     }
@@ -122,11 +140,15 @@
       return normalizeMeasurement({ dimension:key === "actuation" ? "actuation" : "length", raw_value:rawValue, raw_unit:rawUnit });
     }
     if (["refresh_rate", "polling_rate", "sample_rate"].includes(key)) return normalizeMeasurement({ dimension:"frequency", raw_value:rawValue, raw_unit:rawUnit });
-    if (["latency", "response_time", "stick_latency", "wireless_latency"].includes(key)) return normalizeMeasurement({ dimension:"latency", raw_value:rawValue, raw_unit:rawUnit });
+    if (["latency", "response_time", "stick_latency", "wireless_latency", "jitter", "bufferbloat"].includes(key)) return normalizeMeasurement({ dimension:"latency", raw_value:rawValue, raw_unit:rawUnit });
+    if (["certified_bandwidth", "wired_wan_speed", "wired_lan_speed", "ethernet_speed", "throughput"].includes(key)) return normalizeMeasurement({ dimension:"bandwidth", raw_value:rawValue, raw_unit:rawUnit });
+    if (key === "power_delivery") return normalizeMeasurement({ dimension:"power", raw_value:rawValue, raw_unit:rawUnit });
+    if (key === "packet_loss") return normalizeMeasurement({ dimension:"percentage", raw_value:rawValue, raw_unit:rawUnit });
     if (key === "panel") return normalizeEnum(rawValue, PANEL_ALIASES, "panel");
     if (key === "shape") return normalizeEnum(rawValue, SHAPE_ALIASES, "shape");
     if (key === "hump") return normalizeEnum(rawValue, HUMP_ALIASES, "hump");
-    if (key === "rapid_trigger") return normalizeBoolean(rawValue, "rapid trigger");
+    if (["rapid_trigger","mesh","wired_backhaul","qos","replaceable_stick_modules","rear_controls"].includes(key)) return normalizeBoolean(rawValue, key);
+    if (Array.isArray(rawValue)) return Object.freeze({ raw_value:rawValue, normalized_value:Object.freeze(rawValue.map(item => cleanToken(item).replace(/ /g, "_"))), normalized_unit:rawUnitOrNull(rawUnit) });
     return Object.freeze({ raw_value:rawValue, normalized_value:cleanToken(rawValue).replace(/ /g, "_"), normalized_unit:rawUnitOrNull(rawUnit) });
   }
 

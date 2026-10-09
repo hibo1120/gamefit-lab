@@ -6,6 +6,9 @@
   const feedback = window.GameFitFeedback;
   const storageApi = window.GameFitStorage;
   const fixtures = window.GameFitPersonalGearFixtures;
+  const deltaEngine = window.GameFitCurrentGearDelta;
+  const compatibilityEngine = window.GameFitCompatibility;
+  const fixBeforeBuy = window.GameFitFixBeforeBuy;
   let storage;
   try { storage = window.localStorage; }
   catch (error) { storage = { getItem() { throw error; } }; }
@@ -42,6 +45,21 @@
       { attribute:"fit", label:"Fit", values:[["over_ear_closed_back","closed back"],["over_ear_open_back","open back"]] },
       { attribute:"weight", label:"Weight", values:[["560 g","560 g"],["280 g","280 g"]] },
       { attribute:"bass", label:"Bass", values:[["boosted","boosted"],["neutral","neutral"]] }
+    ],
+    controller:[
+      { attribute:"layout", label:"Stick layout", values:[["asymmetric","asymmetric"],["symmetrical","symmetrical"]] },
+      { attribute:"stick_type", label:"Stick type", values:[["hall_effect","Hall Effect"],["tmr","TMR"]] },
+      { attribute:"weight", label:"Weight", values:[["345 g","345 g"],["250 g","250 g"]] }
+    ],
+    network:[
+      { attribute:"wifi_generation", label:"Wi-Fi generation", values:[["wifi_6","Wi-Fi 6"],["wifi_7","Wi-Fi 7"]] },
+      { attribute:"bands", label:"Band", values:[["6ghz","6 GHzが必要"],["2.4ghz","2.4 GHzが必要"]] },
+      { attribute:"mesh", label:"Mesh", values:[["false","Meshなし"],["true","Meshあり"]] }
+    ],
+    cable:[
+      { attribute:"connector", label:"Connector", values:[["displayport","DisplayPort"],["hdmi","HDMI"],["rj45","Ethernet"],["usb_c","USB-C"]] },
+      { attribute:"certification", label:"Certification", values:[["vesa_dp80","VESA DP80"],["ultra_high_speed_hdmi","Ultra High Speed HDMI"]] },
+      { attribute:"active_passive", label:"Signal type", values:[["active","active"],["passive","passive"]] }
     ]
   };
 
@@ -149,32 +167,53 @@
       title.textContent = source?.product_name || row.product_id;
       const badges = document.createElement("p");
       badges.append(badge(row.upgrade_match || "RE-RANK"), badge("Confidence " + row.confidence));
+      const detail = document.createElement("details");
+      const detailSummary = document.createElement("summary");
+      detailSummary.textContent = "詳細を見る";
       const list = document.createElement("dl");
+      const delta = row.current_gear_delta_assessment;
       const details = [
-        ["score", String(row.personalized_score ?? row.recommendation_score)],
-        ["Regret Shield", `${row.regret_shield?.risk_level || "unknown"} / ${row.regret_shield?.confidence || "Low"}`],
-        ["Evidence", row.evidence_grade || "D"],
-        ["Data gaps", (row.data_gaps || []).join(", ") || "none"]
+        ["理由", `score ${row.personalized_score ?? row.recommendation_score} / delta ${delta?.delta_band || "unknown"}`],
+        ["懸念", `${row.regret_shield?.risk_level || "unknown"} (${row.regret_shield?.confidence || "Low"}) · ${(row.data_gaps || []).join(", ") || "none"}`],
+        ["Evidence", `${row.evidence_grade || "D"} · compared attributes ${(delta?.compared_attributes || []).length}`],
+        ["Compatibility", `${row.compatibility_status || "unknown"} · ${(row.compatibility_assessment?.unknowns || []).join(", ") || "checked"}`],
+        ["買わなくてもできること", (row.fix_before_buy || []).map(item => item.code).join(", ") || "設定・接続経路を先に確認"]
       ];
       for (const [term,value] of details) {
         const dt = document.createElement("dt"); dt.textContent = term;
         const dd = document.createElement("dd"); dd.textContent = value;
         list.append(dt,dd);
       }
-      card.append(title,badges,list);
+      detail.append(detailSummary,list);
+      card.append(title,badges,detail);
       container.append(card);
     }
   }
 
-  function buildCandidates(category, currentProductId, inputMethod) {
-    return (fixtures.byCategory[category] || []).filter(item => item.product_id !== currentProductId).map(item => ({
-      ...item,
-      input_methods:["mouse","keyboard","mousepad"].includes(category) ? ["mnk"] : ["mnk","controller"],
-      compatibility_status:"unknown",
-      value_score:0.5,
-      similarity_to_current:0,
-      direction_codes:[]
-    }));
+  function buildCandidates(category, currentProductId, inputMethod, platform, freeFixes) {
+    const current = fixtures.products.find(item => item.product_id === currentProductId);
+    return (fixtures.byCategory[category] || []).filter(item => item.product_id !== currentProductId).map(item => {
+      const delta = deltaEngine.compareProducts(current,item);
+      let compatibility = { status:"unknown", issues:[], unknowns:["setup_details_missing"] };
+      if (category === "controller" && item.compatibility_profile?.platforms?.length) {
+        compatibility = item.compatibility_profile.platforms.includes(platform)
+          ? { status:"compatible", issues:[], unknowns:[] }
+          : { status:"incompatible", issues:[{ code:"platform_not_supported", severity:"high" }], unknowns:[] };
+      }
+      return {
+        ...item,
+        input_methods:["mouse","keyboard","mousepad"].includes(category) ? ["mnk"] : category === "controller" ? ["controller"] : ["mnk","controller"],
+        current_gear_delta_assessment:delta,
+        compatibility_assessment:compatibility,
+        compatibility_status:compatibility.status,
+        compatible:compatibility.status === "compatible",
+        fix_before_buy:freeFixes,
+        verified_need:category !== "cable" ? undefined : false,
+        value_score:0.5,
+        similarity_to_current:0,
+        direction_codes:[]
+      };
+    });
   }
 
   function runRecommendation() {
@@ -183,27 +222,36 @@
     const current = fixtures.products.find(item => item.product_id === currentProductId);
     const gameId = byId("game").value;
     const inputMethod = byId("input-method").value;
-    const incompatibleInput = ["mouse","keyboard","mousepad"].includes(category) && inputMethod !== "mnk";
+    const platform = byId("platform").value;
+    const incompatibleInput = (["mouse","keyboard","mousepad"].includes(category) && inputMethod !== "mnk") || (category === "controller" && inputMethod !== "controller");
     if (incompatibleInput) {
       byId("context-warning").hidden = false;
       byId("context-warning").textContent = `${category}は${inputMethod}推薦空間へ流用しません。入力方式をMouse & Keyboardへ変更してください。`;
       return false;
     }
     byId("context-warning").hidden = true;
+    const freeFixes = fixBeforeBuy.suggestions({
+      display_target_mode:category === "monitor", display_link_verified:false,
+      high_polling_device:["mouse","keyboard","controller"].includes(category), actual_polling_verified:false,
+      audio_issue:category === "audio", audio_output_settings_checked:false, direct_audio_path_tested:false,
+      online_game:true, connection_type:category === "network" ? "wifi" : "unknown", wired_tested:category !== "network", bufferbloat_tested:category !== "network",
+      performance_issue:true, os_power_mode_checked:false
+    });
     currentResult = gear.recommendUpgrades({
       game_id:gameId,
       input_method:inputMethod,
       profile:state.profile,
       current_gear:current ? { product_id:current.product_id, category:current.category } : null,
       budget:Number(byId("budget").value),
-      candidates:buildCandidates(category,currentProductId,inputMethod)
+      fix_before_buy:freeFixes,
+      candidates:buildCandidates(category,currentProductId,inputMethod,platform,freeFixes)
     });
     const summary = byId("decision-summary");
     summary.textContent = currentResult.status === "ok"
       ? `${currentResult.decision} · ${gameId}/${inputMethod} · 実Outcome未収集のためConfidenceは仮評価です。`
       : "登録済みのGame/Input profileがないため推薦を停止しました。";
     renderCards(byId("recommendations"), currentResult.recommendations || []);
-    state.setup = { category, current_product_id:currentProductId, budget_band:Number(byId("budget").value), game_id:gameId, input_method:inputMethod };
+    state.setup = { category, current_product_id:currentProductId, budget_band:Number(byId("budget").value), game_id:gameId, input_method:inputMethod, platform };
     state.recommendations.push({
       created_at:new Date().toISOString(), model_version:"pgi-s3-fixture-v1", game_id:gameId, input_method:inputMethod,
       decision:currentResult.decision, original_snapshot:JSON.parse(JSON.stringify(currentResult.recommendations || []))
@@ -228,7 +276,7 @@
       reasons:[{ attribute, sentiment:"dislike", value, reason_code:attribute }]
     });
     if (byId("hard-avoid").checked) state.profile = prefs.addHardAvoid(state.profile, {
-      category, attribute, value, operator:"equals", reason_code:"explicit_hard_avoid"
+      category, attribute, value, operator:attribute === "bands" ? "includes" : "equals", reason_code:"explicit_hard_avoid"
     });
     persist("Gear Tasteをこのブラウザ内に保存しました。");
     gotoStep("context");
@@ -256,11 +304,14 @@
         confidence_at_recommendation:selected.confidence, created_at:new Date().toISOString()
       });
       state.feedback.push(item);
-      state.profile = feedback.applyPersonalLearning(state.profile,item);
-      rerankedResult = feedback.rerankPersonal(currentResult.recommendations,state.profile);
+      const learned = feedback.applyPersonalLearningWithExplanation(state.profile,item,currentResult.recommendations);
+      state.profile = learned.profile;
+      rerankedResult = learned.recommendations;
       renderCards(byId("reranked"),rerankedResult);
       byId("accept-rerank").hidden = verdict !== "disagree" || !rerankedResult.length;
-      byId("feedback-status").textContent = "Personal learningだけを同じGame/Inputへ反映しました。Global learningは無効です。";
+      const updates = learned.explanation.preference_updates.map(update => `${update.kind}:${update.delta > 0 ? "+" : ""}${update.delta}`).join(", ");
+      const moves = learned.explanation.ranking_changes.filter(change => change.rank_delta).map(change => `${change.product_id}:${change.rank_delta > 0 ? "+" : ""}${change.rank_delta}`).join(", ");
+      byId("feedback-status").textContent = `Personal更新 ${updates || "なし"} · 順位変化 ${moves || "なし"}。Global learningは無効で、変更していません。`;
       persist("フィードバックと再ランキングを保存しました。");
     } catch (error) {
       byId("feedback-status").textContent = error.message;

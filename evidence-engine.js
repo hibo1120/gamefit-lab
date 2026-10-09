@@ -12,6 +12,8 @@
     "image_url", "image_data", "thumbnail_url", "video_file", "transcript", "table_data", "raw_table", "graph_data"
   ]);
   const ATTRIBUTE_GRADES = Object.freeze(["A", "B", "C", "D"]);
+  const SOURCE_TYPES = Object.freeze(["official","official_support","official_manual","official_documentation","official_compliance","independent_lab","specialist_review","community","esports_database","certification_registry","standards_body"]);
+  const COMMERCIAL_RELATIONSHIPS = Object.freeze(["manufacturer","none","affiliate_links_disclosed","reader_supported_affiliate_disclosed","standards_registry","unknown_disclosed"]);
 
   function validateEvidenceRecord(record) {
     const errors = [];
@@ -40,6 +42,13 @@
     if (record?.retrieved_at && record?.checked_date && record.retrieved_at !== record.checked_date) {
       errors.push("retrieved_at and checked_date must match");
     }
+    if (record?.checked_date && /^\d{4}-\d{2}-\d{2}$/.test(record.checked_date)) {
+      const parsed = Date.parse(record.checked_date + "T00:00:00Z");
+      if (!Number.isFinite(parsed) || new Date(parsed).toISOString().slice(0,10) !== record.checked_date) errors.push("checked_date is invalid");
+      else if (parsed > Date.now() + 86400000) errors.push("checked_date cannot be in the future");
+    }
+    if (record?.source_type && !SOURCE_TYPES.includes(record.source_type)) errors.push("source_type is invalid");
+    if (record?.commercial_relationship && !COMMERCIAL_RELATIONSHIPS.includes(record.commercial_relationship)) errors.push("commercial_relationship is invalid");
     if (record?.normalized_fact && typeof record.normalized_fact !== "object") errors.push("normalized_fact must be an object");
     if (record?.normalized_fact && !record.normalized_fact.attribute) errors.push("normalized_fact.attribute is required");
     if (record?.rights_use_note && String(record.rights_use_note).length > 240) errors.push("rights_use_note is too long");
@@ -50,7 +59,10 @@
     const seen = new Set();
     return items.filter(item => {
       if (item.independent !== true) return false;
-      const key = item.source_origin_id || item.origin_source_id || item.source_id;
+      let publisher = null;
+      try { publisher = item.source_url ? new URL(item.source_url).hostname.toLowerCase().replace(/^www\./, "") : null; } catch (_) {}
+      const origin = item.source_origin_id || item.origin_source_id || item.source_id;
+      const key = item.publisher_id || (item.source_type === "community" ? origin : publisher) || origin;
       if (!key) return false;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -88,9 +100,14 @@
   }
 
   function gradeFromEvidence(items, product) {
-    const measurements = uniqueIndependent(items.filter(i => i.evidence_type === "measurement")).length;
-    const subjectiveConsensus = normalizeSubjectiveConsensus(items);
-    const longTermCoverage = uniqueIndependent(items.filter(i => i.long_term === true && !["adoption", "trend", "price"].includes(i.evidence_type))).length;
+    const current = (items || []).filter(item => {
+      if (!item.checked_date && !item.retrieved_at) return true;
+      const timestamp = Date.parse((item.checked_date || item.retrieved_at) + "T00:00:00Z");
+      return Number.isFinite(timestamp) && timestamp <= Date.now() + 86400000 && Date.now() - timestamp <= 3 * 365.25 * 86400000;
+    });
+    const measurements = uniqueIndependent(current.filter(i => i.evidence_type === "measurement")).length;
+    const subjectiveConsensus = normalizeSubjectiveConsensus(current);
+    const longTermCoverage = uniqueIndependent(current.filter(i => i.long_term === true && !["adoption", "trend", "price"].includes(i.evidence_type))).length;
     let grade = "D";
     if (measurements >= 1 || subjectiveConsensus === "medium") grade = "C";
     if (measurements >= 1 && ["medium","high"].includes(subjectiveConsensus)) grade = "B";
@@ -180,7 +197,7 @@
   }
 
   return {
-    EVIDENCE_TYPES, CONSENSUS, PROHIBITED_COPY_FIELDS, ATTRIBUTE_GRADES, validateEvidenceRecord, validateFixtureEvidenceRecord,
+    EVIDENCE_TYPES, CONSENSUS, PROHIBITED_COPY_FIELDS, ATTRIBUTE_GRADES, SOURCE_TYPES, COMMERCIAL_RELATIONSHIPS, validateEvidenceRecord, validateFixtureEvidenceRecord,
     normalizeSubjectiveConsensus, groupCompatibleMeasurements,
     uniqueIndependent, newProductConfidenceCap, gradeFromEvidence, buildAssessment,
     confidenceFromGrade, buildAttributeAssessment, buildAttributeAssessments

@@ -34,9 +34,9 @@ Recommendation and monetization remain separate. Affiliate eligibility, commissi
 - `mousepad`: surface speed, stopping power, texture, base/thickness, humidity resistance, durability, size
 - `mouse_skates`: material, speed, control, edge rounding, thickness, break-in, durability
 - `audio`: fit, bass/mid/treble, imaging, soundstage, latency, isolation, mic
-- `controller`: layout, stick tension/latency, deadzone, trigger, back buttons, weight, grip, wireless latency
-- `network`: connection type, latency, jitter, packet loss, stability, bufferbloat, Wi-Fi standard, Ethernet speed
-- `cable`: connector, length, flexibility, weight, drag, durability, bandwidth, power delivery
+- `controller`: layout, stick type/tension/latency, polling rate, deadzone, trigger type, back buttons, weight, grip, wireless latency
+- `network`: Wi-Fi generation/bands, wired WAN/LAN speed, coverage, latency, jitter, packet loss, bufferbloat, mesh/backhaul, QoS, firmware stability
+- `cable`: connector, standard, certified bandwidth, length, active/passive, compatibility, certification, flexibility, durability, power delivery
 
 An attribute preference stores `sentiment`, `value`, `direction_code`, optional reason, and optional exact game/input scope. `value` is the observed liked/disliked value; `direction_code` always means the user's desired direction. A context-specific entry never overwrites another game/input context. Unknown attributes and preferences without either a comparable value or desired direction are rejected instead of silently becoming free-form scoring inputs.
 
@@ -139,7 +139,7 @@ The production UI is intentionally not implemented in this branch. The private v
 
 ### My Setup Lite
 
-Ask only current category/product and budget band. Game and input are collected as a separate exact context before a recommendation runs. Compatibility Guard and Fix Before Buy remain mandatory inputs before any future purchase advice.
+Ask only current category/product and budget band. Game, input, and platform are collected as a separate exact context before a recommendation runs. Compatibility Guard and Fix Before Buy remain mandatory inputs before any future purchase advice.
 
 ### Gear Taste
 
@@ -163,7 +163,7 @@ Apply personal learning immediately within the same game/input context. Show wha
 
 ## 9. Real-product fixture and normalization contract
 
-`data/personal-gear-fixtures.js` contains a 30-product, fixture-only pilot: six products in each of mouse, keyboard, monitor, mousepad, and audio. Each category includes one `staple`, `current_flagship`, `value`, `hidden_gem_candidate`, `new_low_evidence`, and `legacy` test stratum. These internal strata are omitted from the UI and are not recommendations, price claims, or market claims.
+`data/personal-gear-fixtures.js` contains a 48-product, fixture-only pilot: six products in each of mouse, keyboard, monitor, mousepad, audio, controller, network, and cable. The first five categories retain the `staple`, `current_flagship`, `value`, `hidden_gem_candidate`, `new_low_evidence`, and `legacy` strata. Controller, network, and cable use the equivalent `niche` label for their specialist case. These internal strata are omitted from the UI and are not recommendations, price claims, or market claims.
 
 Every stored Evidence record must contain:
 
@@ -177,11 +177,19 @@ Every stored Evidence record must contain:
 
 Unknown attributes are omitted. They are never inferred from a product name, family, review reputation, another region, or an earlier revision. Manufacturer pages support identity and explicit specifications; they do not create independent subjective consensus. Product Evidence grades are computed from the ledger at load time rather than declared in fixture rows. Adoption, trend, price, and Affiliate availability cannot promote an Evidence grade or personal-fit score.
 
-`normalization-engine.js` preserves `raw_value` and separately creates a canonical `normalized_value` and `normalized_unit`. It currently normalizes grams/kilograms, millimetres/centimetres/inches, Hz/kHz/MHz, milliseconds/microseconds, common panel names, symmetric/ambidextrous wording, rapid-trigger booleans, and rear/back-hump synonyms. Invalid, non-finite, or physically impossible measurements are rejected.
+`normalization-engine.js` preserves `raw_value` and separately creates a canonical `normalized_value` and `normalized_unit`. It normalizes grams/kilograms, millimetres/centimetres/inches, Hz/kHz/MHz, milliseconds/microseconds, bps/Kbps/Mbps/Gbps/Tbps, watts, percentage, common panel names, symmetric/ambidextrous wording, rapid-trigger booleans, and rear/back-hump synonyms. Invalid, non-finite, unknown-unit, dimension-mismatched, or physically impossible measurements are rejected.
 
 Attribute Evidence is independent from the product-level grade. Shape, click, weight, latency, glide, response time, imaging, or any other attribute can have its own A–D grade, confidence, source count, methodology set, conflict flag, normalized facts, and data gaps. Missing attribute evidence remains Low and does not inherit a product-level grade. Regret Shield uses the confidence of the compared attribute first.
 
-The real-product pilot deliberately omits an unverified current-gear performance delta and unknown compatibility. Therefore the private UI safely returns `DONT_UPGRADE` rather than inventing a positive upgrade. The six Upgrade Match branches and re-ranking mechanics are exercised separately with adversarial synthetic fixtures; this is pipeline safety validation, not recommendation-accuracy validation.
+`current-gear-delta.js` compares a current/candidate pair only within the same category. It uses attribute-level Evidence C or better, excludes missing values, and excludes methodology-sensitive measurements when their methodology families differ. Its output is a coarse `small_change | limited_change | meaningful_change` band, comparison/exclusion trace, coverage, and at most Medium confidence. Personal attributes such as mouse weight or cable capacity are changes, not automatic improvements.
+
+Compatibility uses explicit `compatible | incompatible | unknown` results. Missing status is `unknown`, never an implicit pass. Display signal chain, USB/high polling, audio/DAC, and network paths use known standards relationships only. Cable candidates remain `DONT_UPGRADE` until a connector, capacity, power, or physical-fault need is verified. Network throughput is not latency evidence. The UI therefore remains conservative where its lite setup does not capture an entire signal chain.
+
+## 9A. Learn Before Buy, research digest, and catalog lifecycle
+
+`data/decision-briefs.js` stores eight original GameFit knowledge units: Ethernet category, Wi-Fi generations, Wi-Fi bands, DisplayPort, HDMI, USB polling, high-refresh monitors, and Rapid Trigger. Every unit separates what matters, what usually does not matter, a misconception, checks before buying, when an upgrade is unnecessary, compatibility prerequisites, Evidence strength, and source IDs. `decision-brief-engine.js` exposes the GameFit brief first and source attribution only as supporting detail. It does not turn source articles or videos into front-page recommendation content.
+
+`catalog-lifecycle.js` implements `catalog → profiled → evaluated → verified`, plus evidence-driven demotion and `legacy / discontinued`. Popularity cannot promote a product. Search, ownership registration, comparison, and Watch events only prioritize an on-demand enrichment queue; promotion still requires source, attribute, compatibility, and adversarial evidence.
 
 ## 10. Local storage and privacy
 
@@ -201,7 +209,7 @@ The document shape is:
 }
 ```
 
-Storage stays on the current browser origin. The private UI provides JSON Export, Reset, and Delete all; displays the schema version; warns about shared devices, private browsing, and storage eviction; and never implies device sync. Corrupt or future-schema data is not overwritten automatically: the UI enters read-only recovery mode and exports the unchanged original bytes as a recovery text file until the user explicitly resets or deletes it. Deletion is limited to keys beginning with `gamefit.personal_gear.`. Writes are validated, size-limited, and atomic at the storage API boundary so a failed quota write keeps the last good record.
+Storage stays on the current browser origin. The private UI provides JSON Export, Reset, and Delete all; displays the schema version; warns about shared devices, private browsing, and storage eviction; and never implies device sync. Corrupt or future-schema data is not overwritten automatically: the UI enters read-only recovery mode and exports the unchanged original bytes as a recovery text file until the user explicitly resets or deletes it. Deletion is limited to keys beginning with `gamefit.personal_gear.`. Writes are validated, size-limited, and atomic at the storage API boundary so a failed quota write keeps the last good record. Root, profile, and setup fields use allowlists; common PII, secret, and free-text field names are rejected; histories are capped at 500 records. The documented retention review interval is 365 days, but the MVP does not silently delete user data.
 
 No user ID or other personal identifier is generated. No login, email, notification, analytics, external request, cloud DB, or cross-user learning is included in the private page.
 
@@ -242,5 +250,9 @@ Required branch tests cover:
 - corrupt/future localStorage recovery, scoped deletion, and quota-failure safety
 - private UI flow, personal-only re-ranking, shared-device warning, and external-request absence
 - all existing regression tests
+
+Recommendation confidence is capped at Medium while real purchase outcomes are absent. The provisional High gate requires every critical attribute and exact game-fit Evidence to be B or better, verified delta and compatibility, no critical gaps, Affiliate permutation invariance, 100% adversarial pass, at least 30 decided feedback records, at least 10 post-purchase outcomes, calibration gap at most 0.15, Brier score at most 0.20, regret rate at most 15%, and zero severe recommendation errors. These thresholds are a release hypothesis, not proof of calibration.
+
+Red-team fail-closed rules include: omitted compatibility, omitted setup assessment, source-free exact game fit, over-budget or price-unknown candidates, announced/preorder products, unverified cable need, unknown category, hard-avoid uncertainty, and critical data gaps. Exact score ties use a deterministic product-ID tiebreak independent of Affiliate status or feed order.
 
 Merge/deploy remain separate human decisions. S3 stays HOLD for `main` until a human reviews the fixture facts and source permissions. Production launch additionally requires independent lab/subjective coverage for recommendation-critical attributes, verified current-gear delta and compatibility inputs, real post-purchase outcomes, and real-world confidence calibration.

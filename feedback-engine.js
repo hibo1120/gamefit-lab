@@ -141,6 +141,46 @@
     }).sort((a,b) => b.personalized_score - a.personalized_score);
   }
 
+  function learningExplanation(beforeProfile, afterProfile, feedback, beforeRanking=[], afterRanking=[]) {
+    if (feedback?.type !== "recommendation_feedback") throw new Error("recommendation feedback is required");
+    const beforeAdjustments = beforeProfile?.personal_adjustments || { products:{}, directions:{} };
+    const afterAdjustments = afterProfile?.personal_adjustments || { products:{}, directions:{} };
+    const preferenceUpdates = [];
+    for (const [kind, values] of Object.entries(afterAdjustments)) {
+      for (const [key, value] of Object.entries(values || {})) {
+        const previous = Number(beforeAdjustments?.[kind]?.[key] || 0);
+        const next = Number(value || 0);
+        if (previous !== next) preferenceUpdates.push({ kind, key, previous, next, delta:next - previous });
+      }
+    }
+    const beforePositions = new Map((beforeRanking || []).map((item, index) => [item.product_id, { index, score:Number(item.personalized_score ?? item.recommendation_score ?? 0) }]));
+    const rankingChanges = (afterRanking || []).map((item, index) => {
+      const before = beforePositions.get(item.product_id);
+      return {
+        product_id:item.product_id,
+        previous_rank:before ? before.index + 1 : null,
+        new_rank:index + 1,
+        rank_delta:before ? before.index - index : null,
+        score_delta:before ? Number((Number(item.personalized_score ?? item.recommendation_score ?? 0) - before.score).toFixed(4)) : null
+      };
+    });
+    return {
+      scope:"personal",
+      global_model_changed:false,
+      trigger:{ verdict:feedback.verdict, reason_codes:[...(feedback.reason_codes || [])], desired_direction_codes:[...(feedback.desired_direction_codes || [])] },
+      preference_updates:preferenceUpdates,
+      ranking_changes:rankingChanges,
+      explanation_rule:"One user's feedback changes only that user's context-scoped adjustments."
+    };
+  }
+
+  function applyPersonalLearningWithExplanation(profile, feedback, recommendations=[]) {
+    const beforeRanking = rerankPersonal(recommendations, profile || {});
+    const nextProfile = applyPersonalLearning(profile, feedback);
+    const afterRanking = rerankPersonal(recommendations, nextProfile);
+    return { profile:nextProfile, recommendations:afterRanking, explanation:learningExplanation(profile || {}, nextProfile, feedback, beforeRanking, afterRanking) };
+  }
+
   function targetKey(record) {
     return [record.product_id || "", record.game_id || "", record.input_method || ""].join("|");
   }
@@ -249,7 +289,7 @@
 
   return {
     VERDICTS, OUTCOMES, DISPOSITIONS, REASON_CODES, DIRECTION_CODES,
-    recommendationFeedback, postPurchaseOutcome, applyPersonalLearning, rerankPersonal,
+    recommendationFeedback, postPurchaseOutcome, applyPersonalLearning, applyPersonalLearningWithExplanation, rerankPersonal, learningExplanation,
     globalLearningAssessment, globalLearningEligible, confidenceCalibration, computeKpis
   };
 });

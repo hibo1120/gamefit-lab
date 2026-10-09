@@ -70,6 +70,7 @@
       fixture_only:true,
       attributes:Object.freeze(attributes),
       attribute_evidence:Object.freeze(attributeEvidence),
+      compatibility_profile:Object.freeze(definition.compatibility_profile || {}),
       evidence:records
     });
   }
@@ -81,7 +82,11 @@
       evidence:[
         fact("mouse-razer-viper-v4-pro",1,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","weight","Razer lists 49 g for the black edition.",49,"g",{variant:"black"}),
         fact("mouse-razer-viper-v4-pro",2,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","polling_rate","Razer lists polling up to 8000 Hz.",8000,"hz"),
-        fact("mouse-razer-viper-v4-pro",3,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","shape","Razer describes a right-handed symmetrical shape.","right_handed_symmetrical")
+        fact("mouse-razer-viper-v4-pro",3,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","shape","Razer describes a right-handed symmetrical shape.","right_handed_symmetrical"),
+        fact("mouse-razer-viper-v4-pro",4,"https://www.rtings.com/mouse/reviews/razer/viper-v4-pro","click_latency","RTINGS tested the black unit under mouse methodology 1.5.2; the method-specific result is retained without converting it to another lab's scale.","measured_rtings_v1_5_2",null,{ evidence_type:"measurement", source_type:"independent_lab", source_id:"rtings-viper-v4-pro", source_origin_id:"rtings-viper-v4-pro", methodology_family:"rtings_mouse_v1_5_2", independent:true, commercial_relationship:"reader_supported_affiliate_disclosed", variant:"black" }),
+        fact("mouse-razer-viper-v4-pro",5,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","length","Razer lists 127.1 mm length.",127.1,"mm"),
+        fact("mouse-razer-viper-v4-pro",6,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","width","Razer lists 63.9 mm width.",63.9,"mm"),
+        fact("mouse-razer-viper-v4-pro",7,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","height","Razer lists 39.9 mm height.",39.9,"mm")
       ]
     },
     {
@@ -130,7 +135,8 @@
       fixture_role:"new_low_evidence", lifecycle_state:"available",
       evidence:[
         fact("mouse-logitech-pro-x3-superstrike",1,"https://www.logitechg.com/en-us/shop/p/pro-x3-superstrike-mouse","weight","Logitech lists a 59 g mouse weight.",59,"g"),
-        fact("mouse-logitech-pro-x3-superstrike",2,"https://www.logitechg.com/en-us/shop/p/pro-x3-superstrike-mouse","polling_rate","Logitech lists a maximum 8 kHz report rate.",8000,"hz")
+        fact("mouse-logitech-pro-x3-superstrike",2,"https://www.logitechg.com/en-us/shop/p/pro-x3-superstrike-mouse","polling_rate","Logitech lists a maximum 8 kHz report rate.",8000,"hz"),
+        fact("mouse-logitech-pro-x3-superstrike",3,"https://prosettings.net/reviews/logitech-g-pro-x3-superstrike/","feet_feedback","A specialist review of a supplied unit reports scratchy-feeling feet; this is a single-unit subjective concern.","single_review_concern",null,{ evidence_type:"subjective", source_type:"specialist_review", source_id:"prosettings-pro-x3-review", source_origin_id:"prosettings-pro-x3-review", methodology_family:"specialist_editorial", independent:true, stance:"concern", effect:"concern", commercial_relationship:"affiliate_links_disclosed" })
       ]
     },
     {
@@ -159,7 +165,8 @@
           evidence_type:"measurement", source_type:"independent_lab", source_id:"rtings-keyboard-wooting-80he",
           source_origin_id:"rtings-keyboard-wooting-80he", methodology_family:"rtings_keyboard_v1_4_3", independent:true,
           commercial_relationship:"reader_supported_affiliate_disclosed"
-        })
+        }),
+        fact("keyboard-wooting-80he",3,"https://help.wooting.io/article/333-my-80he-flashes-or-disconnects-when-i-type","connection_issue","Wooting support identifies a loose internal JST connection as one possible cause of disconnects or missed input.","documented_troubleshooting_cause",null,{ evidence_type:"issue", source_type:"official_support", source_id:"wooting-80he-jst-support", source_origin_id:"wooting-80he-jst-support", methodology_family:"official_support", effect:"concern" })
       ]
     },
     {
@@ -178,7 +185,8 @@
       evidence:[
         fact("keyboard-razer-huntsman-v3-pro-mini-8khz",1,"https://www.razer.com/gaming-keyboards/razer-huntsman-v3-pro-mini-8khz","rapid_trigger","Razer lists Rapid Trigger support.",true),
         fact("keyboard-razer-huntsman-v3-pro-mini-8khz",2,"https://www.razer.com/gaming-keyboards/razer-huntsman-v3-pro-mini-8khz","actuation","Razer lists an adjustable actuation range beginning at 0.1 mm.",0.1,"mm"),
-        fact("keyboard-razer-huntsman-v3-pro-mini-8khz",3,"https://www.razer.com/gaming-keyboards/razer-huntsman-v3-pro-mini-8khz","polling_rate","Razer lists 8000 Hz HyperPolling.",8000,"hz")
+        fact("keyboard-razer-huntsman-v3-pro-mini-8khz",3,"https://www.razer.com/gaming-keyboards/razer-huntsman-v3-pro-mini-8khz","polling_rate","Razer lists 8000 Hz HyperPolling.",8000,"hz"),
+        fact("keyboard-razer-huntsman-v3-pro-mini-8khz",4,"https://www.razer.com/gaming-keyboards/razer-huntsman-v3-pro-mini-8khz","layout","Razer lists the Mini model as a 60 percent form factor.","60_percent")
       ]
     },
     {
@@ -223,7 +231,12 @@
     {
       product_id:"monitor-sony-inzone-m10s-ii", product_name:"Sony INZONE M10S II", category:"monitor",
       fixture_role:"new_low_evidence", lifecycle_state:"available",
-      evidence:[fact("monitor-sony-inzone-m10s-ii",1,"https://www.sony.com/electronics/support/televisions-projectors-monitors/sdm-27q102/specifications","product_identity","Sony publishes specifications for the INZONE M10S II; this pilot intentionally withholds recommendation attributes until independent lab evidence is recorded.","sony_inzone_m10s_ii")]
+      evidence:[
+        fact("monitor-sony-inzone-m10s-ii",1,"https://www.sony.com/electronics/support/televisions-projectors-monitors/sdm-27q102/specifications","panel","Sony lists an OLED panel.","oled"),
+        fact("monitor-sony-inzone-m10s-ii",2,"https://www.sony.com/electronics/support/televisions-projectors-monitors/sdm-27q102/specifications","resolution","Sony lists 2560 x 1440 native resolution.","2560x1440"),
+        fact("monitor-sony-inzone-m10s-ii",3,"https://www.sony.com/electronics/support/televisions-projectors-monitors/sdm-27q102/specifications","refresh_rate","Sony lists up to 540 Hz at native resolution over DisplayPort.",540,"hz",{variant:"2560x1440 DisplayPort"}),
+        fact("monitor-sony-inzone-m10s-ii",4,"https://www.tomshardware.com/monitors/gaming-monitors/sony-inzone-m10s-ii-27-inch-540-hz-qhd-oled-gaming-monitor-review/2","response_measurement","Tom's Hardware reports method-specific response and total-latency measurements; values are not remapped to panel response time.","measured_toms_monitor_method",null,{ evidence_type:"measurement", source_type:"independent_lab", source_id:"toms-inzone-m10s2", source_origin_id:"toms-inzone-m10s2", methodology_family:"toms_monitor_test", independent:true, commercial_relationship:"affiliate_links_disclosed" })
+      ]
     },
     {
       product_id:"monitor-zowie-xl2546k", product_name:"ZOWIE XL2546K", category:"monitor",
@@ -270,7 +283,10 @@
     {
       product_id:"mousepad-razer-atlas-pro", product_name:"Razer Atlas Pro", category:"mousepad",
       fixture_role:"new_low_evidence", lifecycle_state:"available",
-      evidence:[fact("mousepad-razer-atlas-pro",1,"https://www.razer.com/pc/gaming-mouse-mats/atlas-line","product_identity","Razer lists Atlas Pro as a new glass gaming mouse mat; recommendation attributes remain withheld pending independent evidence.","razer_atlas_pro")]
+      evidence:[
+        fact("mousepad-razer-atlas-pro",1,"https://www.razer.com/pc/gaming-mouse-mats/atlas-line","surface","Razer lists a tempered-glass surface.","tempered_glass"),
+        fact("mousepad-razer-atlas-pro",2,"https://www.razer.com/pc/gaming-mouse-mats/atlas-line","thickness","Razer lists 1.9 mm thickness.",1.9,"mm")
+      ]
     },
     {
       product_id:"mousepad-steelseries-qck-heavy", product_name:"SteelSeries QcK Heavy", category:"mousepad",
@@ -288,7 +304,8 @@
       fixture_role:"current_flagship", lifecycle_state:"available",
       evidence:[
         fact("audio-audeze-maxwell-2",1,"https://www.audeze.com/products/maxwell-2-wireless-gaming-headset","weight","Audeze lists a 560 g weight.",560,"g"),
-        fact("audio-audeze-maxwell-2",2,"https://www.audeze.com/products/maxwell-2-wireless-gaming-headset","product_identity","Audeze lists 90 mm planar magnetic drivers and low-latency wireless.","audeze_maxwell_2")
+        fact("audio-audeze-maxwell-2",2,"https://www.audeze.com/products/maxwell-2-wireless-gaming-headset","product_identity","Audeze lists 90 mm planar magnetic drivers and low-latency wireless.","audeze_maxwell_2"),
+        fact("audio-audeze-maxwell-2",3,"https://www.rtings.com/headphones/reviews/audeze/maxwell-2","fit_variation","RTINGS tested the Xbox variant under methodology 2.3 and reports fit/seal sensitivity; this is not transferred to other variants.","xbox_variant_fit_sensitive",null,{ evidence_type:"measurement", source_type:"independent_lab", source_id:"rtings-maxwell-2-xbox", source_origin_id:"rtings-maxwell-2-xbox", methodology_family:"rtings_headphones_v2_3", independent:true, commercial_relationship:"reader_supported_affiliate_disclosed", variant:"Xbox" })
       ]
     },
     {
@@ -316,6 +333,169 @@
       product_id:"audio-audeze-maxwell", product_name:"Audeze Maxwell", category:"audio",
       fixture_role:"legacy", lifecycle_state:"legacy",
       evidence:[fact("audio-audeze-maxwell",1,"https://www.audeze.com/products/maxwell","product_identity","Audeze marks the original Maxwell as a legacy product no longer available for sale.","audeze_maxwell_legacy")]
+    },
+
+    {
+      product_id:"controller-xbox-wireless", product_name:"Xbox Wireless Controller", category:"controller",
+      fixture_role:"staple", lifecycle_state:"available", compatibility_profile:{ platforms:["xbox_series","windows_pc","ios","android"], connections:["xbox_wireless","bluetooth","usb_c"] },
+      evidence:[
+        fact("controller-xbox-wireless",1,"https://www.xbox.com/en-US/accessories/controllers/xbox-wireless-controller","layout","Microsoft shows the Xbox asymmetric stick layout.","asymmetric"),
+        fact("controller-xbox-wireless",2,"https://www.xbox.com/en-US/accessories/controllers/xbox-wireless-controller","connections","Microsoft lists Xbox Wireless and Bluetooth connectivity.",["xbox_wireless","bluetooth"]),
+        fact("controller-xbox-wireless",3,"https://www.xbox.com/en-US/accessories/controllers/xbox-wireless-controller","platforms","Microsoft lists Xbox, Windows 10/11, iOS, and Android compatibility.",["xbox_series","windows_pc","ios","android"])
+      ]
+    },
+    {
+      product_id:"controller-dualsense-edge", product_name:"DualSense Edge", category:"controller",
+      fixture_role:"current_flagship", lifecycle_state:"available", compatibility_profile:{ platforms:["ps5","windows_pc"], connections:["usb_c","bluetooth"] },
+      evidence:[
+        fact("controller-dualsense-edge",1,"https://direct.playstation.com/en-us/buy-accessories/dualsense-edge-wireless-controller","layout","Sony shows the PlayStation symmetrical stick layout.","symmetrical"),
+        fact("controller-dualsense-edge",2,"https://direct.playstation.com/en-us/buy-accessories/dualsense-edge-wireless-controller","replaceable_stick_modules","Sony lists replaceable stick modules.",true),
+        fact("controller-dualsense-edge",3,"https://direct.playstation.com/en-us/buy-accessories/dualsense-edge-wireless-controller","rear_controls","Sony lists configurable back buttons.",true)
+      ]
+    },
+    {
+      product_id:"controller-8bitdo-ultimate-2c-wired", product_name:"8BitDo Ultimate 2C Wired", category:"controller",
+      fixture_role:"value", lifecycle_state:"available", compatibility_profile:{ platforms:["windows_pc","android"], connections:["usb"] },
+      evidence:[
+        fact("controller-8bitdo-ultimate-2c-wired",1,"https://www.8bitdo.com/ultimate-2c-wired-controller/","stick_type","8BitDo lists Hall Effect joysticks.","hall_effect"),
+        fact("controller-8bitdo-ultimate-2c-wired",2,"https://www.8bitdo.com/ultimate-2c-wired-controller/","polling_rate","8BitDo lists a 1000 Hz polling rate on Windows.",1000,"hz",{variant:"Windows"}),
+        fact("controller-8bitdo-ultimate-2c-wired",3,"https://www.8bitdo.com/ultimate-2c-wired-controller/","platforms","8BitDo lists Windows and Android compatibility.",["windows_pc","android"])
+      ]
+    },
+    {
+      product_id:"controller-xbox-elite-series-2", product_name:"Xbox Elite Wireless Controller Series 2", category:"controller",
+      fixture_role:"niche", lifecycle_state:"available", compatibility_profile:{ platforms:["xbox_series","windows_pc"], connections:["xbox_wireless","bluetooth","usb_c"] },
+      evidence:[
+        fact("controller-xbox-elite-series-2",1,"https://www.xbox.com/en-US/accessories/controllers/elite-wireless-controller-series-2","weight","Microsoft lists 345 g with a plus or minus 15 g tolerance when using the thumbstick and paddles shown.",345,"g",{variant:"with listed attachments"}),
+        fact("controller-xbox-elite-series-2",2,"https://www.xbox.com/en-US/accessories/controllers/elite-wireless-controller-series-2","rear_controls","Microsoft lists interchangeable paddles.",true)
+      ]
+    },
+    {
+      product_id:"controller-razer-wolverine-v3-pro-8k", product_name:"Razer Wolverine V3 Pro 8K PC", category:"controller",
+      fixture_role:"new_low_evidence", lifecycle_state:"available", compatibility_profile:{ platforms:["windows_pc"], connections:["usb","wireless_dongle"] },
+      evidence:[
+        fact("controller-razer-wolverine-v3-pro-8k",1,"https://www.razer.com/gaming-controllers/razer-wolverine-v3-pro-8k-pc","polling_rate","Razer lists up to 8000 Hz wired and wireless polling for the PC model.",8000,"hz",{variant:"PC"}),
+        fact("controller-razer-wolverine-v3-pro-8k",2,"https://www.razer.com/gaming-controllers/razer-wolverine-v3-pro-8k-pc","stick_type","Razer lists TMR thumbsticks.","tmr",null,{variant:"PC"})
+      ]
+    },
+    {
+      product_id:"controller-xbox-360-wireless", product_name:"Xbox 360 Wireless Controller", category:"controller",
+      fixture_role:"legacy", lifecycle_state:"legacy", compatibility_profile:{ platforms:["xbox_360"], connections:["xbox_360_wireless"] },
+      evidence:[
+        fact("controller-xbox-360-wireless",1,"https://mktplassets.xbox.com/NR/rdonlyres/A7D7FE0E-FCD4-4E75-9942-303699D05246/0/emeacontrollerwirelessEnFrEs.pdf","platforms","The Microsoft manual identifies this controller for the Xbox 360 system.",["xbox_360"],null,{source_type:"official_manual",methodology_family:"official_manual"})
+      ]
+    },
+
+    {
+      product_id:"network-asus-rt-ax86u-pro", product_name:"ASUS RT-AX86U Pro", category:"network",
+      fixture_role:"staple", lifecycle_state:"available",
+      evidence:[
+        fact("network-asus-rt-ax86u-pro",1,"https://www.asus.com/us/networking-iot-servers/wifi-routers/asus-wifi-routers/rt-ax86u-pro/","wifi_generation","ASUS lists Wi-Fi 6.","wifi_6"),
+        fact("network-asus-rt-ax86u-pro",2,"https://www.asus.com/us/networking-iot-servers/wifi-routers/asus-wifi-routers/rt-ax86u-pro/","bands","ASUS lists 2.4 GHz and 5 GHz bands.",["2.4ghz","5ghz"]),
+        fact("network-asus-rt-ax86u-pro",3,"https://www.asus.com/us/networking-iot-servers/wifi-routers/asus-wifi-routers/rt-ax86u-pro/","wired_lan_speed","ASUS lists a configurable 2.5 Gb Ethernet port and four 1 Gb LAN ports.",2.5,"gbps"),
+        fact("network-asus-rt-ax86u-pro",4,"https://www.asus.com/us/networking-iot-servers/wifi-routers/asus-wifi-routers/rt-ax86u-pro/","mesh","ASUS lists AiMesh support.",true)
+      ]
+    },
+    {
+      product_id:"network-asus-gt-be98-pro", product_name:"ASUS ROG Rapture GT-BE98 Pro", category:"network",
+      fixture_role:"current_flagship", lifecycle_state:"available",
+      evidence:[
+        fact("network-asus-gt-be98-pro",1,"https://rog.asus.com/us/networking/rog-rapture-gt-be98-pro/spec/","wifi_generation","ASUS lists Wi-Fi 7.","wifi_7"),
+        fact("network-asus-gt-be98-pro",2,"https://rog.asus.com/us/networking/rog-rapture-gt-be98-pro/spec/","bands","ASUS lists 2.4 GHz, 5 GHz, and 6 GHz radios.",["2.4ghz","5ghz","6ghz"]),
+        fact("network-asus-gt-be98-pro",3,"https://rog.asus.com/us/networking/rog-rapture-gt-be98-pro/spec/","wired_lan_speed","ASUS lists 10 Gb and 2.5 Gb Ethernet interfaces.",10,"gbps"),
+        fact("network-asus-gt-be98-pro",4,"https://rog.asus.com/us/networking/rog-rapture-gt-be98-pro/spec/","mesh","ASUS lists AiMesh support.",true)
+      ]
+    },
+    {
+      product_id:"network-tplink-archer-be550", product_name:"TP-Link Archer BE550", category:"network",
+      fixture_role:"value", lifecycle_state:"available",
+      evidence:[
+        fact("network-tplink-archer-be550",1,"https://www.tp-link.com/us/home-networking/wifi-router/archer-be550/","wifi_generation","TP-Link lists Wi-Fi 7.","wifi_7"),
+        fact("network-tplink-archer-be550",2,"https://www.tp-link.com/us/home-networking/wifi-router/archer-be550/","bands","TP-Link lists 2.4 GHz, 5 GHz, and 6 GHz bands.",["2.4ghz","5ghz","6ghz"]),
+        fact("network-tplink-archer-be550",3,"https://www.tp-link.com/us/home-networking/wifi-router/archer-be550/","wired_wan_speed","TP-Link lists one 2.5 Gb WAN port.",2.5,"gbps"),
+        fact("network-tplink-archer-be550",4,"https://www.tp-link.com/us/home-networking/wifi-router/archer-be550/","wired_lan_speed","TP-Link lists four 2.5 Gb LAN ports.",2.5,"gbps")
+      ]
+    },
+    {
+      product_id:"network-glinet-flint-2", product_name:"GL.iNet Flint 2", category:"network",
+      fixture_role:"niche", lifecycle_state:"available",
+      evidence:[
+        fact("network-glinet-flint-2",1,"https://docs.gl-inet.com/router/en/4/user_guide/gl-mt6000/","wifi_generation","GL.iNet documents Flint 2 as a Wi-Fi 6 router.","wifi_6",null,{source_type:"official_documentation",methodology_family:"official_documentation"}),
+        fact("network-glinet-flint-2",2,"https://docs.gl-inet.com/router/en/4/user_guide/gl-mt6000/","multi_wan","GL.iNet documents multi-WAN, failover, and load balancing.",true,null,{source_type:"official_documentation",methodology_family:"official_documentation"})
+      ]
+    },
+    {
+      product_id:"network-eero-7", product_name:"eero 7", category:"network",
+      fixture_role:"new_low_evidence", lifecycle_state:"available",
+      evidence:[
+        fact("network-eero-7",1,"https://eero.com/support/articles/eero-7","wifi_generation","eero lists Wi-Fi 7.","wifi_7",null,{source_type:"official_support",methodology_family:"official_support"}),
+        fact("network-eero-7",2,"https://eero.com/support/articles/eero-7","bands","eero lists 2.4 GHz and 5 GHz radios for eero 7.",["2.4ghz","5ghz"],null,{source_type:"official_support",methodology_family:"official_support"}),
+        fact("network-eero-7",3,"https://eero.com/support/articles/eero-7","wired_lan_speed","eero lists two auto-sensing 2.5 Gb Ethernet ports.",2.5,"gbps",{source_type:"official_support",methodology_family:"official_support"})
+      ]
+    },
+    {
+      product_id:"network-eero-original", product_name:"eero (original)", category:"network",
+      fixture_role:"legacy", lifecycle_state:"legacy",
+      evidence:[
+        fact("network-eero-original",1,"https://prod.eero.com/legal/compliance?lang=en-gb","bands","The original eero compliance information lists dual-band 2.4 GHz and 5 GHz operation.",["2.4ghz","5ghz"],null,{source_type:"official_compliance",methodology_family:"official_compliance"}),
+        fact("network-eero-original",2,"https://prod.eero.com/legal/compliance?lang=en-gb","wired_lan_speed","The original eero compliance information lists two gigabit WAN/LAN ports.",1,"gbps",{source_type:"official_compliance",methodology_family:"official_compliance"})
+      ]
+    },
+
+    {
+      product_id:"cable-belkin-ultra-high-speed-hdmi", product_name:"Belkin Ultra High Speed HDMI 2.1 Cable", category:"cable",
+      fixture_role:"staple", lifecycle_state:"available", compatibility_profile:{ connector:"hdmi", passive:true },
+      evidence:[
+        fact("cable-belkin-ultra-high-speed-hdmi",1,"https://www.belkin.com/p/8k-ultra-high-speed-hdmi-2.1-cable/P-AV10175.html","connector","Belkin lists HDMI connectors.","hdmi"),
+        fact("cable-belkin-ultra-high-speed-hdmi",2,"https://www.belkin.com/p/8k-ultra-high-speed-hdmi-2.1-cable/P-AV10175.html","certified_bandwidth","Belkin lists the Ultra High Speed HDMI 48 Gbps class.",48,"gbps"),
+        fact("cable-belkin-ultra-high-speed-hdmi",3,"https://www.belkin.com/p/8k-ultra-high-speed-hdmi-2.1-cable/P-AV10175.html","certification","Belkin identifies Ultra High Speed HDMI certification.","ultra_high_speed_hdmi")
+      ]
+    },
+    {
+      product_id:"cable-club3d-cac-1091", product_name:"Club 3D CAC-1091 DisplayPort DP80 Cable", category:"cable",
+      fixture_role:"current_flagship", lifecycle_state:"available", compatibility_profile:{ connector:"displayport", passive:true },
+      evidence:[
+        fact("cable-club3d-cac-1091",1,"https://www.club-3d.com/shop/cac-1091-1217","connector","Club 3D lists DisplayPort connectors.","displayport"),
+        fact("cable-club3d-cac-1091",2,"https://www.club-3d.com/shop/cac-1091-1217","certified_bandwidth","Club 3D lists VESA DP80 certification and 80 Gbps link capability.",80,"gbps"),
+        fact("cable-club3d-cac-1091",3,"https://www.club-3d.com/shop/cac-1091-1217","length","Club 3D lists 1.2 m length.",1.2,"m"),
+        fact("cable-club3d-cac-1091",4,"https://www.club-3d.com/shop/cac-1091-1217","certification","Club 3D lists VESA DP80 certification.","vesa_dp80")
+      ]
+    },
+    {
+      product_id:"cable-belkin-cat6", product_name:"Belkin Cat6 UTP Patch Cable", category:"cable",
+      fixture_role:"value", lifecycle_state:"available", compatibility_profile:{ connector:"rj45", passive:true },
+      evidence:[
+        fact("cable-belkin-cat6",1,"https://s3.belkin.com/doc/docs/CE%20DoC%20A3L980.pdf","connector","Belkin's declaration identifies an RJ45 Cat6 UTP patch cable.","rj45",null,{source_type:"official_compliance",methodology_family:"official_compliance"}),
+        fact("cable-belkin-cat6",2,"https://s3.belkin.com/doc/docs/CE%20DoC%20A3L980.pdf","standard","Belkin identifies category 6 UTP.","cat6",null,{source_type:"official_compliance",methodology_family:"official_compliance"})
+      ]
+    },
+    {
+      product_id:"cable-cablematters-dp40", product_name:"Cable Matters DisplayPort DP40 Cable", category:"cable",
+      fixture_role:"niche", lifecycle_state:"available", compatibility_profile:{ connector:"displayport", passive:true },
+      evidence:[
+        fact("cable-cablematters-dp40",1,"https://www.cablematters.com/PC-1562-154-DISPLAYPORT-21-DP40-CABLE-8K-60HZ-PREIDE.ASPX","connector","Cable Matters lists DisplayPort connectors.","displayport"),
+        fact("cable-cablematters-dp40",2,"https://www.cablematters.com/PC-1562-154-DISPLAYPORT-21-DP40-CABLE-8K-60HZ-PREIDE.ASPX","certified_bandwidth","Cable Matters lists VESA DP40 certification and 40 Gbps capability.",40,"gbps"),
+        fact("cable-cablematters-dp40",3,"https://www.cablematters.com/PC-1562-154-DISPLAYPORT-21-DP40-CABLE-8K-60HZ-PREIDE.ASPX","certification","Cable Matters lists VESA DP40 certification.","vesa_dp40")
+      ]
+    },
+    {
+      product_id:"cable-comsol-usb408", product_name:"Comsol USB408 USB4 Cable", category:"cable",
+      fixture_role:"new_low_evidence", lifecycle_state:"available", compatibility_profile:{ connector:"usb_c", passive:true },
+      evidence:[
+        fact("cable-comsol-usb408",1,"https://www.usb.org/single-product/10816","connector","USB-IF lists a USB Type-C to Type-C cable.","usb_c",null,{source_type:"certification_registry",methodology_family:"usb_if_registry",commercial_relationship:"standards_registry"}),
+        fact("cable-comsol-usb408",2,"https://www.usb.org/single-product/10816","certified_bandwidth","USB-IF lists USB 40 Gbps certification.",40,"gbps",{source_type:"certification_registry",methodology_family:"usb_if_registry",commercial_relationship:"standards_registry"}),
+        fact("cable-comsol-usb408",3,"https://www.usb.org/single-product/10816","length","USB-IF lists 0.8 m.",0.8,"m",{source_type:"certification_registry",methodology_family:"usb_if_registry",commercial_relationship:"standards_registry"})
+      ]
+    },
+    {
+      product_id:"cable-belkin-premium-hdmi", product_name:"Belkin Premium High Speed HDMI Cable", category:"cable",
+      fixture_role:"legacy", lifecycle_state:"legacy", compatibility_profile:{ connector:"hdmi", passive:true },
+      evidence:[
+        fact("cable-belkin-premium-hdmi",1,"https://www.belkin.com/uk/p/ultrahd-hdmi-cable/AV10168bt2M-BLK.html","connector","Belkin lists HDMI connectors.","hdmi",null,{locale:"en-GB"}),
+        fact("cable-belkin-premium-hdmi",2,"https://www.belkin.com/uk/p/ultrahd-hdmi-cable/AV10168bt2M-BLK.html","certified_bandwidth","Belkin lists Premium High Speed HDMI at 18 Gbps.",18,"gbps",{locale:"en-GB"}),
+        fact("cable-belkin-premium-hdmi",3,"https://www.belkin.com/uk/p/ultrahd-hdmi-cable/AV10168bt2M-BLK.html","length","Belkin lists 2 m length.",2,"m",{locale:"en-GB"}),
+        fact("cable-belkin-premium-hdmi",4,"https://www.belkin.com/uk/p/ultrahd-hdmi-cable/AV10168bt2M-BLK.html","certification","Belkin identifies Premium High Speed HDMI certification.","premium_high_speed_hdmi",null,{locale:"en-GB"})
+      ]
     }
   ];
 

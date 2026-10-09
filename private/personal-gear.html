@@ -44,6 +44,9 @@
           <option value="monitor">Monitor</option>
           <option value="mousepad">Mousepad</option>
           <option value="audio">Audio</option>
+          <option value="controller">Controller</option>
+          <option value="network">Network</option>
+          <option value="cable">Cable</option>
         </select>
       </label>
       <label>現在使っている製品
@@ -91,6 +94,13 @@
         <select id="input-method">
           <option value="mnk">Mouse & Keyboard</option>
           <option value="controller">Controller</option>
+        </select>
+      </label>
+      <label>利用プラットフォーム
+        <select id="platform">
+          <option value="windows_pc">Windows PC</option>
+          <option value="ps5">PlayStation 5</option>
+          <option value="xbox_series">Xbox Series</option>
         </select>
       </label>
       <p id="context-warning" class="warning" role="alert" hidden></p>
@@ -142,6 +152,11 @@
   <script src="../normalization-engine.js"></script>
   <script src="../data/game-dna.js"></script>
   <script src="../evidence-engine.js"></script>
+  <script src="../current-gear-delta.js"></script>
+  <script src="../compatibility-engine.js"></script>
+  <script src="../fix-before-buy.js"></script>
+  <script src="../data/decision-briefs.js"></script>
+  <script src="../decision-brief-engine.js"></script>
   <script src="../personal-gear-engine.js"></script>
   <script src="../feedback-engine.js"></script>
   <script src="../storage-engine.js"></script>

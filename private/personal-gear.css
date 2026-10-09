@@ -39,6 +39,8 @@ fieldset label { margin:10px 0; color:var(--text); }
 .card dl { display:grid; grid-template-columns:auto 1fr; gap:6px 12px; margin:10px 0 0; }
 .card dt { color:var(--muted); }
 .card dd { margin:0; }
+.card details { margin-top:10px; }
+.card summary { cursor:pointer; color:var(--accent); font-weight:800; }
 .badge { display:inline-flex; margin-right:7px; padding:4px 8px; border-radius:999px; background:#213047; color:#dce9ff; font-size:.78rem; font-weight:800; }
 .decision { padding:16px; border-left:4px solid var(--accent); background:#0b1515; }
 .warning { color:var(--warning); }
