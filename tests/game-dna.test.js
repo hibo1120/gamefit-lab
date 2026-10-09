@@ -10,9 +10,10 @@ test("Apex MnK and controller profiles are separated", () => {
   assert.notEqual(mnk, controller);
 });
 
-test("unregistered input profiles do not silently fall back across games", () => {
-  assert.equal(dna.get("valorant","controller"), dna.get("valorant","mnk"));
+test("unregistered input profiles never silently fall back across input methods", () => {
+  assert.equal(dna.get("valorant","controller"), null);
   assert.equal(dna.get("overwatch2","controller"), null);
+  assert.equal(dna.get("valorant","mnk").input_method, "mnk");
 });
 
 test("every profile uses only declared dimensions", () => {
