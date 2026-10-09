@@ -28,5 +28,25 @@
       purchase_required:false
     })
   ]);
-  return { version:1, privacyNotice, scenarios, external_recruitment_authorized:false };
+  const cohorts = Object.freeze([
+    Object.freeze({
+      size:10, stage:"usability", purpose:"導線理解、重大誤推薦、privacy事故を最小人数で発見する",
+      data:["completion time","Next Upgrade reached","reason understood","severe recommendation error","privacy incident"],
+      success:["Next Upgrade reached >= 8/10","reason understood >= 7/10","median completion <= 7 minutes","severe error = 0","privacy incident = 0"],
+      stop:["severe error > 0","privacy incident > 0","Next Upgrade reached < 8/10"], estimated_human_hours:8, purchase_required:false
+    }),
+    Object.freeze({
+      size:30, stage:"directional_validity", purpose:"推薦・修正・DONT_UPGRADEの方向性を仮検証する",
+      data:["Acceptance","Correction","Re-ranking Success","DONT_UPGRADE acceptance","Save/Return intent"],
+      success:["completed >= 24","decided feedback >= 20","Acceptance >= 60%","Correction <= 30%","Re-ranking Success >= 50%","DONT_UPGRADE acceptance >= 70%"],
+      stop:["Correction > 40% after one iteration","DONT_UPGRADE acceptance < 50%","severe error > 0"], estimated_human_hours:18, purchase_required:false
+    }),
+    Object.freeze({
+      size:100, stage:"acquisition_and_intent", purpose:"qualified trafficから意思決定までの需要と収益意図を検証する",
+      data:["My Setup start","Gear Taste completion","Next Upgrade reach","Why Not usage","CTA intent","Save/Return intent"],
+      success:["My Setup start >= 25%","Gear Taste / started >= 70%","Next Upgrade / started >= 50%","Why Not / decision >= 40%","eligible CTA intent >= 8%","Save/Return intent >= 15%"],
+      stop:["My Setup start < 15% after one message iteration","fewer than 10 completions","zero concrete feedback/share/save after 200 qualified visits"], estimated_human_hours:35, purchase_required:false
+    })
+  ]);
+  return { version:2, privacyNotice, scenarios, cohorts, external_recruitment_authorized:false };
 });

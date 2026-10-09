@@ -36,6 +36,8 @@
   }
 
   function modelsForResult(result, context = {}, catalog = merchantCatalog.merchants) {
+    const decisions = [result?.recommendations?.[0]?.upgrade_match, result?.topRecommendation, result?.ranked?.[0]?.key].filter(Boolean);
+    if (decisions.some(value => ["keep","DONT_UPGRADE","AVOID","CLARIFY"].includes(value))) return [];
     const usedMerchants = new Set();
     const models = [];
 
