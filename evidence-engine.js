@@ -7,9 +7,38 @@
 
   const EVIDENCE_TYPES = Object.freeze(["spec","measurement","subjective","issue","trend","price","adoption","fact_correction"]);
   const CONSENSUS = Object.freeze(["anecdotal","medium","high","mixed","not_applicable"]);
+  const PROHIBITED_COPY_FIELDS = Object.freeze([
+    "raw_text", "review_body", "image_url", "thumbnail_url", "video_file", "transcript", "table_data", "graph_data"
+  ]);
+
+  function validateEvidenceRecord(record) {
+    const errors = [];
+    for (const key of ["evidence_id", "source_id", "product_id", "evidence_type", "summary", "source_url", "retrieved_at"]) {
+      if (record?.[key] === undefined || record?.[key] === "") errors.push(key + " is required");
+    }
+    if (record?.evidence_type && !EVIDENCE_TYPES.includes(record.evidence_type)) errors.push("evidence_type is invalid");
+    if (record?.source_url && !/^https:\/\//i.test(record.source_url)) errors.push("source_url must use https");
+    if (String(record?.summary || "").length > 280) errors.push("summary must be a concise GameFit-authored normalization");
+    for (const key of PROHIBITED_COPY_FIELDS) {
+      if (record?.[key] !== undefined && record[key] !== null && record[key] !== "") errors.push(key + " is prohibited");
+    }
+    return errors;
+  }
+
+  function uniqueIndependent(items) {
+    const seen = new Set();
+    return items.filter(item => {
+      if (item.independent === false) return false;
+      const key = item.source_id;
+      if (!key) return false;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
 
   function normalizeSubjectiveConsensus(items) {
-    const independent = items.filter(item => item.evidence_type === "subjective" && item.independent !== false);
+    const independent = uniqueIndependent(items.filter(item => item.evidence_type === "subjective"));
     if (independent.length <= 1) return "anecdotal";
     const stances = independent.map(item => item.stance).filter(Boolean);
     if (!stances.length) return independent.length >= 3 ? "medium" : "anecdotal";
@@ -39,13 +68,13 @@
   }
 
   function gradeFromEvidence(items, product) {
-    const measurements = items.filter(i => i.evidence_type === "measurement" && i.independent !== false).length;
+    const measurements = uniqueIndependent(items.filter(i => i.evidence_type === "measurement")).length;
     const subjectiveConsensus = normalizeSubjectiveConsensus(items);
-    const longTermIssues = items.filter(i => i.evidence_type === "issue" && i.long_term === true && i.independent !== false).length;
+    const longTermCoverage = uniqueIndependent(items.filter(i => i.long_term === true)).length;
     let grade = "D";
     if (measurements >= 1 || subjectiveConsensus === "medium") grade = "C";
     if (measurements >= 1 && ["medium","high"].includes(subjectiveConsensus)) grade = "B";
-    if (measurements >= 2 && subjectiveConsensus === "high" && longTermIssues >= 0) grade = "A";
+    if (measurements >= 2 && subjectiveConsensus === "high" && longTermCoverage >= 1) grade = "A";
 
     const cap = newProductConfidenceCap(product);
     if (cap <= 0.35 && ["A","B"].includes(grade)) grade = "C";
@@ -68,7 +97,8 @@
   }
 
   return {
-    EVIDENCE_TYPES, CONSENSUS, normalizeSubjectiveConsensus, groupCompatibleMeasurements,
-    newProductConfidenceCap, gradeFromEvidence, buildAssessment
+    EVIDENCE_TYPES, CONSENSUS, PROHIBITED_COPY_FIELDS, validateEvidenceRecord,
+    normalizeSubjectiveConsensus, groupCompatibleMeasurements,
+    uniqueIndependent, newProductConfidenceCap, gradeFromEvidence, buildAssessment
   };
 });
