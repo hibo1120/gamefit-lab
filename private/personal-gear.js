@@ -9,6 +9,7 @@
   const deltaEngine = window.GameFitCurrentGearDelta;
   const compatibilityEngine = window.GameFitCompatibility;
   const fixBeforeBuy = window.GameFitFixBeforeBuy;
+  const validationStore = window.GameFitPrivateValidationStore;
   let storage;
   try { storage = window.localStorage; }
   catch (error) { storage = { getItem() { throw error; } }; }
@@ -18,6 +19,8 @@
   let recoveryRaw = loadResult.recovery_raw || null;
   let currentResult = null;
   let rerankedResult = null;
+  let validationRerankRequested = false;
+  let validationRerankCompleted = false;
 
   const OPTIONS = {
     mouse:[
@@ -117,12 +120,14 @@
     const select = byId("current-product");
     clear(select);
     for (const item of fixtures.byCategory[selectedCategory()] || []) select.append(option(item.product_id, item.product_name));
+    select.append(option("not_listed","該当製品がない（近似製品へ置換しない）"));
     refreshTasteAttributes();
   }
 
   function refreshTasteAttributes() {
     const attributeSelect = byId("avoid-attribute");
     clear(attributeSelect);
+    attributeSelect.append(option("none","特になし"));
     for (const item of OPTIONS[selectedCategory()] || []) attributeSelect.append(option(item.attribute, item.label));
     refreshTasteValues();
   }
@@ -131,6 +136,15 @@
     const definition = (OPTIONS[selectedCategory()] || []).find(item => item.attribute === byId("avoid-attribute").value);
     const valueSelect = byId("avoid-value");
     clear(valueSelect);
+    if (byId("avoid-attribute").value === "none") {
+      valueSelect.append(option("none","登録しない"));
+      valueSelect.disabled=true;
+      byId("hard-avoid").checked=false;
+      byId("hard-avoid").disabled=true;
+      return;
+    }
+    valueSelect.disabled=false;
+    byId("hard-avoid").disabled=false;
     for (const [value,label] of definition?.values || []) valueSelect.append(option(value,label));
   }
 
@@ -148,6 +162,67 @@
 
   function selectedCodes(name) {
     return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(node => node.value);
+  }
+
+  function validationLoad() { return validationStore.load(storage); }
+  function activeTesterId() { return validationLoad().state?.active_tester_id || null; }
+  function validationStatus(message,warning=false) {
+    const node=byId("validation-session-status");
+    node.textContent=message;
+    node.classList.toggle("warning",warning);
+  }
+  function validationContext(stage="decision") {
+    return {
+      category:selectedCategory(),
+      game_id:stage==="setup"?"unknown":byId("game").value,
+      input_method:stage==="setup"?"unknown":byId("input-method").value
+    };
+  }
+  function captureValidation(name,properties={},stage="decision") {
+    if (!activeTesterId()) return true;
+    try {
+      validationStore.capture(storage,name,{ ...validationContext(stage), ...properties });
+      return true;
+    } catch (error) {
+      validationStatus("匿名記録を保存できないため停止しました: "+error.message,true);
+      setFlowDisabled(true);
+      return false;
+    }
+  }
+  function captureValidationBatch(events,stage="decision") {
+    if (!activeTesterId()) return true;
+    try {
+      validationStore.captureMany(storage,events.map(event=>({ name:event.name,properties:{ ...validationContext(stage),...(event.properties||{}) } })));
+      return true;
+    } catch (error) {
+      validationStatus("匿名記録を保存できないため停止しました: "+error.message,true);
+      setFlowDisabled(true);
+      return false;
+    }
+  }
+  function setFlowDisabled(disabled) {
+    for (const id of ["to-taste","save-taste","to-recommend","to-feedback","rerank","accept-rerank","finish-validation"]) {
+      const node=byId(id);
+      if (node) node.disabled=disabled;
+    }
+  }
+  function syncValidationUi() {
+    const loaded=validationLoad();
+    const active=loaded.state?.active_tester_id||null;
+    const activeStatus=active?loaded.state.testers?.[active]?.status:null;
+    byId("validation-setup").hidden=Boolean(active);
+    byId("validation-session").hidden=!active;
+    byId("active-tester-id").textContent=active||"";
+    document.body.classList.toggle("validation-active",Boolean(active));
+    const report=loaded.state?validationStore.report(loaded.state):null;
+    const stopped=report?.gate?.status==="STOP";
+    byId("begin-validation").disabled=Boolean(stopped);
+    setFlowDisabled(Boolean(active&&activeStatus!=="in_progress"));
+    byId("validation-report-status").textContent=report
+      ? `${report.finalized}/10確定 · 担当者確認待ち ${report.awaiting_review} · Gate ${report.gate.status} · 自動送信なし`
+      : "匿名テスト記録を読み取れません。";
+    if (activeStatus==="awaiting_review") validationStatus("回答を保存しました。担当者が別画面でSafety確認を完了するまで操作を停止します。");
+    if (stopped&&!active) byId("validation-setup-status").textContent="重大問題でGateがSTOPしています。原因修正と新しいcohort versionなしに再開できません。";
   }
 
   function badge(text) {
@@ -230,6 +305,21 @@
       return false;
     }
     byId("context-warning").hidden = true;
+    if (currentProductId === "not_listed") {
+      currentResult={ status:"clarify",decision:"CLARIFY",reason_codes:["current_product_not_profiled"],recommendations:[] };
+      byId("decision-summary").textContent=`CLARIFY · ${gameId}/${inputMethod} · 現在製品を近似SKUへ置換せず、coverage gapとして停止しました。`;
+      renderCards(byId("recommendations"),[]);
+      state.setup={ category,current_product_id:currentProductId,budget_band:Number(byId("budget").value),game_id:gameId,input_method:inputMethod,platform };
+      state.recommendations.push({ created_at:new Date().toISOString(),model_version:"pgi-s3-fixture-v1",game_id:gameId,input_method:inputMethod,decision:"CLARIFY",original_snapshot:[] });
+      persist("未登録製品をcoverage gapとして保存しました。");
+      if (!captureValidationBatch([
+        { name:"next_upgrade_reached" },
+        { name:"decision_viewed",properties:{ decision:"CLARIFY",affiliate_eligible:false,top_candidate_id:"none" } },
+        { name:"regret_shield_viewed",properties:{ risk_level:"unknown",confidence_label:"Low" } }
+      ])) return false;
+      gotoStep("recommend");
+      return true;
+    }
     const freeFixes = fixBeforeBuy.suggestions({
       display_target_mode:category === "monitor", display_link_verified:false,
       high_polling_device:["mouse","keyboard","controller"].includes(category), actual_polling_verified:false,
@@ -260,13 +350,22 @@
       decision:currentResult.decision, original_snapshot:JSON.parse(JSON.stringify(currentResult.recommendations || []))
     });
     persist("条件と推薦snapshotをこのブラウザ内に保存しました。");
+    const top=currentResult.recommendations?.[0];
+    if (!captureValidationBatch([
+      { name:"next_upgrade_reached" },
+      { name:"decision_viewed",properties:{ decision:currentResult.decision||"CLARIFY",affiliate_eligible:false,top_candidate_id:top?.product_id||"none" } },
+      { name:"regret_shield_viewed",properties:{ risk_level:top?.regret_shield?.risk_level||"unknown",confidence_label:top?.regret_shield?.confidence||"Low" } }
+    ])) return false;
     gotoStep("recommend");
     return true;
   }
 
   byId("category").addEventListener("change", refreshProducts);
   byId("avoid-attribute").addEventListener("change", refreshTasteValues);
-  byId("to-taste").addEventListener("click", () => gotoStep("taste"));
+  byId("to-taste").addEventListener("click", () => {
+    if (!captureValidation("my_setup_started",{},"setup")) return;
+    gotoStep("taste");
+  });
   document.querySelectorAll("[data-back]").forEach(button => button.addEventListener("click", () => gotoStep(button.dataset.back)));
 
   byId("save-taste").addEventListener("click", () => {
@@ -274,21 +373,25 @@
     const attribute = byId("avoid-attribute").value;
     const value = byId("avoid-value").value;
     const currentProductId = byId("current-product").value;
-    state.profile = prefs.recordProductFeedback(state.profile, {
+    if (attribute!=="none"&&currentProductId!=="not_listed") state.profile = prefs.recordProductFeedback(state.profile, {
       product_id:currentProductId, category, sentiment:"dislike",
       reasons:[{ attribute, sentiment:"dislike", value, reason_code:attribute }],
       observed_at:new Date().toISOString()
     });
-    if (byId("hard-avoid").checked) state.profile = prefs.addHardAvoid(state.profile, {
+    if (attribute!=="none"&&byId("hard-avoid").checked) state.profile = prefs.addHardAvoid(state.profile, {
       category, attribute, value, operator:attribute === "bands" ? "includes" : "equals", reason_code:"explicit_hard_avoid",
       created_at:new Date().toISOString()
     });
     persist("Gear Tasteをこのブラウザ内に保存しました。");
+    if (!captureValidation("gear_taste_completed",{ attributes_count:attribute==="none"?0:1 },"setup")) return;
     gotoStep("context");
   });
 
   byId("to-recommend").addEventListener("click", runRecommendation);
-  byId("to-feedback").addEventListener("click", () => gotoStep("feedback"));
+  byId("to-feedback").addEventListener("click", () => {
+    if (!captureValidation("why_not_opened",{},"decision")) return;
+    gotoStep("feedback");
+  });
   document.querySelectorAll('input[name="verdict"]').forEach(input => input.addEventListener("change", () => {
     byId("disagree-details").hidden = input.value !== "disagree" || !input.checked;
   }));
@@ -296,12 +399,28 @@
   byId("rerank").addEventListener("click", () => {
     const verdict = document.querySelector('input[name="verdict"]:checked')?.value;
     const selected = currentResult?.recommendations?.[0];
-    if (!verdict || !selected) {
-      byId("feedback-status").textContent = "推薦と回答を選択してください。";
+    if (!verdict) {
+      byId("feedback-status").textContent = "回答を選択してください。";
       return;
     }
     const reasonCodes = selectedCodes("reason_code");
     const directionCodes = selectedCodes("direction_code");
+    if (verdict==="disagree"&&(!reasonCodes.length||!directionCodes.length)) {
+      byId("feedback-status").textContent = "「違う」の理由と望む方向を1つ以上選択してください。";
+      return;
+    }
+    const validationEvents=[{ name:"recommendation_feedback",properties:{ verdict } }];
+    if (currentResult?.decision==="DONT_UPGRADE") validationEvents.push({ name:"dont_upgrade_response",properties:{ accepted:verdict==="agree" } });
+    if (verdict==="disagree") validationEvents.push({ name:"rerank_requested",properties:{ reason_count:reasonCodes.length,direction_count:directionCodes.length,reason_codes:reasonCodes,desired_direction_codes:directionCodes } });
+    if (!captureValidationBatch(validationEvents)) return;
+    if (verdict==="disagree") {
+      validationRerankRequested=true;
+    }
+    if (!selected) {
+      byId("feedback-status").textContent = "未登録製品のため再推薦せず、coverage gapとして回答を記録しました。";
+      byId("session-review").hidden=!activeTesterId();
+      return;
+    }
     try {
       const item = feedback.recommendationFeedback({
         product_id:selected.product_id, category:selected.category, game_id:selected.game_id, input_method:selected.input_method,
@@ -320,6 +439,7 @@
       const confidence = explanation.confidence_changed ? "変更あり" : "変更なし";
       byId("feedback-status").textContent = `Personal更新 ${changedPreferences || "なし"} · 順位変化 ${ranking} · Confidence ${confidence}。安全分類境界を維持し、Global learningは無効で変更していません。`;
       persist("フィードバックと再ランキングを保存しました。");
+      byId("session-review").hidden=!activeTesterId();
     } catch (error) {
       byId("feedback-status").textContent = error.message;
     }
@@ -335,9 +455,88 @@
     state.feedback.push(item);
     state.profile = feedback.applyPersonalLearning(state.profile,item);
     state.rerank_events.push({ success:true, game_id:top.game_id, input_method:top.input_method, product_id:top.product_id, created_at:new Date().toISOString() });
+    if (validationRerankRequested&&!validationRerankCompleted) {
+      if (!captureValidation("rerank_completed",{ rerank_success:true,confidence_change:"unchanged" },"decision")) return;
+      validationRerankCompleted=true;
+    }
     byId("feedback-status").textContent = "「こっちなら合う」を保存しました。";
     byId("accept-rerank").hidden = true;
     persist("再ランキング結果を保存しました。");
+  });
+
+  byId("begin-validation").addEventListener("click", () => {
+    const purchaseContexts=selectedCodes("purchase_context");
+    if (!purchaseContexts.length||!byId("tester-independent").checked||!byId("tester-consent").checked) {
+      byId("validation-setup-status").textContent="状況を1つ以上選び、独立性と同意を確認してください。";
+      return;
+    }
+    if (!window.confirm("前のTesterのPersonal Gearデータだけを消去して新しい匿名セッションを開始します。10人テスト記録は保持します。必要なら先にPersonal Exportしてください。")) return;
+    try {
+      storageApi.deleteAll(storage);
+      state=storageApi.save(storage,storageApi.createState());
+      readOnly=false;
+      recoveryRaw=null;
+      currentResult=null;
+      rerankedResult=null;
+      validationRerankRequested=false;
+      validationRerankCompleted=false;
+      validationStore.startTester(storage,{
+        tester_id:byId("tester-id").value,
+        expertise:byId("tester-expertise").value,
+        purchase_contexts:purchaseContexts,
+        independence_confirmed:true,
+        developer_or_contributor:false,
+        answer_aware:false,
+        consent_confirmed:true
+      });
+      byId("validation-setup-status").textContent="";
+      validationStatus("計測を開始しました。担当者は操作・結論を誘導しません。");
+      gotoStep("setup");
+      syncValidationUi();
+    } catch (error) { byId("validation-setup-status").textContent=error.message; }
+  });
+
+  byId("finish-validation").addEventListener("click", () => {
+    const reasonUnderstood=document.querySelector('input[name="reason_understood"]:checked')?.value;
+    const uxIssues=selectedCodes("ux_issue");
+    if (!reasonUnderstood||!uxIssues.length||(uxIssues.includes("none")&&uxIssues.length>1)) {
+      validationStatus("理由理解とPrivacy / UX項目を回答してください。「問題なし」は単独で選択します。",true);
+      return;
+    }
+    try {
+      if (validationRerankRequested&&!validationRerankCompleted) {
+        if (!captureValidation("rerank_completed",{ rerank_success:false,confidence_change:"unchanged" },"decision")) return;
+        validationRerankCompleted=true;
+      }
+      validationStore.submitTesterReview(storage,{
+        ...validationContext("decision"),
+        self_reported_reason_understood:reasonUnderstood==="yes",
+        intended_judgment:byId("intended-judgment").value,
+        ux_issue_codes:uxIssues
+      });
+      validationStatus("回答を保存しました。担当者へ端末を戻してください。");
+      syncValidationUi();
+    } catch (error) { validationStatus(error.message,true); }
+  });
+
+  byId("export-validation").addEventListener("click", () => {
+    try {
+      const loaded=validationLoad();
+      if (!loaded.state) throw new Error(loaded.error||"テスト記録を読み取れません");
+      const blob=new Blob([validationStore.exportState(loaded.state)],{ type:"application/json" });
+      const link=document.createElement("a");
+      link.href=URL.createObjectURL(blob);
+      link.download="gamefit-private-validation-n10.json";
+      link.click();
+      URL.revokeObjectURL(link.href);
+      byId("validation-report-status").textContent="匿名10人テスト記録をExportしました。";
+    } catch (error) { byId("validation-report-status").textContent=error.message; }
+  });
+
+  byId("delete-validation").addEventListener("click", () => {
+    if (!window.confirm("匿名10人テスト記録をすべて削除します。元に戻せません。")) return;
+    validationStore.deleteAll(storage);
+    syncValidationUi();
   });
 
   byId("export-data").addEventListener("click", () => {
@@ -357,9 +556,10 @@
   });
 
   byId("delete-data").addEventListener("click", () => {
-    if (!window.confirm("このブラウザ内のGameFit Personal Gearデータをすべて削除します。元に戻せません。")) return;
+    if (!window.confirm("このブラウザ内のGameFit Personal Gearデータと匿名テスト記録をすべて削除します。元に戻せません。")) return;
     try {
       storageApi.deleteAll(storage);
+      validationStore.deleteAll(storage);
       state = storageApi.createState();
       readOnly = false;
       recoveryRaw = null;
@@ -367,6 +567,7 @@
       rerankedResult = null;
       setStatus("このoriginのGameFit Personal Gearデータを削除しました。");
       gotoStep("setup");
+      syncValidationUi();
     } catch (error) { setStatus("削除できませんでした: " + error.message,true); }
   });
 
@@ -384,6 +585,7 @@
   });
 
   byId("schema-version").textContent = String(storageApi.SCHEMA_VERSION);
+  for (const testerId of validationStore.TESTER_IDS) byId("tester-id").append(option(testerId,testerId.toUpperCase()));
   addCheckboxes(byId("reason-codes"),REASONS,"reason_code");
   addCheckboxes(byId("direction-codes"),DIRECTIONS,"direction_code");
   refreshProducts();
@@ -395,4 +597,5 @@
   }
   else if (loadResult.status === "ok") setStatus("保存済みデータをこのブラウザから読み込みました。");
   else setStatus("保存データはまだありません。外部送信は行いません。");
+  syncValidationUi();
 })();

@@ -12,10 +12,10 @@
     <header class="hero">
       <p class="eyebrow">PRIVATE S3 VALIDATION · LOCAL ONLY</p>
       <h1>Personal Gear Intelligence</h1>
-      <p>実商品fixtureを使った非公開検証UIです。購入を断定せず、根拠不足なら「買い替えない」を返します。</p>
+      <p>現在の機材・好み・ゲーム条件から、次の判断を整理する非公開検証UIです。正解を予想せず、自分の条件で進めてください。</p>
       <div class="privacy-banner" role="note">
         <strong>共有端末では使用しないでください。</strong>
-        入力はこのブラウザのlocalStorageだけに保存されます。同期・送信・バックアップはなく、プライベートブラウズや容量整理で消える場合があります。
+        入力と匿名テスト記録はこのブラウザのlocalStorageだけに保存され、自動送信されません。担当者は終了後に匿名ID付きJSONを手動Exportして検証に利用します。氏名・メール・自由記述は収集しません。記録は検証終了後30日以内に削除し、終了時まで参加中止・削除を依頼できます。
         noindexはアクセス制御ではありません。このページはローカル検証専用で、deployしません。
       </div>
       <div class="privacy-actions" aria-label="保存データ管理">
@@ -25,6 +25,40 @@
       </div>
       <p id="storage-status" class="status" aria-live="polite"></p>
     </header>
+
+    <section class="panel operator-only" id="validation-setup">
+      <p class="step-number">PRIVATE TEST SETUP</p>
+      <h2>独立10人テストを開始</h2>
+      <p>購入は不要です。途中でいつでも中止できます。担当者は操作方法や望ましい結論を教えません。</p>
+      <label>匿名Tester ID
+        <select id="tester-id"></select>
+      </label>
+      <label>機材知識
+        <select id="tester-expertise">
+          <option value="beginner">初心者</option>
+          <option value="intermediate">中級</option>
+          <option value="enthusiast">マニア</option>
+        </select>
+      </label>
+      <fieldset id="purchase-contexts">
+        <legend>当てはまる状況（複数可）</legend>
+        <label><input type="checkbox" name="purchase_context" value="actively_deciding"> 購入を迷っている</label>
+        <label><input type="checkbox" name="purchase_context" value="current_gear_dissatisfied"> 現在の機材に不満がある</label>
+        <label><input type="checkbox" name="purchase_context" value="recently_considered_upgrade"> 最近買い替えを検討した</label>
+        <label><input type="checkbox" name="purchase_context" value="no_purchase_may_be_best"> 買い替え不要の可能性もある</label>
+      </fieldset>
+      <label class="check-row"><input type="checkbox" id="tester-independent"> 開発者・実装担当ではなく、期待される答えを知らない</label>
+      <label class="check-row"><input type="checkbox" id="tester-consent"> 匿名記録の目的・手動回収・30日以内削除・中止/削除方法を確認し、参加に同意する</label>
+      <button type="button" id="begin-validation">この端末の前回Personalデータを消して開始</button>
+      <p id="validation-setup-status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" id="validation-session" hidden>
+      <p class="step-number">PRIVATE TEST ACTIVE</p>
+      <h2>匿名セッション <span id="active-tester-id"></span></h2>
+      <p>説明を読んで自力で進めてください。購入は不要です。困った場合は、どこで止まったかだけ記録します。</p>
+      <p id="validation-session-status" class="status" aria-live="polite"></p>
+    </section>
 
     <ol class="steps" aria-label="診断ステップ">
       <li data-step-indicator="setup" class="active">My Setup Lite</li>
@@ -67,7 +101,7 @@
     <section class="panel" data-step="taste" hidden>
       <p class="step-number">STEP 2</p>
       <h2>Gear Taste</h2>
-      <p>過去の苦手属性を1つだけ登録します。未確認値を推測入力しません。</p>
+      <p>過去の苦手属性があれば1つ登録します。なければ「特になし」を選べます。</p>
       <label>苦手な属性
         <select id="avoid-attribute"></select>
       </label>
@@ -138,13 +172,50 @@
       <p id="feedback-status" class="status" aria-live="polite"></p>
       <div id="reranked" class="cards"></div>
       <button type="button" id="accept-rerank" hidden>こっちなら合う</button>
+      <div id="session-review" hidden>
+        <h3>セッション終了アンケート</h3>
+        <fieldset>
+          <legend>推薦理由を自分の言葉で説明できる程度に理解できましたか？</legend>
+          <label><input type="radio" name="reason_understood" value="yes"> はい</label>
+          <label><input type="radio" name="reason_understood" value="no"> いいえ</label>
+        </fieldset>
+        <label>本来どう判断したかったですか？
+          <select id="intended-judgment">
+            <option value="keep_current">今の機材を使い続ける</option>
+            <option value="fix_setup_first">設定・接続を先に直す</option>
+            <option value="compare_more">さらに比較する</option>
+            <option value="buy_candidate">候補購入を検討する</option>
+            <option value="avoid_candidate">候補を避ける</option>
+            <option value="unsure">まだ分からない</option>
+          </select>
+        </label>
+        <fieldset id="ux-issues">
+          <legend>Privacy / UX上の問題（複数可）</legend>
+          <label><input type="checkbox" name="ux_issue" value="none"> 問題なし</label>
+          <label><input type="checkbox" name="ux_issue" value="navigation"> 進み方が分かりにくい</label>
+          <label><input type="checkbox" name="ux_issue" value="wording"> 言葉が分かりにくい</label>
+          <label><input type="checkbox" name="ux_issue" value="reason_unclear"> 推薦理由が分かりにくい</label>
+          <label><input type="checkbox" name="ux_issue" value="too_much_detail"> 情報が多すぎる</label>
+          <label><input type="checkbox" name="ux_issue" value="too_little_detail"> 情報が足りない</label>
+          <label><input type="checkbox" name="ux_issue" value="missing_current_product"> 現在製品が登録されていない</label>
+          <label><input type="checkbox" name="ux_issue" value="mobile_layout"> 画面表示</label>
+          <label><input type="checkbox" name="ux_issue" value="storage_controls"> 保存・削除の説明</label>
+          <label><input type="checkbox" name="ux_issue" value="other"> その他（自由記述は収集しません）</label>
+        </fieldset>
+        <button type="button" id="finish-validation">回答を保存して担当者確認へ</button>
+      </div>
     </section>
 
-    <aside class="method-note">
+    <aside class="method-note operator-only">
       <h2>Calibrationの扱い</h2>
       <p>この画面のConfidenceはfixture上の仮評価です。購入後Outcomeがないため、実世界で較正済みとは表示しません。Highでも外れる例、Lowでも当たる例を敵対fixtureで保持します。</p>
       <p>実商品fixtureには未検証の性能差を埋めていません。比較可能なcurrent-gear deltaがない候補は安全側の <code>DONT_UPGRADE</code> になります。全6分類の境界は敵対fixtureで別に検証します。</p>
       <p>Schema version: <span id="schema-version"></span> · 外部送信: なし · Global learning: 無効</p>
+      <div class="privacy-actions">
+        <button type="button" id="export-validation" class="secondary">10人テスト記録をExport</button>
+        <button type="button" id="delete-validation" class="danger">10人テスト記録をDelete</button>
+      </div>
+      <p id="validation-report-status" class="status" aria-live="polite"></p>
     </aside>
   </main>
 
@@ -162,6 +233,8 @@
   <script src="../personal-gear-engine.js"></script>
   <script src="../feedback-engine.js"></script>
   <script src="../storage-engine.js"></script>
+  <script src="../validation-engine.js"></script>
+  <script src="../private-validation-store.js"></script>
   <script src="../data/personal-gear-fixtures.js"></script>
   <script src="./personal-gear.js"></script>
 </body>

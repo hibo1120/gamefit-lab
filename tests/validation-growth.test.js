@@ -49,7 +49,7 @@ test("repeated events from one journey do not inflate independent funnel counts"
     { name:"my_setup_started", properties:properties("same-local-journey",{ sequence:50, elapsed_ms:50 }) },
     { name:"gear_taste_completed", properties:properties("same-local-journey",{ sequence:51, elapsed_ms:51, attributes_count:1 }) },
     { name:"next_upgrade_reached", properties:properties("same-local-journey",{ sequence:52, elapsed_ms:52 }) },
-    { name:"decision_viewed", properties:properties("same-local-journey",{ sequence:53, elapsed_ms:53, decision:"SAFE / FAMILIAR", affiliate_eligible:true }) }
+    { name:"decision_viewed", properties:properties("same-local-journey",{ sequence:53, elapsed_ms:53, decision:"SAFE / FAMILIAR", affiliate_eligible:true, top_candidate_id:"candidate" }) }
   ];
   const report = validation.computeMetrics([...repeated,...path,...feedback]);
   assert.equal(report.counts.landings,1);
@@ -139,7 +139,9 @@ test("10, 30, and 100 tester gates include success, stop, time, and no-purchase 
   assert.deepEqual(tester.cohorts.map(item => item.size),[10,30,100]);
   assert.ok(tester.cohorts.every(item => item.success.length && item.stop.length && item.estimated_human_hours > 0 && item.purchase_required === false));
   assert.ok(tester.scenarios.some(item => item.id === "no-purchase-needed"));
-  assert.equal(tester.external_recruitment_authorized,false);
+  assert.equal(tester.private_ten_person_test_authorized,true);
+  assert.equal(tester.public_recruitment_authorized,false);
+  assert.equal(tester.expansion_beyond_ten_authorized,false);
 });
 
 test("cohort gates are executable and incomplete samples stay INCONCLUSIVE", () => {
@@ -148,12 +150,15 @@ test("cohort gates are executable and incomplete samples stay INCONCLUSIVE", () 
   assert.equal(validation.evaluateCohortGate(incident,10).status,"STOP");
   const complete = Array.from({ length:10 },(_,index) => {
     const id = `tester-${index}`;
-    const p = (sequence,extra={}) => properties(id,{ cohort:"n10", sequence, elapsed_ms:sequence===5?300000:sequence*1000, ...extra });
+    const p = (sequence,extra={}) => properties(id,{ source:"private_tester", cohort:"n10", build_id:"fixed-build", sequence, elapsed_ms:sequence===7?300000:sequence*1000, ...extra });
     return [
-      { name:"landing_viewed", properties:p(0) }, { name:"my_setup_started", properties:p(1) },
-      { name:"gear_taste_completed", properties:p(2,{ attributes_count:2 }) }, { name:"next_upgrade_reached", properties:p(3) },
-      { name:"decision_viewed", properties:p(4,{ decision:"DONT_UPGRADE", affiliate_eligible:false }) },
-      { name:"session_review_completed", properties:p(5,{ reason_understood:index<7, severe_error:false, privacy_incident:false }) }
+      { name:"landing_viewed", properties:p(0) },
+      { name:"tester_profile_recorded", properties:p(1,{ expertise:index<3?"beginner":index<7?"intermediate":"enthusiast", purchase_contexts:["actively_deciding"], independence_confirmed:true, developer_or_contributor:false, answer_aware:false, consent_confirmed:true, data_origin:"observed_participant" }) },
+      { name:"my_setup_started", properties:p(2) },
+      { name:"gear_taste_completed", properties:p(3,{ attributes_count:2 }) }, { name:"next_upgrade_reached", properties:p(4) },
+      { name:"decision_viewed", properties:p(5,{ decision:"DONT_UPGRADE", affiliate_eligible:false, top_candidate_id:"candidate" }) },
+      { name:"regret_shield_viewed", properties:p(6,{ risk_level:"low", confidence_label:"Low" }) },
+      { name:"session_review_completed", properties:p(7,{ flow_completed:true, reason_understood:index<7, intended_judgment:"keep_current", assistance_level:"none", severe_error:false, privacy_incident:false, game_input_contamination:false, hard_avoid_violation:false, compatibility_major_violation:false, affiliate_rank_influence:false, ux_issue_codes:["none"] }) }
     ];
   }).flat();
   assert.equal(validation.evaluateCohortGate(complete,10).status,"PASS");

@@ -6,6 +6,8 @@ const test = require("node:test");
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "private", "personal-gear.html"), "utf8");
 const script = fs.readFileSync(path.join(root, "private", "personal-gear.js"), "utf8");
+const consoleHtml = fs.readFileSync(path.join(root, "private", "validation-console.html"), "utf8");
+const consoleScript = fs.readFileSync(path.join(root, "private", "validation-console.js"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.md"), "utf8");
 
 test("private MVP exposes the required flow and privacy controls without public linkage", () => {
@@ -20,12 +22,18 @@ test("private MVP exposes the required flow and privacy controls without public 
   assert.ok(html.indexOf("decision-readiness-engine.js") < html.indexOf("personal-gear-engine.js"));
   assert.ok(html.indexOf("price-timing-engine.js") < html.indexOf("personal-gear-engine.js"));
   assert.equal(index.includes("private/personal-gear.html"), false);
+  for (const id of ["tester-id","tester-consent","begin-validation","session-review","finish-validation","export-validation","delete-validation"]) assert.match(html,new RegExp(`id="${id}"`),id);
+  assert.match(script,/該当製品がない/);
+  assert.match(script,/特になし/);
+  assert.match(consoleHtml,/FACILITATOR ONLY/);
+  assert.equal(index.includes("private/validation-console.html"),false);
 });
 
 test("private MVP has no analytics or network-send path", () => {
   assert.doesNotMatch(html, /https?:\/\//i);
   assert.doesNotMatch(html, /posthog|analytics\.js/i);
   assert.doesNotMatch(script, /\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon/i);
+  assert.doesNotMatch(consoleScript, /\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon/i);
   for (const source of [...html.matchAll(/<script\s+src="([^"]+)"/g)].map(match => match[1])) {
     assert.equal(source.startsWith("."), true, source);
   }

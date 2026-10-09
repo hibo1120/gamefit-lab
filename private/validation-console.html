@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>GameFit Private Validation Console</title>
+  <link rel="stylesheet" href="./personal-gear.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">FACILITATOR ONLY · LOCAL ONLY</p>
+      <h1>10人テスト管理</h1>
+      <p>Testerには見せず、担当者がSafety判定・途中離脱・STOP・匿名Exportだけを操作します。</p>
+      <p class="privacy-banner"><strong>自動送信なし。</strong> 氏名・メール・連絡先・自由記述を入力しないでください。匿名記録は30日で自動削除します。</p>
+    </header>
+
+    <section class="panel">
+      <h2>現在の状態</h2>
+      <pre id="console-summary" class="decision"></pre>
+      <div class="button-row">
+        <button type="button" id="refresh-console" class="secondary">再読込</button>
+        <button type="button" id="export-console" class="secondary">匿名記録をExport</button>
+        <button type="button" id="delete-console" class="danger">全匿名記録をDelete</button>
+      </div>
+      <p id="console-status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" id="active-console" hidden>
+      <h2>Active: <span id="console-tester-id"></span></h2>
+      <label>即時STOP理由
+        <select id="console-stop-reason">
+          <option value="dangerous_recommendation">危険な誤推薦</option>
+          <option value="hard_avoid_violation">hard avoid無視</option>
+          <option value="game_input_contamination">別Game/Input混入</option>
+          <option value="compatibility_major_violation">Compatibility明白NG</option>
+          <option value="affiliate_rank_influence">Affiliate理由の順位変化</option>
+          <option value="privacy_leak">Privacy leak</option>
+        </select>
+      </label>
+      <div class="button-row">
+        <button type="button" id="console-stop" class="danger">即時STOP</button>
+        <button type="button" id="console-abandon" class="secondary">途中離脱として確定</button>
+      </div>
+    </section>
+
+    <section class="panel" id="facilitator-review" hidden>
+      <h2>担当者レビュー</h2>
+      <p>Testerの回答保存後に、誘導なしのteach-backを聞いて判定します。内容そのものは記録しません。</p>
+      <fieldset>
+        <legend>推薦理由を正しくteach-backできたか</legend>
+        <label><input type="radio" name="facilitator_understood" value="yes"> はい</label>
+        <label><input type="radio" name="facilitator_understood" value="no"> いいえ</label>
+      </fieldset>
+      <label>介助レベル
+        <select id="assistance-level">
+          <option value="none">なし（自力）</option>
+          <option value="navigation_only">進み方のみ案内</option>
+          <option value="substantive">判断内容を案内</option>
+        </select>
+      </label>
+      <fieldset>
+        <legend>Safety / Privacy（1件でもSTOP）</legend>
+        <label><input type="checkbox" name="console_safety" value="dangerous_recommendation"> 危険な誤推薦</label>
+        <label><input type="checkbox" name="console_safety" value="hard_avoid_violation"> hard avoid違反</label>
+        <label><input type="checkbox" name="console_safety" value="game_input_contamination"> Game/Input混入</label>
+        <label><input type="checkbox" name="console_safety" value="compatibility_major_violation"> Compatibility重大違反</label>
+        <label><input type="checkbox" name="console_safety" value="affiliate_rank_influence"> Affiliate順位変化</label>
+        <label><input type="checkbox" name="console_safety" value="privacy_leak"> Privacy incident</label>
+      </fieldset>
+      <button type="button" id="finalize-review">担当者レビューを確定</button>
+    </section>
+
+    <aside class="method-note">
+      <h2>判定境界</h2>
+      <p>confirmed incidentは有効性エラーより先にSTOP。STOP後は次Testerを開始できません。修正前後の結果を同一cohortへ混ぜず、新しいbuild/cohortでやり直します。</p>
+      <p>PASSは10人全員のレビュー、誘導なしflow完了7人以上、担当者判定で理由理解7人以上、指定重大違反0件。30人へは自動で進みません。</p>
+    </aside>
+  </main>
+  <script src="../validation-engine.js"></script>
+  <script src="../private-validation-store.js"></script>
+  <script src="./validation-console.js"></script>
+</body>
+</html>
