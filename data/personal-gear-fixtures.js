@@ -66,6 +66,8 @@
       category:definition.category,
       fixture_role:definition.fixture_role,
       lifecycle_state:definition.lifecycle_state,
+      variant_scope:definition.variant_scope || "exact",
+      variant_id:definition.variant_id || null,
       evidence_grade:evidenceGrade,
       fixture_only:true,
       attributes:Object.freeze(attributes),
@@ -340,7 +342,7 @@
       fixture_role:"staple", lifecycle_state:"available", compatibility_profile:{ platforms:["xbox_series","windows_pc","ios","android"], connections:["xbox_wireless","bluetooth","usb_c"] },
       evidence:[
         fact("controller-xbox-wireless",1,"https://www.xbox.com/en-US/accessories/controllers/xbox-wireless-controller","layout","Microsoft shows the Xbox asymmetric stick layout.","asymmetric"),
-        fact("controller-xbox-wireless",2,"https://www.xbox.com/en-US/accessories/controllers/xbox-wireless-controller","connections","Microsoft lists Xbox Wireless and Bluetooth connectivity.",["xbox_wireless","bluetooth"]),
+        fact("controller-xbox-wireless",2,"https://www.xbox.com/en-US/accessories/controllers/xbox-wireless-controller","connections","Microsoft lists Xbox Wireless, Bluetooth, and USB-C connection paths.",["xbox_wireless","bluetooth","usb_c"]),
         fact("controller-xbox-wireless",3,"https://www.xbox.com/en-US/accessories/controllers/xbox-wireless-controller","platforms","Microsoft lists Xbox, Windows 10/11, iOS, and Android compatibility.",["xbox_series","windows_pc","ios","android"])
       ]
     },
@@ -350,7 +352,9 @@
       evidence:[
         fact("controller-dualsense-edge",1,"https://direct.playstation.com/en-us/buy-accessories/dualsense-edge-wireless-controller","layout","Sony shows the PlayStation symmetrical stick layout.","symmetrical"),
         fact("controller-dualsense-edge",2,"https://direct.playstation.com/en-us/buy-accessories/dualsense-edge-wireless-controller","replaceable_stick_modules","Sony lists replaceable stick modules.",true),
-        fact("controller-dualsense-edge",3,"https://direct.playstation.com/en-us/buy-accessories/dualsense-edge-wireless-controller","rear_controls","Sony lists configurable back buttons.",true)
+        fact("controller-dualsense-edge",3,"https://direct.playstation.com/en-us/buy-accessories/dualsense-edge-wireless-controller","rear_controls","Sony lists configurable back buttons.",true),
+        fact("controller-dualsense-edge",4,"https://www.playstation.com/en-us/support/hardware/dualsense-edge-other-devices/","platforms","Sony documents DualSense Edge use with PS5 and supported Windows PCs.",["ps5","windows_pc"],null,{source_type:"official_support",methodology_family:"official_support"}),
+        fact("controller-dualsense-edge",5,"https://www.playstation.com/en-us/support/hardware/dualsense-edge-other-devices/","connections","Sony documents USB and Bluetooth connection paths for supported devices.",["usb_c","bluetooth"],null,{source_type:"official_support",methodology_family:"official_support"})
       ]
     },
     {
@@ -359,7 +363,8 @@
       evidence:[
         fact("controller-8bitdo-ultimate-2c-wired",1,"https://www.8bitdo.com/ultimate-2c-wired-controller/","stick_type","8BitDo lists Hall Effect joysticks.","hall_effect"),
         fact("controller-8bitdo-ultimate-2c-wired",2,"https://www.8bitdo.com/ultimate-2c-wired-controller/","polling_rate","8BitDo lists a 1000 Hz polling rate on Windows.",1000,"hz",{variant:"Windows"}),
-        fact("controller-8bitdo-ultimate-2c-wired",3,"https://www.8bitdo.com/ultimate-2c-wired-controller/","platforms","8BitDo lists Windows and Android compatibility.",["windows_pc","android"])
+        fact("controller-8bitdo-ultimate-2c-wired",3,"https://www.8bitdo.com/ultimate-2c-wired-controller/","platforms","8BitDo lists Windows and Android compatibility.",["windows_pc","android"]),
+        fact("controller-8bitdo-ultimate-2c-wired",4,"https://www.8bitdo.com/ultimate-2c-wired-controller/","connections","8BitDo identifies this exact model as wired USB.",["usb"])
       ]
     },
     {
@@ -367,7 +372,9 @@
       fixture_role:"niche", lifecycle_state:"available", compatibility_profile:{ platforms:["xbox_series","windows_pc"], connections:["xbox_wireless","bluetooth","usb_c"] },
       evidence:[
         fact("controller-xbox-elite-series-2",1,"https://www.xbox.com/en-US/accessories/controllers/elite-wireless-controller-series-2","weight","Microsoft lists 345 g with a plus or minus 15 g tolerance when using the thumbstick and paddles shown.",345,"g",{variant:"with listed attachments"}),
-        fact("controller-xbox-elite-series-2",2,"https://www.xbox.com/en-US/accessories/controllers/elite-wireless-controller-series-2","rear_controls","Microsoft lists interchangeable paddles.",true)
+        fact("controller-xbox-elite-series-2",2,"https://www.xbox.com/en-US/accessories/controllers/elite-wireless-controller-series-2","rear_controls","Microsoft lists interchangeable paddles.",true),
+        fact("controller-xbox-elite-series-2",3,"https://www.xbox.com/en-US/accessories/controllers/elite-wireless-controller-series-2","platforms","Microsoft lists Xbox Series and Windows PC compatibility.",["xbox_series","windows_pc"]),
+        fact("controller-xbox-elite-series-2",4,"https://www.xbox.com/en-US/accessories/controllers/elite-wireless-controller-series-2","connections","Microsoft lists Xbox Wireless, Bluetooth, and USB-C connection paths.",["xbox_wireless","bluetooth","usb_c"])
       ]
     },
     {
@@ -375,14 +382,17 @@
       fixture_role:"new_low_evidence", lifecycle_state:"available", compatibility_profile:{ platforms:["windows_pc"], connections:["usb","wireless_dongle"] },
       evidence:[
         fact("controller-razer-wolverine-v3-pro-8k",1,"https://www.razer.com/gaming-controllers/razer-wolverine-v3-pro-8k-pc","polling_rate","Razer lists up to 8000 Hz wired and wireless polling for the PC model.",8000,"hz",{variant:"PC"}),
-        fact("controller-razer-wolverine-v3-pro-8k",2,"https://www.razer.com/gaming-controllers/razer-wolverine-v3-pro-8k-pc","stick_type","Razer lists TMR thumbsticks.","tmr",null,{variant:"PC"})
+        fact("controller-razer-wolverine-v3-pro-8k",2,"https://www.razer.com/gaming-controllers/razer-wolverine-v3-pro-8k-pc","stick_type","Razer lists TMR thumbsticks.","tmr",null,{variant:"PC"}),
+        fact("controller-razer-wolverine-v3-pro-8k",3,"https://www.razer.com/gaming-controllers/razer-wolverine-v3-pro-8k-pc","platforms","Razer identifies this exact variant as the PC model.",["windows_pc"],null,{variant:"PC"}),
+        fact("controller-razer-wolverine-v3-pro-8k",4,"https://www.razer.com/gaming-controllers/razer-wolverine-v3-pro-8k-pc","connections","Razer lists wired USB and wireless dongle operation for the PC model.",["usb","wireless_dongle"],null,{variant:"PC"})
       ]
     },
     {
       product_id:"controller-xbox-360-wireless", product_name:"Xbox 360 Wireless Controller", category:"controller",
       fixture_role:"legacy", lifecycle_state:"legacy", compatibility_profile:{ platforms:["xbox_360"], connections:["xbox_360_wireless"] },
       evidence:[
-        fact("controller-xbox-360-wireless",1,"https://mktplassets.xbox.com/NR/rdonlyres/A7D7FE0E-FCD4-4E75-9942-303699D05246/0/emeacontrollerwirelessEnFrEs.pdf","platforms","The Microsoft manual identifies this controller for the Xbox 360 system.",["xbox_360"],null,{source_type:"official_manual",methodology_family:"official_manual"})
+        fact("controller-xbox-360-wireless",1,"https://mktplassets.xbox.com/NR/rdonlyres/A7D7FE0E-FCD4-4E75-9942-303699D05246/0/emeacontrollerwirelessEnFrEs.pdf","platforms","The Microsoft manual identifies this controller for the Xbox 360 system.",["xbox_360"],null,{source_type:"official_manual",methodology_family:"official_manual"}),
+        fact("controller-xbox-360-wireless",2,"https://mktplassets.xbox.com/NR/rdonlyres/A7D7FE0E-FCD4-4E75-9942-303699D05246/0/emeacontrollerwirelessEnFrEs.pdf","connections","The Microsoft manual documents the Xbox 360 wireless connection.",["xbox_360_wireless"],null,{source_type:"official_manual",methodology_family:"official_manual"})
       ]
     },
 
@@ -443,17 +453,18 @@
     },
 
     {
-      product_id:"cable-belkin-ultra-high-speed-hdmi", product_name:"Belkin Ultra High Speed HDMI 2.1 Cable", category:"cable",
-      fixture_role:"staple", lifecycle_state:"available", compatibility_profile:{ connector:"hdmi", passive:true },
+      product_id:"cable-belkin-av10175bt2mbkv2", product_name:"Belkin AV10175bt2MBKV2 Ultra High Speed HDMI Cable", category:"cable",
+      fixture_role:"staple", lifecycle_state:"out_of_stock", variant_id:"AV10175bt2MBKV2", compatibility_profile:{ connector:"hdmi" },
       evidence:[
-        fact("cable-belkin-ultra-high-speed-hdmi",1,"https://www.belkin.com/p/8k-ultra-high-speed-hdmi-2.1-cable/P-AV10175.html","connector","Belkin lists HDMI connectors.","hdmi"),
-        fact("cable-belkin-ultra-high-speed-hdmi",2,"https://www.belkin.com/p/8k-ultra-high-speed-hdmi-2.1-cable/P-AV10175.html","certified_bandwidth","Belkin lists the Ultra High Speed HDMI 48 Gbps class.",48,"gbps"),
-        fact("cable-belkin-ultra-high-speed-hdmi",3,"https://www.belkin.com/p/8k-ultra-high-speed-hdmi-2.1-cable/P-AV10175.html","certification","Belkin identifies Ultra High Speed HDMI certification.","ultra_high_speed_hdmi")
+        fact("cable-belkin-av10175bt2mbkv2",1,"https://www.belkin.com/p/8k-ultra-high-speed-hdmi-2.1-cable/P-AV10175.html","connector","Belkin lists HDMI connectors for SKU AV10175bt2MBKV2.","hdmi",null,{variant:"AV10175bt2MBKV2"}),
+        fact("cable-belkin-av10175bt2mbkv2",2,"https://www.belkin.com/p/8k-ultra-high-speed-hdmi-2.1-cable/P-AV10175.html","certified_bandwidth","Belkin lists the Ultra High Speed HDMI 48 Gbps class for SKU AV10175bt2MBKV2.",48,"gbps",{variant:"AV10175bt2MBKV2"}),
+        fact("cable-belkin-av10175bt2mbkv2",3,"https://www.belkin.com/p/8k-ultra-high-speed-hdmi-2.1-cable/P-AV10175.html","certification","Belkin identifies Ultra High Speed HDMI certification for SKU AV10175bt2MBKV2.","ultra_high_speed_hdmi",null,{variant:"AV10175bt2MBKV2"}),
+        fact("cable-belkin-av10175bt2mbkv2",4,"https://www.belkin.com/p/8k-ultra-high-speed-hdmi-2.1-cable/P-AV10175.html","length","Belkin lists SKU AV10175bt2MBKV2 as 2 m.",2,"m",{variant:"AV10175bt2MBKV2"})
       ]
     },
     {
       product_id:"cable-club3d-cac-1091", product_name:"Club 3D CAC-1091 DisplayPort DP80 Cable", category:"cable",
-      fixture_role:"current_flagship", lifecycle_state:"available", compatibility_profile:{ connector:"displayport", passive:true },
+      fixture_role:"current_flagship", lifecycle_state:"available", variant_id:"CAC-1091-1.2M", compatibility_profile:{ connector:"displayport" },
       evidence:[
         fact("cable-club3d-cac-1091",1,"https://www.club-3d.com/shop/cac-1091-1217","connector","Club 3D lists DisplayPort connectors.","displayport"),
         fact("cable-club3d-cac-1091",2,"https://www.club-3d.com/shop/cac-1091-1217","certified_bandwidth","Club 3D lists VESA DP80 certification and 80 Gbps link capability.",80,"gbps"),
@@ -462,34 +473,34 @@
       ]
     },
     {
-      product_id:"cable-belkin-cat6", product_name:"Belkin Cat6 UTP Patch Cable", category:"cable",
-      fixture_role:"value", lifecycle_state:"available", compatibility_profile:{ connector:"rj45", passive:true },
+      product_id:"cable-belkin-a3l980b05m-s-cat6", product_name:"Belkin A3L980B05M-S Cat6 UTP Patch Cable", category:"cable",
+      fixture_role:"value", lifecycle_state:"available", variant_id:"A3L980B05M-S", compatibility_profile:{},
       evidence:[
-        fact("cable-belkin-cat6",1,"https://s3.belkin.com/doc/docs/CE%20DoC%20A3L980.pdf","connector","Belkin's declaration identifies an RJ45 Cat6 UTP patch cable.","rj45",null,{source_type:"official_compliance",methodology_family:"official_compliance"}),
-        fact("cable-belkin-cat6",2,"https://s3.belkin.com/doc/docs/CE%20DoC%20A3L980.pdf","standard","Belkin identifies category 6 UTP.","cat6",null,{source_type:"official_compliance",methodology_family:"official_compliance"})
+        fact("cable-belkin-a3l980b05m-s-cat6",1,"https://s3.belkin.com/doc/docs/CE%20DoC%20A3L980.pdf","standard","Belkin's declaration identifies model A3L980B05M-S as UTP category 6; connector type is not inferred.","cat6",null,{source_type:"official_compliance",methodology_family:"official_compliance",variant:"A3L980B05M-S"}),
+        fact("cable-belkin-a3l980b05m-s-cat6",2,"https://s3.belkin.com/doc/docs/CE%20DoC%20A3L980.pdf","length","Belkin's declaration identifies model A3L980B05M-S as the 5 m variant.",5,"m",{source_type:"official_compliance",methodology_family:"official_compliance",variant:"A3L980B05M-S"})
       ]
     },
     {
       product_id:"cable-cablematters-dp40", product_name:"Cable Matters DisplayPort DP40 Cable", category:"cable",
-      fixture_role:"niche", lifecycle_state:"available", compatibility_profile:{ connector:"displayport", passive:true },
+      fixture_role:"niche", lifecycle_state:"available", variant_scope:"family", compatibility_profile:{ connector:"displayport" },
       evidence:[
-        fact("cable-cablematters-dp40",1,"https://www.cablematters.com/PC-1562-154-DISPLAYPORT-21-DP40-CABLE-8K-60HZ-PREIDE.ASPX","connector","Cable Matters lists DisplayPort connectors.","displayport"),
-        fact("cable-cablematters-dp40",2,"https://www.cablematters.com/PC-1562-154-DISPLAYPORT-21-DP40-CABLE-8K-60HZ-PREIDE.ASPX","certified_bandwidth","Cable Matters lists VESA DP40 certification and 40 Gbps capability.",40,"gbps"),
-        fact("cable-cablematters-dp40",3,"https://www.cablematters.com/PC-1562-154-DISPLAYPORT-21-DP40-CABLE-8K-60HZ-PREIDE.ASPX","certification","Cable Matters lists VESA DP40 certification.","vesa_dp40")
+        fact("cable-cablematters-dp40",1,"https://www.cablematters.com/PC-1562-154-DISPLAYPORT-21-DP40-CABLE-8K-60HZ-PREIDE.ASPX","connector","Cable Matters lists DisplayPort connectors; exact selectable length is not fixed in this fixture.","displayport",null,{variant:"product family; length unset"}),
+        fact("cable-cablematters-dp40",2,"https://www.cablematters.com/PC-1562-154-DISPLAYPORT-21-DP40-CABLE-8K-60HZ-PREIDE.ASPX","certified_bandwidth","Cable Matters lists VESA DP40 certification and 40 Gbps capability; exact selectable length is not fixed in this fixture.",40,"gbps",{variant:"product family; length unset"}),
+        fact("cable-cablematters-dp40",3,"https://www.cablematters.com/PC-1562-154-DISPLAYPORT-21-DP40-CABLE-8K-60HZ-PREIDE.ASPX","certification","Cable Matters lists VESA DP40 certification; exact selectable length is not fixed in this fixture.","vesa_dp40",null,{variant:"product family; length unset"})
       ]
     },
     {
       product_id:"cable-comsol-usb408", product_name:"Comsol USB408 USB4 Cable", category:"cable",
-      fixture_role:"new_low_evidence", lifecycle_state:"available", compatibility_profile:{ connector:"usb_c", passive:true },
+      fixture_role:"new_low_evidence", lifecycle_state:"available", variant_id:"USB408-0.8M", compatibility_profile:{ connector:"usb_c" },
       evidence:[
-        fact("cable-comsol-usb408",1,"https://www.usb.org/single-product/10816","connector","USB-IF lists a USB Type-C to Type-C cable.","usb_c",null,{source_type:"certification_registry",methodology_family:"usb_if_registry",commercial_relationship:"standards_registry"}),
-        fact("cable-comsol-usb408",2,"https://www.usb.org/single-product/10816","certified_bandwidth","USB-IF lists USB 40 Gbps certification.",40,"gbps",{source_type:"certification_registry",methodology_family:"usb_if_registry",commercial_relationship:"standards_registry"}),
-        fact("cable-comsol-usb408",3,"https://www.usb.org/single-product/10816","length","USB-IF lists 0.8 m.",0.8,"m",{source_type:"certification_registry",methodology_family:"usb_if_registry",commercial_relationship:"standards_registry"})
+        fact("cable-comsol-usb408",1,"https://www.usb.org/single-product/10816","connector","USB-IF lists a USB Type-C to Type-C cable.","usb_c",null,{source_type:"certification_registry",source_id:"usb-if-product-registry-10816",source_origin_id:"usb-if-product-registry",methodology_family:"usb_if_registry",commercial_relationship:"standards_registry"}),
+        fact("cable-comsol-usb408",2,"https://www.usb.org/single-product/10816","certified_bandwidth","USB-IF lists USB 40 Gbps certification.",40,"gbps",{source_type:"certification_registry",source_id:"usb-if-product-registry-10816",source_origin_id:"usb-if-product-registry",methodology_family:"usb_if_registry",commercial_relationship:"standards_registry"}),
+        fact("cable-comsol-usb408",3,"https://www.usb.org/single-product/10816","length","USB-IF lists 0.8 m.",0.8,"m",{source_type:"certification_registry",source_id:"usb-if-product-registry-10816",source_origin_id:"usb-if-product-registry",methodology_family:"usb_if_registry",commercial_relationship:"standards_registry"})
       ]
     },
     {
       product_id:"cable-belkin-premium-hdmi", product_name:"Belkin Premium High Speed HDMI Cable", category:"cable",
-      fixture_role:"legacy", lifecycle_state:"legacy", compatibility_profile:{ connector:"hdmi", passive:true },
+      fixture_role:"legacy", lifecycle_state:"legacy", variant_id:"AV10168bt2M-BLK", compatibility_profile:{ connector:"hdmi" },
       evidence:[
         fact("cable-belkin-premium-hdmi",1,"https://www.belkin.com/uk/p/ultrahd-hdmi-cable/AV10168bt2M-BLK.html","connector","Belkin lists HDMI connectors.","hdmi",null,{locale:"en-GB"}),
         fact("cable-belkin-premium-hdmi",2,"https://www.belkin.com/uk/p/ultrahd-hdmi-cable/AV10168bt2M-BLK.html","certified_bandwidth","Belkin lists Premium High Speed HDMI at 18 Gbps.",18,"gbps",{locale:"en-GB"}),

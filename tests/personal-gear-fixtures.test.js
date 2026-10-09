@@ -71,3 +71,16 @@ test("product evidence grade is computed from its ledger rather than a fixture d
     assert.equal(product.evidence_grade,evidence.gradeFromEvidence(product.evidence,product),product.product_id);
   }
 });
+
+test("controller compatibility profiles are claim-backed and cable activity is not guessed", () => {
+  for (const product of fixtures.byCategory.controller) {
+    for (const attribute of ["platforms","connections"]) {
+      const expected = product.compatibility_profile[attribute] || [];
+      if (!expected.length) continue;
+      const claim = product.evidence.find(item => item.attribute === attribute);
+      assert.ok(claim,`${product.product_id}:${attribute}`);
+      assert.deepEqual(claim.normalized_fact.value,expected,`${product.product_id}:${attribute}`);
+    }
+  }
+  for (const product of fixtures.byCategory.cable) assert.equal(product.compatibility_profile.passive,undefined,product.product_id);
+});

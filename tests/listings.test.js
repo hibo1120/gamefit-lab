@@ -19,3 +19,14 @@ test("recommendation ranking ignores monetization", () => {
   ]);
   assert.equal(ranked[0].id, "best_fit");
 });
+
+test("equal price and score ordering is deterministic across affiliate permutations", () => {
+  const affiliate = { listing_id:"b", price_amount:100, in_stock:true, affiliate:true };
+  const neutral = { listing_id:"a", price_amount:100, in_stock:true, affiliate:false };
+  assert.equal(listings.chooseCheapest([affiliate,neutral]).listing_id,"a");
+  assert.equal(listings.chooseCheapest([neutral,affiliate]).listing_id,"a");
+  const scoredA = { id:"b", recommendation_score:80, affiliate:true };
+  const scoredB = { id:"a", recommendation_score:80, affiliate:false };
+  assert.deepEqual(listings.recommendationRankMustIgnoreMonetization([scoredA,scoredB]).map(item => item.id),["a","b"]);
+  assert.deepEqual(listings.recommendationRankMustIgnoreMonetization([scoredB,scoredA]).map(item => item.id),["a","b"]);
+});

@@ -60,9 +60,17 @@
     return items.filter(item => {
       if (item.independent !== true) return false;
       let publisher = null;
-      try { publisher = item.source_url ? new URL(item.source_url).hostname.toLowerCase().replace(/^www\./, "") : null; } catch (_) {}
+      try {
+        const hostname = item.source_url ? new URL(item.source_url).hostname.toLowerCase().replace(/^www\./, "") : null;
+        if (hostname) {
+          const parts = hostname.split(".");
+          const compoundSuffixes = new Set(["co.uk","org.uk","com.au","net.au","co.jp","ne.jp"]);
+          const suffix = parts.slice(-2).join(".");
+          publisher = compoundSuffixes.has(suffix) && parts.length >= 3 ? parts.slice(-3).join(".") : parts.slice(-2).join(".");
+        }
+      } catch (_) {}
       const origin = item.source_origin_id || item.origin_source_id || item.source_id;
-      const key = item.publisher_id || (item.source_type === "community" ? origin : publisher) || origin;
+      const key = item.source_type === "community" ? origin : (publisher || item.publisher_id || origin);
       if (!key) return false;
       if (seen.has(key)) return false;
       seen.add(key);

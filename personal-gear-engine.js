@@ -28,6 +28,10 @@
     mouse_skates:Object.freeze(["mnk"]),
     controller:Object.freeze(["controller"])
   });
+  const BUYABLE_LIFECYCLES = Object.freeze(["available", "mature", "discounting"]);
+  const COMPATIBILITY_FIELDS = new Set(["platform","gpu_connector","monitor_connector","cable_connector","required_bandwidth_gbps","cable_certified_bandwidth_gbps","device_connector","host_connector","host_high_polling_support","verified_adapter","audio_connector","source_connector","requires_dac","dac_available","connection_type","packet_loss_pct","jitter_ms","bufferbloat_method","bufferbloat_result","client_bands","router_bands","wired_path_capacity"]);
+  const SETUP_CHECK_CODES = new Set(["set_os_refresh_rate","test_mouse_direct_usb","verify_actual_usb_polling","verify_display_signal_chain","check_audio_output_settings","test_direct_audio_path","network_stability_check","test_bufferbloat_under_load","compare_temporary_wired_test","check_os_power_and_background_load","verify_controller_platform"]);
+  const CABLE_NEED_REASONS = new Set(["required_connector_missing","target_mode_capacity_shortfall","power_delivery_shortfall","verified_physical_fault","required_length_mismatch"]);
 
   function clamp01(value) {
     const number = Number(value);
@@ -86,6 +90,12 @@
     return "Low";
   }
 
+  function attributeEvidenceCanClearHardAvoid(candidate, attribute) {
+    const item = candidate?.attribute_evidence?.[attribute];
+    if (!item || item.conflict === true) return false;
+    return ["A", "B", "C"].includes(item.grade) && attributeConfidence(candidate, attribute) !== "Low";
+  }
+
   function lowestConfidence(levels) {
     if (!levels.length || levels.includes("Low")) return "Low";
     if (levels.includes("Medium")) return "Medium";
@@ -122,7 +132,11 @@
     let knownComparisons = 0;
     for (const rule of hardRules) {
       const comparison = compareAttributeValue(candidate?.category, rule.attribute, attributes[rule.attribute], rule.operator, rule.value);
-      if (comparison.known) {
+      const canClear = attributeEvidenceCanClearHardAvoid(candidate, rule.attribute);
+      // A possible hard-avoid match is always conservative. A non-match may
+      // clear the rule only when the compared attribute has non-conflicting
+      // attribute-level evidence of at least grade C.
+      if (comparison.known && (comparison.match || canClear)) {
         knownComparisons += 1;
         comparisonConfidences.push(attributeConfidence(candidate, rule.attribute));
       } else missingHardAvoidAttributes.push(rule.attribute);
@@ -295,17 +309,43 @@
     const currentDelta = calculateCurrentGearDelta(candidate, context.current_gear);
     const value = calculateValue(candidate, context.budget);
     const evidence = ({ A:1, B:0.8, C:0.55, D:0.25 })[candidate?.evidence_grade] || 0.15;
-    const compatibilityVerified = candidate?.compatibility_status === "compatible" && candidate?.compatible === true;
-    const compatibilityIncompatible = candidate?.compatibility_status === "incompatible" || candidate?.compatible === false || gameFit.incompatible;
+    const compatibilityAssessment = candidate?.compatibility_assessment;
+    const evaluatedFields = compatibilityAssessment?.evaluated_fields;
+    const requiredCompatibilityFields = candidate?.category === "controller" ? ["platform"] :
+      candidate?.category === "network" ? ["connection_type","packet_loss_pct","jitter_ms","bufferbloat_method","bufferbloat_result"] :
+      candidate?.category === "monitor" ? ["gpu_connector","monitor_connector","cable_connector"] :
+      candidate?.category === "audio" ? ["audio_connector","source_connector"] :
+      candidate?.category === "cable" ? ["cable_connector"] :
+      ["device_connector","host_connector"];
+    const compatibilityAssessmentVerified = compatibilityAssessment?.assessment_type === "rule_evaluation" &&
+      compatibilityAssessment?.status === "compatible" &&
+      Array.isArray(evaluatedFields) && evaluatedFields.length > 0 &&
+      evaluatedFields.every(field => COMPATIBILITY_FIELDS.has(field)) &&
+      requiredCompatibilityFields.every(field => evaluatedFields.includes(field)) &&
+      Array.isArray(compatibilityAssessment?.issues) &&
+      Array.isArray(compatibilityAssessment?.unknowns) && compatibilityAssessment.unknowns.length === 0;
+    const compatibilityVerified = candidate?.compatibility_status === "compatible" && candidate?.compatible === true && compatibilityAssessmentVerified;
+    const compatibilityIncompatible = candidate?.compatibility_status === "incompatible" ||
+      (candidate?.compatible === false && candidate?.compatibility_status !== "unknown") || gameFit.incompatible;
     const compatibility = compatibilityIncompatible ? 0 : compatibilityVerified ? 1 : null;
     const compatibilityUnknown = compatibility === null;
     const budgetProvided = Number.isFinite(Number(context.budget)) && Number(context.budget) > 0;
     const priceKnown = Number.isFinite(Number(candidate?.price)) && Number(candidate.price) >= 0;
     const budgetExceeded = budgetProvided && priceKnown && Number(candidate.price) > Number(context.budget);
     const priceUnknownForBudget = budgetProvided && !priceKnown;
-    const lifecycleBlocked = ["announced", "preorder", "prototype"].includes(candidate?.lifecycle_state);
+    const lifecycleBlocked = !BUYABLE_LIFECYCLES.includes(candidate?.lifecycle_state);
     const categoryUnknown = !candidate?.category || !["mouse","keyboard","monitor","mousepad","mouse_skates","audio","controller","network","cable"].includes(candidate.category);
-    const cableNeedUnknown = candidate?.category === "cable" && candidate?.verified_need !== true;
+    const cableNeedAssessment = candidate?.need_assessment;
+    const cableNeedVerified = cableNeedAssessment?.status === "verified" &&
+      CABLE_NEED_REASONS.has(cableNeedAssessment?.reason_code) &&
+      Array.isArray(cableNeedAssessment?.evidence) && cableNeedAssessment.evidence.length > 0 &&
+      cableNeedAssessment.evidence.every(item => item && typeof item === "object" &&
+        ["setup","compatibility_assessment","observed_fault"].includes(item.source) && typeof item.fact === "string" && item.fact.length > 0);
+    const variantBlocked = candidate?.category === "cable" ? !(
+      candidate?.variant_scope === "exact" && typeof candidate?.variant_id === "string" && candidate.variant_id.length > 0 &&
+      compatibilityAssessment?.variant_id === candidate.variant_id && cableNeedAssessment?.variant_id === candidate.variant_id
+    ) : candidate?.variant_scope === "family" || candidate?.variant_scope === "unknown";
+    const cableNeedUnknown = candidate?.category === "cable" && !cableNeedVerified;
     const regretPenalty = regret.risk_level === "high" ? (regret.confidence === "Low" ? 0.18 : 0.35) :
       regret.risk_level === "medium" ? 0.12 : 0;
     const raw = gameFit.score * 0.25 + preferenceFit.score * 0.30 + currentDelta * 0.20 +
@@ -325,7 +365,8 @@
       evidence_grade:candidate?.evidence_grade || "D",
       components:{ game_fit:gameFit.score, preference_fit:preferenceFit.score, current_gear_delta:currentDelta, value, evidence, compatibility },
       current_gear_delta_assessment:candidate?.current_gear_delta_assessment || null,
-      compatibility_assessment:candidate?.compatibility_assessment || null,
+      compatibility_assessment:compatibilityAssessment || null,
+      need_assessment:cableNeedAssessment || null,
       fix_before_buy:[...(candidate?.fix_before_buy || [])],
       coverage:{ game:gameFit.coverage, preference:preferenceFit.coverage },
       regret_shield:regret,
@@ -333,7 +374,7 @@
       direction_codes:[...(candidate.direction_codes || [])],
       compatible:compatibility === 1,
       compatibility_status:compatibility === null ? "unknown" : compatibility === 1 ? "compatible" : "incompatible",
-      safety_gate:{ budget_exceeded:budgetExceeded, price_unknown_for_budget:priceUnknownForBudget, lifecycle_blocked:lifecycleBlocked, category_unknown:categoryUnknown, cable_need_unverified:cableNeedUnknown },
+      safety_gate:{ budget_exceeded:budgetExceeded, price_unknown_for_budget:priceUnknownForBudget, lifecycle_blocked:lifecycleBlocked, variant_unresolved:variantBlocked, category_unknown:categoryUnknown, cable_need_unverified:cableNeedUnknown },
       data_gaps:[
         ...(candidateEvidenceConfidence === "Low" ? ["evidence_insufficient"] : []),
         ...(!currentDeltaKnown ? ["current_gear_delta_missing"] : []),
@@ -342,6 +383,7 @@
         ...(budgetExceeded ? ["budget_exceeded"] : []),
         ...(priceUnknownForBudget ? ["price_unknown_for_budget"] : []),
         ...(lifecycleBlocked ? ["non_buyable_lifecycle"] : []),
+        ...(variantBlocked ? ["exact_variant_unresolved"] : []),
         ...(categoryUnknown ? ["category_unknown"] : []),
         ...(cableNeedUnknown ? ["cable_need_unverified"] : []),
         ...(regret.data_gaps || []),
@@ -374,7 +416,12 @@
         recommendations:[]
       };
     }
-    const setupAssessmentMissing = !Array.isArray(input.fix_before_buy);
+    const setupAssessmentMissing = !(
+      Array.isArray(input.fix_before_buy) &&
+      input?.setup_assessment?.status === "evaluated" &&
+      Array.isArray(input.setup_assessment.checks) && input.setup_assessment.checks.length > 0 &&
+      input.setup_assessment.checks.every(check => SETUP_CHECK_CODES.has(typeof check === "string" ? check : check?.code))
+    );
     const highPriorityFix = (input.fix_before_buy || []).some(item => Number(item.priority) >= 90);
     const scored = (input.candidates || []).map(candidate => {
       const currentGear = Array.isArray(input.current_gear) ?
@@ -404,7 +451,7 @@
   }
 
   return {
-    UPGRADE_MATCHES, CONFIDENCE_LEVELS, CATEGORY_INPUT_METHODS, evaluateRegretShield, calculatePreferenceFit,
+    UPGRADE_MATCHES, CONFIDENCE_LEVELS, CATEGORY_INPUT_METHODS, BUYABLE_LIFECYCLES, evaluateRegretShield, calculatePreferenceFit,
     calculateGameFit, calculateCurrentGearDelta, hasCurrentGearDelta, highConfidenceGate, scoreCandidate, classifyUpgradeMatch,
     recommendUpgrades
   };

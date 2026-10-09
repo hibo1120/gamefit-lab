@@ -25,14 +25,16 @@ function safeCandidate(overrides={}) {
   return {
     product_id:"safe-mouse", category:"mouse", evidence_grade:"A", lifecycle_state:"available",
     current_gear_delta:0.35, game_fitness:{ apex_mnk:{ score:0.85, evidence_grade:"B" } },
-    compatible:true, compatibility_status:"compatible", price:100, value_score:1,
-    attributes:{ weight:55 }, similarity_to_current:0.4, ...overrides
+    compatible:true, compatibility_status:"compatible",
+    compatibility_assessment:{ assessment_type:"rule_evaluation", status:"compatible", issues:[], unknowns:[], evaluated_fields:["device_connector","host_connector"] },
+    price:100, value_score:1, attributes:{ weight:55 }, similarity_to_current:0.4, ...overrides
   };
 }
 
 function recommend(candidate, extra={}) {
   return gear.recommendUpgrades({ game_id:"apex", input_method:"mnk", profile:prefs.createProfile(),
-    current_gear:{ category:candidate.category }, budget:200, fix_before_buy:[], candidates:[candidate], ...extra });
+    current_gear:{ category:candidate.category }, budget:200, fix_before_buy:[],
+    setup_assessment:{ status:"evaluated", checks:["verify_actual_usb_polling"] }, candidates:[candidate], ...extra });
 }
 
 test("current gear delta compares only evidence-supported category attributes", () => {
@@ -94,6 +96,30 @@ test("network throughput alone does not assert gaming stability", () => {
   const unstable = compatibility.evaluateNetwork({ connection_type:"wifi", throughput_mbps:900, jitter_ms:30, packet_loss_pct:1 });
   assert.ok(unstable.some(item => item.code === "high_jitter_before_upgrade"));
   assert.ok(unstable.some(item => item.code === "packet_loss_before_upgrade"));
+  const incomplete = compatibility.evaluateNetworkCompatibility({ connection_type:"wifi", client_bands:["5ghz"], router_bands:["5ghz"], throughput_mbps:900 });
+  assert.equal(incomplete.status,"unknown");
+  assert.ok(incomplete.unknowns.includes("jitter_not_measured"));
+  const jitterOnly = compatibility.evaluateNetworkCompatibility({ connection_type:"wifi", client_bands:["5ghz"], router_bands:["5ghz"], jitter_ms:30, packet_loss_pct:0, bufferbloat_method:"latency_under_load", bufferbloat_result:"pass" });
+  assert.equal(jitterOnly.status,"unknown");
+  for (const invalid of [
+    { packet_loss_pct:"n/a", jitter_ms:"n/a" },
+    { packet_loss_pct:-1, jitter_ms:-1 },
+    { packet_loss_pct:"", jitter_ms:"" },
+    { packet_loss_pct:"   ", jitter_ms:"   " },
+    { packet_loss_pct:false, jitter_ms:true }
+  ]) {
+    const assessment = compatibility.evaluateNetworkCompatibility({ connection_type:"wifi", client_bands:["5ghz"], router_bands:["5ghz"], bufferbloat_method:"latency_under_load", bufferbloat_result:"pass", ...invalid });
+    assert.equal(assessment.status,"unknown");
+    assert.ok(assessment.unknowns.some(item => item.endsWith("_invalid")));
+    const candidate = safeCandidate({
+      product_id:"network-invalid", category:"network", input_methods:["mnk"],
+      compatibility_assessment:assessment, compatibility_status:assessment.status, compatible:undefined
+    });
+    assert.equal(recommend(candidate).recommendations[0].upgrade_match,"DONT_UPGRADE");
+  }
+  const bogusMethod = compatibility.evaluateNetworkCompatibility({ connection_type:"wifi", client_bands:["5ghz"], router_bands:["5ghz"], packet_loss_pct:0, jitter_ms:1, bufferbloat_method:"anything", bufferbloat_result:"pass" });
+  assert.equal(bogusMethod.status,"unknown");
+  assert.ok(bogusMethod.unknowns.includes("bufferbloat_method_missing_or_invalid"));
 });
 
 test("all eight Decision Briefs keep structured original guidance and source detail", () => {
@@ -127,9 +153,9 @@ test("feedback explanation exposes personal preference and ranking changes witho
 });
 
 test("recommendation safety gate treats omitted compatibility and setup assessment as DONT_UPGRADE", () => {
-  const missingCompatibility = recommend(safeCandidate({ compatible:undefined, compatibility_status:undefined }));
+  const missingCompatibility = recommend(safeCandidate({ compatible:undefined, compatibility_status:undefined, compatibility_assessment:undefined }));
   assert.equal(missingCompatibility.recommendations[0].upgrade_match,"DONT_UPGRADE");
-  const missingSetup = recommend(safeCandidate(),{ fix_before_buy:undefined });
+  const missingSetup = recommend(safeCandidate(),{ fix_before_buy:[], setup_assessment:undefined });
   assert.equal(missingSetup.recommendations[0].upgrade_match,"DONT_UPGRADE");
 });
 
@@ -142,14 +168,14 @@ test("hard budget cap cannot be overridden by value_score", () => {
 test("source-free game fit, non-buyable lifecycle and unverified cable need stay DONT_UPGRADE", () => {
   assert.equal(recommend(safeCandidate({ game_fitness:{ apex_mnk:1 } })).recommendations[0].upgrade_match,"DONT_UPGRADE");
   assert.equal(recommend(safeCandidate({ lifecycle_state:"preorder" })).recommendations[0].upgrade_match,"DONT_UPGRADE");
-  const cable = safeCandidate({ product_id:"cable", category:"cable", verified_need:false, input_methods:["mnk"] });
+  const cable = safeCandidate({ product_id:"cable", category:"cable", verified_need:true, input_methods:["mnk"] });
   assert.equal(recommend(cable).recommendations[0].upgrade_match,"DONT_UPGRADE");
 });
 
 test("tie ordering is deterministic and independent of affiliate/feed permutation", () => {
   const a = safeCandidate({ product_id:"a", affiliate:true });
   const b = safeCandidate({ product_id:"b", affiliate:false });
-  const input = { game_id:"apex", input_method:"mnk", profile:prefs.createProfile(), current_gear:{ category:"mouse" }, budget:200, fix_before_buy:[] };
+  const input = { game_id:"apex", input_method:"mnk", profile:prefs.createProfile(), current_gear:{ category:"mouse" }, budget:200, fix_before_buy:[], setup_assessment:{ status:"evaluated", checks:["verify_actual_usb_polling"] } };
   const first = gear.recommendUpgrades({ ...input, candidates:[b,a] }).recommendations.map(item => item.product_id);
   const second = gear.recommendUpgrades({ ...input, candidates:[a,b] }).recommendations.map(item => item.product_id);
   assert.deepEqual(first,second);
@@ -174,6 +200,42 @@ test("unknown hard-avoid evidence is clarification, never a safe recommendation"
   const result = gear.evaluateRegretShield({ category:"audio", attributes:{}, attribute_evidence:{} },profile,{});
   assert.equal(result.risk_level,"unknown");
   assert.equal(result.requires_clarification,true);
+});
+
+test("hard avoid cannot be cleared by low or conflicting attribute evidence", () => {
+  const profile = prefs.addHardAvoid(prefs.createProfile(),{ category:"mouse", attribute:"weight", value:"80 g" });
+  for (const attributeEvidence of [{ grade:"D", confidence:"Low" },{ grade:"B", confidence:"High", conflict:true }]) {
+    const candidate = safeCandidate({ attributes:{ weight:55 }, attribute_evidence:{ weight:attributeEvidence } });
+    const result = recommend(candidate,{ profile });
+    assert.equal(result.recommendations[0].upgrade_match,"DONT_UPGRADE");
+    assert.equal(result.recommendations[0].regret_shield.requires_clarification,true);
+  }
+});
+
+test("buyability is allowlisted and cable need requires evidence-backed assessment", () => {
+  for (const lifecycleState of [undefined,"legacy","discontinued","eol","unavailable_us"]) {
+    assert.equal(recommend(safeCandidate({ lifecycle_state:lifecycleState })).recommendations[0].upgrade_match,"DONT_UPGRADE");
+  }
+  const cable = safeCandidate({
+    product_id:"cable", category:"cable", input_methods:["mnk"], variant_scope:"exact", variant_id:"cable-exact-1m",
+    compatibility_assessment:{ assessment_type:"rule_evaluation", status:"compatible", issues:[], unknowns:[], evaluated_fields:["cable_connector"], variant_id:"cable-exact-1m" },
+    need_assessment:{ status:"verified", reason_code:"required_connector_missing", evidence:[{ source:"setup", fact:"required connector is absent" }], variant_id:"cable-exact-1m" }
+  });
+  assert.notEqual(recommend(cable).recommendations[0].upgrade_match,"DONT_UPGRADE");
+  assert.equal(recommend({ ...cable, variant_scope:"family" }).recommendations[0].upgrade_match,"DONT_UPGRADE");
+  assert.equal(recommend({ ...cable, variant_scope:undefined }).recommendations[0].upgrade_match,"DONT_UPGRADE");
+  assert.equal(recommend({ ...cable, variant_id:undefined }).recommendations[0].upgrade_match,"DONT_UPGRADE");
+});
+
+test("compatibility and setup self-assertions without structured assessments stay DONT_UPGRADE", () => {
+  const selfAsserted = safeCandidate({ compatibility_assessment:null, compatible:true, compatibility_status:"compatible" });
+  assert.equal(recommend(selfAsserted).recommendations[0].upgrade_match,"DONT_UPGRADE");
+  const emptySetup = recommend(safeCandidate(),{ setup_assessment:{ status:"evaluated", checks:[] }, fix_before_buy:[] });
+  assert.equal(emptySetup.recommendations[0].upgrade_match,"DONT_UPGRADE");
+  const bogusSetup = recommend(safeCandidate(),{ setup_assessment:{ status:"evaluated", checks:["bogus"] }, fix_before_buy:[] });
+  assert.equal(bogusSetup.recommendations[0].upgrade_match,"DONT_UPGRADE");
+  const bogusCompatibility = safeCandidate({ compatibility_assessment:{ assessment_type:"rule_evaluation", status:"compatible", issues:[], unknowns:[], evaluated_fields:["bogus"] } });
+  assert.equal(recommend(bogusCompatibility).recommendations[0].upgrade_match,"DONT_UPGRADE");
 });
 
 test("Fix Before Buy covers display USB audio network and OS before products", () => {
@@ -226,4 +288,35 @@ test("local storage rejects undeclared and sensitive personal fields", () => {
   const other = storage.createState();
   other.setup.free_text = "private note";
   assert.ok(storage.validateState(other).some(error => error.includes("free_text")));
+  const nested = storage.createState();
+  nested.profile.product_feedback.push({ product_id:"x", contact:"private", serial_number:"ABC123" });
+  const nestedErrors = storage.validateState(nested);
+  assert.ok(nestedErrors.some(error => error.includes("contact")));
+  assert.ok(nestedErrors.some(error => error.includes("serial_number")));
+  const variants = storage.createState();
+  variants.profile.product_feedback.push({ product_id:"x", contact_info:"private", serialNo:"ABC123", note:"copied detail" });
+  assert.ok(storage.validateState(variants).some(error => error.includes("contact_info")));
+  assert.ok(storage.validateState(variants).some(error => error.includes("serialNo")));
+  assert.ok(storage.validateState(variants).some(error => error.includes("note")));
+});
+
+test("local retention removes timestamped records older than 365 days", () => {
+  const state = storage.createState();
+  state.feedback.push({ verdict:"agree", created_at:"2025-01-01T00:00:00.000Z" });
+  state.feedback.push({ verdict:"unsure", created_at:"2026-10-01T00:00:00.000Z" });
+  state.profile.product_feedback.push({ product_id:"old", created_at:"2025-01-01T00:00:00.000Z" });
+  state.profile.product_feedback.push({ product_id:"new", created_at:"2026-10-01T00:00:00.000Z" });
+  const next = storage.pruneExpiredRecords(state,"2026-10-09T00:00:00.000Z");
+  assert.deepEqual(next.feedback.map(item => item.verdict),["unsure"]);
+  assert.deepEqual(next.profile.product_feedback.map(item => item.product_id),["new"]);
+});
+
+test("same corporate domain subdomains cannot manufacture independent consensus", () => {
+  const rows = ["reviews.example.com","labs.example.com","community.example.com"].map((host,index) => ({
+    evidence_id:`mirror-${index}`, source_id:`mirror-${index}`, source_origin_id:`mirror-${index}`, product_id:"p",
+    evidence_type:"subjective", stance:"good", summary:"GameFit normalized observation.", source_url:`https://${host}/item`,
+    retrieved_at:"2026-10-09", checked_date:"2026-10-09", independent:true
+  }));
+  assert.equal(evidence.normalizeSubjectiveConsensus(rows),"anecdotal");
+  assert.equal(evidence.normalizeSubjectiveConsensus(rows.map((item,index) => ({ ...item, publisher_id:`self-${index}` }))),"anecdotal");
 });

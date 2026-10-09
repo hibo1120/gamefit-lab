@@ -5,6 +5,15 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
 
+  const BUFFERBLOAT_METHODS = new Set(["latency_under_load","waveform","router_queue_test"]);
+
+  function finiteMeasurement(value) {
+    if (typeof value === "boolean" || value == null) return null;
+    if (typeof value === "string" && value.trim() === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
   function evaluateDisplayLink(input) {
     const issues = [];
     if (input.monitor_refresh_hz && input.output_max_hz && input.output_max_hz < input.monitor_refresh_hz) {
@@ -16,11 +25,14 @@
     return issues;
   }
 
-  function result(issues, unknowns) {
+  function result(issues, unknowns, evaluatedFields=[]) {
     return {
-      status:issues.some(item => item.severity === "high") ? "incompatible" : unknowns.length ? "unknown" : "compatible",
+      assessment_type:"rule_evaluation",
+      status:issues.some(item => item.severity === "high") ? "incompatible" :
+        unknowns.length || issues.some(item => item.severity === "medium") ? "unknown" : "compatible",
       issues,
-      unknowns
+      unknowns,
+      evaluated_fields:[...new Set(evaluatedFields)]
     };
   }
 
@@ -40,7 +52,7 @@
         Number(input.cable_certified_bandwidth_gbps) < Number(input.required_bandwidth_gbps)) {
       issues.push({ code:"certified_cable_bandwidth_insufficient", severity:"high", message:"Certified cable bandwidth is below the target mode requirement." });
     }
-    return result(issues, unknowns);
+    return result(issues, unknowns,["gpu_connector","monitor_connector","cable_connector","required_bandwidth_gbps","cable_certified_bandwidth_gbps"]);
   }
 
   function evaluateUsbPath(input) {
@@ -60,7 +72,7 @@
     if (input.device_connector && input.host_connector && input.device_connector !== input.host_connector && input.verified_adapter !== true) {
       issues.push({ code:"usb_connector_requires_verified_adapter", severity:"high", message:"A verified compatible adapter or cable is required." });
     }
-    return result(issues, unknowns);
+    return result(issues, unknowns,["device_connector","host_connector","host_high_polling_support","verified_adapter"]);
   }
 
   function evaluateAudioCompatibility(input) {
@@ -75,15 +87,17 @@
     if (input.audio_connector && input.source_connector && input.audio_connector !== input.source_connector && input.verified_adapter !== true) {
       issues.push({ code:"audio_connector_mismatch", severity:"high", message:"The audio connection path is not verified." });
     }
-    return result(issues, unknowns);
+    return result(issues, unknowns,["audio_connector","source_connector","requires_dac","dac_available","verified_adapter"]);
   }
 
   function evaluateNetwork(input) {
     const issues = [];
-    if (input.connection_type === "wifi" && input.packet_loss_pct > 0) {
+    const loss = finiteMeasurement(input.packet_loss_pct);
+    const jitter = finiteMeasurement(input.jitter_ms);
+    if (input.connection_type === "wifi" && loss != null && loss > 0) {
       issues.push({ code:"packet_loss_before_upgrade", severity:"high", message:"Network stability should be investigated before upgrading unrelated gaming hardware." });
     }
-    if (input.connection_type === "wifi" && input.jitter_ms >= 10) {
+    if (input.connection_type === "wifi" && jitter != null && jitter >= 10) {
       issues.push({ code:"high_jitter_before_upgrade", severity:"medium", message:"High jitter can affect online play even when throughput is sufficient." });
     }
     return issues;
@@ -92,6 +106,18 @@
   function evaluateNetworkCompatibility(input) {
     const issues = evaluateNetwork(input);
     const unknowns = [];
+    if (["wifi","wired"].includes(input.connection_type)) {
+      const loss = finiteMeasurement(input.packet_loss_pct);
+      const jitter = finiteMeasurement(input.jitter_ms);
+      if (input.packet_loss_pct == null) unknowns.push("packet_loss_not_measured");
+      else if (loss == null || loss < 0 || loss > 100) unknowns.push("packet_loss_invalid");
+      if (input.jitter_ms == null) unknowns.push("jitter_not_measured");
+      else if (jitter == null || jitter < 0) unknowns.push("jitter_invalid");
+      if (!BUFFERBLOAT_METHODS.has(input.bufferbloat_method)) unknowns.push("bufferbloat_method_missing_or_invalid");
+      if (!["pass","degraded","fail"].includes(input.bufferbloat_result)) unknowns.push("bufferbloat_result_missing_or_invalid");
+      else if (input.bufferbloat_result === "degraded") issues.push({ code:"bufferbloat_degraded", severity:"medium", message:"Latency under load is degraded and should be investigated before replacing hardware." });
+      else if (input.bufferbloat_result === "fail") issues.push({ code:"bufferbloat_failed", severity:"high", message:"Latency under load failed the recorded check." });
+    } else unknowns.push("connection_type_unknown");
     if (input.connection_type === "wifi") {
       if (!input.client_bands || !input.router_bands) unknowns.push("wifi_band_support_unknown");
       else if (!input.client_bands.some(band => input.router_bands.includes(band))) {
@@ -106,7 +132,7 @@
         if (pathCapacity < Number(input.required_wired_gbps)) issues.push({ code:"wired_path_capacity_insufficient", severity:"high", message:"One part of the wired path is below the required link capacity." });
       }
     }
-    return result(issues, unknowns);
+    return result(issues, unknowns,["connection_type","packet_loss_pct","jitter_ms","bufferbloat_method","bufferbloat_result","client_bands","router_bands","wired_path_capacity"]);
   }
 
   function evaluateProductCompatibility(kind, input) {
@@ -114,7 +140,7 @@
     if (kind === "usb") return evaluateUsbCompatibility(input || {});
     if (kind === "audio") return evaluateAudioCompatibility(input || {});
     if (kind === "network") return evaluateNetworkCompatibility(input || {});
-    return { status:"unknown", issues:[], unknowns:["compatibility_kind_unknown"] };
+    return { assessment_type:"rule_evaluation", status:"unknown", issues:[], unknowns:["compatibility_kind_unknown"], evaluated_fields:["compatibility_kind"] };
   }
 
   function evaluateSetup(input) {
@@ -126,6 +152,7 @@
   }
 
   return {
+    BUFFERBLOAT_METHODS,
     evaluateDisplayLink, evaluateUsbPath, evaluateNetwork, evaluateSetup,
     evaluateDisplayCompatibility, evaluateUsbCompatibility, evaluateAudioCompatibility,
     evaluateNetworkCompatibility, evaluateProductCompatibility

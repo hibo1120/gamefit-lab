@@ -194,11 +194,11 @@
     const current = fixtures.products.find(item => item.product_id === currentProductId);
     return (fixtures.byCategory[category] || []).filter(item => item.product_id !== currentProductId).map(item => {
       const delta = deltaEngine.compareProducts(current,item);
-      let compatibility = { status:"unknown", issues:[], unknowns:["setup_details_missing"] };
+      let compatibility = { assessment_type:"rule_evaluation", status:"unknown", issues:[], unknowns:["setup_details_missing"], evaluated_fields:["category_setup"] };
       if (category === "controller" && item.compatibility_profile?.platforms?.length) {
         compatibility = item.compatibility_profile.platforms.includes(platform)
-          ? { status:"compatible", issues:[], unknowns:[] }
-          : { status:"incompatible", issues:[{ code:"platform_not_supported", severity:"high" }], unknowns:[] };
+          ? { assessment_type:"rule_evaluation", status:"compatible", issues:[], unknowns:[], evaluated_fields:["platform"] }
+          : { assessment_type:"rule_evaluation", status:"incompatible", issues:[{ code:"platform_not_supported", severity:"high" }], unknowns:[], evaluated_fields:["platform"] };
       }
       return {
         ...item,
@@ -206,9 +206,9 @@
         current_gear_delta_assessment:delta,
         compatibility_assessment:compatibility,
         compatibility_status:compatibility.status,
-        compatible:compatibility.status === "compatible",
+        compatible:compatibility.status === "compatible" ? true : compatibility.status === "incompatible" ? false : undefined,
         fix_before_buy:freeFixes,
-        verified_need:category !== "cable" ? undefined : false,
+        need_assessment:category !== "cable" ? undefined : { status:"unknown", reason_code:"signal_chain_need_not_verified", evidence:[] },
         value_score:0.5,
         similarity_to_current:0,
         direction_codes:[]
@@ -244,6 +244,7 @@
       current_gear:current ? { product_id:current.product_id, category:current.category } : null,
       budget:Number(byId("budget").value),
       fix_before_buy:freeFixes,
+      setup_assessment:{ status:"evaluated", checks:freeFixes.map(item => item.code) },
       candidates:buildCandidates(category,currentProductId,inputMethod,platform,freeFixes)
     });
     const summary = byId("decision-summary");

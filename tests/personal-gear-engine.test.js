@@ -105,18 +105,21 @@ test("ranking uses exact Apex context and ignores affiliate economics", () => {
     current_gear:{ category:"mouse", performance_score:0.5 },
     budget:20000,
     fix_before_buy:[],
+    setup_assessment:{ status:"evaluated", checks:["verify_actual_usb_polling"] },
     candidates:[
       {
-        product_id:"best-fit-no-affiliate", category:"mouse", evidence_grade:"A", current_gear_delta:0.3,
+        product_id:"best-fit-no-affiliate", category:"mouse", evidence_grade:"A", lifecycle_state:"available", current_gear_delta:0.3,
         game_fitness:{ apex_mnk:{ score:0.95, evidence_grade:"B" }, valorant_mnk:{ score:0.1, evidence_grade:"B" } }, price:10000,
         similarity_to_current:0.5, attributes:{ weight:55 }, affiliate:false, commission_rate:0,
-        compatible:true, compatibility_status:"compatible"
+        compatible:true, compatibility_status:"compatible",
+        compatibility_assessment:{ assessment_type:"rule_evaluation", status:"compatible", issues:[], unknowns:[], evaluated_fields:["device_connector","host_connector"] },
       },
       {
-        product_id:"paid-but-worse", category:"mouse", evidence_grade:"A", current_gear_delta:0.2,
+        product_id:"paid-but-worse", category:"mouse", evidence_grade:"A", lifecycle_state:"available", current_gear_delta:0.2,
         game_fitness:{ apex_mnk:{ score:0.55, evidence_grade:"B" }, valorant_mnk:{ score:1, evidence_grade:"B" } }, price:14000,
         similarity_to_current:0.5, attributes:{ weight:58 }, affiliate:true, commission_rate:30,
-        compatible:true, compatibility_status:"compatible"
+        compatible:true, compatibility_status:"compatible",
+        compatibility_assessment:{ assessment_type:"rule_evaluation", status:"compatible", issues:[], unknowns:[], evaluated_fields:["device_connector","host_connector"] },
       }
     ]
   });

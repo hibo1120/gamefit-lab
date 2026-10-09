@@ -11,7 +11,7 @@
   const MAX_RECORDS = 500;
   const RETENTION_DAYS = 365;
   const FORBIDDEN_KEYS = new Set(["__proto__", "prototype", "constructor"]);
-  const SENSITIVE_KEYS = new Set(["email","phone","address","full_name","real_name","secret","token","password","free_text","ip_address","device_id"]);
+  const SENSITIVE_KEYS = new Set(["email","phone","address","full_name","real_name","secret","token","password","free_text","ip_address","device_id","contact","serial_number","serial","account_id","advertising_id"]);
   const ROOT_KEYS = new Set(["schema_version","profile","setup","recommendations","feedback","outcomes","rerank_events","confidence_samples","updated_at"]);
   const PROFILE_KEYS = new Set(["version","product_feedback","attribute_preferences","hard_avoids","hard_avoid_rules","game_context","recommendation_feedback","personal_adjustments"]);
   const SETUP_KEYS = new Set(["category","current_product_id","budget_band","game_id","input_method","platform"]);
@@ -42,8 +42,9 @@
     if (value && typeof value === "object") {
       if (!isPlainObject(value)) return [path + " must be a plain object"];
       for (const [key, child] of Object.entries(value)) {
+        const canonicalKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
         if (FORBIDDEN_KEYS.has(key)) errors.push(path + "." + key + " is prohibited");
-        else if (SENSITIVE_KEYS.has(key.toLowerCase())) errors.push(path + "." + key + " is not permitted in local storage");
+        else if (SENSITIVE_KEYS.has(key.toLowerCase()) || /^(contact|contactinfo|serial|serialnumber|serialno|email|phone|address|fullname|realname|secret|token|password|freetext|ipaddress|deviceid|accountid|advertisingid|note|notes)$/.test(canonicalKey)) errors.push(path + "." + key + " is not permitted in local storage");
         else errors.push(...validateSafeTree(child, path + "." + key, depth + 1));
       }
       return errors;
@@ -89,11 +90,40 @@
     throw new Error("stored schema cannot be migrated safely");
   }
 
+  function pruneExpiredRecords(state, now=new Date().toISOString()) {
+    const next = JSON.parse(JSON.stringify(state));
+    const nowMs = Date.parse(now);
+    if (!Number.isFinite(nowMs)) throw new Error("retention clock is invalid");
+    const cutoff = nowMs - RETENTION_DAYS * 86400000;
+    for (const key of ["recommendations", "feedback", "outcomes", "rerank_events", "confidence_samples"]) {
+      if (!Array.isArray(next[key])) continue;
+      next[key] = next[key].filter(item => {
+        const timestamp = item?.created_at || item?.completed_at || item?.recorded_at || null;
+        if (!timestamp) return true;
+        const parsed = Date.parse(timestamp);
+        return Number.isFinite(parsed) && parsed >= cutoff && parsed <= nowMs + 86400000;
+      });
+    }
+    if (Array.isArray(next.profile?.product_feedback)) next.profile.product_feedback = next.profile.product_feedback.filter(item => {
+      const timestamp = item?.created_at || null;
+      if (!timestamp) return true;
+      const parsed = Date.parse(timestamp);
+      return Number.isFinite(parsed) && parsed >= cutoff && parsed <= nowMs + 86400000;
+    });
+    if (Array.isArray(next.profile?.recommendation_feedback)) next.profile.recommendation_feedback = next.profile.recommendation_feedback.filter(item => {
+      const timestamp = item?.created_at || null;
+      if (!timestamp) return true;
+      const parsed = Date.parse(timestamp);
+      return Number.isFinite(parsed) && parsed >= cutoff && parsed <= nowMs + 86400000;
+    });
+    return next;
+  }
+
   function parse(raw) {
     if (typeof raw !== "string" || !raw.trim()) throw new Error("stored data is empty");
     if (raw.length > MAX_BYTES) throw new Error("stored data is too large");
     const parsed = JSON.parse(raw);
-    const migrated = migrateState(parsed);
+    const migrated = pruneExpiredRecords(migrateState(parsed));
     const errors = validateState(migrated);
     if (errors.length) throw new Error(errors.join("; "));
     return JSON.parse(JSON.stringify(migrated));
@@ -118,7 +148,7 @@
   }
 
   function save(storage, state, now=new Date().toISOString()) {
-    const next = JSON.parse(JSON.stringify(state));
+    const next = pruneExpiredRecords(state,now);
     next.schema_version = SCHEMA_VERSION;
     next.updated_at = now;
     const errors = validateState(next);
@@ -158,6 +188,6 @@
 
   return {
     STORAGE_KEY, SCHEMA_VERSION, MAX_BYTES, MAX_RECORDS, RETENTION_DAYS, FORBIDDEN_KEYS, SENSITIVE_KEYS,
-    createState, validateState, migrateState, parse, load, save, exportState, exportRecovery, deleteAll, reset
+    createState, validateState, migrateState, pruneExpiredRecords, parse, load, save, exportState, exportRecovery, deleteAll, reset
   };
 });

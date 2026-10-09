@@ -20,11 +20,13 @@
   function chooseCheapest(listings) {
     return [...(listings || [])]
       .filter(item => item.in_stock !== false && Number.isFinite(Number(item.price_amount)))
-      .sort((a,b)=>Number(a.price_amount)-Number(b.price_amount))[0] || null;
+      .sort((a,b)=>Number(a.price_amount)-Number(b.price_amount) ||
+        String(a.listing_id || a.merchant_id || "").localeCompare(String(b.listing_id || b.merchant_id || "")))[0] || null;
   }
 
   function recommendationRankMustIgnoreMonetization(productScores) {
-    return [...productScores].sort((a,b)=>Number(b.recommendation_score)-Number(a.recommendation_score));
+    return [...productScores].sort((a,b)=>Number(b.recommendation_score)-Number(a.recommendation_score) ||
+      String(a.product_id || a.id || "").localeCompare(String(b.product_id || b.id || "")));
   }
 
   return { validateListing, chooseCheapest, recommendationRankMustIgnoreMonetization };

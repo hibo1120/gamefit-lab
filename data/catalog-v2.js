@@ -11,7 +11,7 @@
     "monitor_arm","capture_card","other"
   ]);
   const CATALOG_STATES = Object.freeze(["catalog","profiled","evaluated","verified","legacy","discontinued"]);
-  const LIFECYCLE_STATES = Object.freeze(["announced","preorder","available","mature","discounting","eol","discontinued","legacy"]);
+  const LIFECYCLE_STATES = Object.freeze(["announced","preorder","available","mature","discounting","out_of_stock","unavailable_us","eol","discontinued","legacy"]);
   const EVIDENCE_GRADES = Object.freeze(["D","C","B","A"]);
 
   function validateProduct(product) {
