@@ -2,6 +2,20 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const evidence = require("../evidence-engine.js");
 
+function validRow(id,type,options={}) {
+  const sourceType = options.source_type || (type === "measurement" ? "independent_lab" : type === "subjective" ? "specialist_review" : type === "issue" ? "community" : "official");
+  return {
+    evidence_id:id, source_id:options.source_id || id, source_origin_id:options.source_origin_id || id, product_id:"p",
+    evidence_type:type, source_type:sourceType, summary:"Short GameFit-authored fact.", source_url:options.source_url || `https://${id}.example/fact`,
+    retrieved_at:"2026-10-09", checked_date:"2026-10-09", raw_fact:"Short GameFit-authored fact.",
+    normalized_fact:{ attribute:options.attribute || "test_attribute", value:options.value ?? "same" }, locale:"en-US",
+    methodology_family:options.methodology_family || (type === "measurement" ? "lab_method" : type === "subjective" ? "specialist_editorial" : "official_spec"),
+    rights_use_note:"No copied content.", commercial_relationship:sourceType === "official" ? "manufacturer" : "none",
+    independent:sourceType !== "official", stance:options.stance || null, long_term:options.long_term === true,
+    measurement_verification:type === "measurement" ? "verified_lab" : "not_applicable"
+  };
+}
+
 test("subjective consensus needs independent repeated agreement", () => {
   assert.equal(evidence.normalizeSubjectiveConsensus([
     { evidence_type:"subjective", source_id:"review-1", stance:"light_clicks", independent:true }
@@ -31,11 +45,12 @@ test("new products cannot jump straight to highest confidence", () => {
   const product = { lifecycle_state:"announced", evidence_grade:"D" };
   assert.equal(evidence.newProductConfidenceCap(product), 0.35);
   const grade = evidence.gradeFromEvidence([
-    { evidence_type:"measurement", source_id:"lab-1", independent:true },
-    { evidence_type:"measurement", source_id:"lab-2", independent:true },
-    { evidence_type:"subjective", source_id:"review-1", independent:true, stance:"good" },
-    { evidence_type:"subjective", source_id:"review-2", independent:true, stance:"good" },
-    { evidence_type:"subjective", source_id:"review-3", independent:true, stance:"good" }
+    validRow("official","spec"),
+    validRow("lab-1","measurement"),
+    validRow("lab-2","measurement"),
+    validRow("review-1","subjective",{ stance:"good" }),
+    validRow("review-2","subjective",{ stance:"good" }),
+    validRow("review-3","subjective",{ stance:"good" })
   ], product);
   assert.equal(grade, "C");
 });
@@ -72,16 +87,15 @@ test("records without source provenance never create independent consensus or gr
 
 test("highest evidence grade requires independent long-term coverage", () => {
   const withoutLongTerm = [
-    { evidence_type:"measurement", source_id:"lab-1", independent:true },
-    { evidence_type:"measurement", source_id:"lab-2", independent:true },
-    { evidence_type:"subjective", source_id:"review-1", independent:true, stance:"good" },
-    { evidence_type:"subjective", source_id:"review-2", independent:true, stance:"good" },
-    { evidence_type:"subjective", source_id:"review-3", independent:true, stance:"good" }
+    validRow("official","spec"),
+    validRow("lab-1","measurement"),
+    validRow("lab-2","measurement"),
+    validRow("review-1","subjective",{ stance:"good" }),
+    validRow("review-2","subjective",{ stance:"good" }),
+    validRow("review-3","subjective",{ stance:"good" })
   ];
   assert.equal(evidence.gradeFromEvidence(withoutLongTerm, { lifecycle_state:"mature" }), "B");
-  assert.equal(evidence.gradeFromEvidence(withoutLongTerm.concat({
-    evidence_type:"issue", source_id:"long-use", independent:true, long_term:true
-  }), { lifecycle_state:"mature" }), "A");
+  assert.equal(evidence.gradeFromEvidence(withoutLongTerm.concat(validRow("long-use","issue",{ long_term:true })), { lifecycle_state:"mature" }), "A");
 });
 
 test("Evidence records keep normalized facts and reject copied media or review bodies", () => {
@@ -122,14 +136,15 @@ test("stance-free records and conflicting subjective claims cannot manufacture c
 
 test("mirrors with the same origin and adoption-only history do not inflate evidence grade", () => {
   const records = [
-    { evidence_type:"measurement", source_id:"mirror-a", source_origin_id:"lab-origin", independent:true },
-    { evidence_type:"measurement", source_id:"mirror-b", source_origin_id:"lab-origin", independent:true },
-    { evidence_type:"subjective", source_id:"r1", independent:true, stance:"positive" },
-    { evidence_type:"subjective", source_id:"r2", independent:true, stance:"positive" },
-    { evidence_type:"subjective", source_id:"r3", independent:true, stance:"positive" },
-    { evidence_type:"adoption", source_id:"pros", independent:true, long_term:true }
+    validRow("official-mirror","spec"),
+    validRow("mirror-a","measurement",{ source_origin_id:"lab-origin" }),
+    validRow("mirror-b","measurement",{ source_origin_id:"lab-origin" }),
+    validRow("r1","subjective",{ stance:"positive" }),
+    validRow("r2","subjective",{ stance:"positive" }),
+    validRow("r3","subjective",{ stance:"positive" }),
+    validRow("pros","adoption",{ source_type:"esports_database", long_term:true })
   ];
-  assert.equal(evidence.uniqueIndependent(records.slice(0,2)).length,1);
+  assert.equal(evidence.uniqueIndependent(records.slice(1,3)).length,1);
   assert.equal(evidence.gradeFromEvidence(records,{ lifecycle_state:"mature" }),"B");
 });
 

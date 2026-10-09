@@ -123,6 +123,7 @@
     const records = isRecordList ? profileOrFeedback : [];
     const persisted = isRecordList ? { products:{}, directions:{} } :
       (profileOrFeedback?.personal_adjustments || { products:{}, directions:{} });
+    const safetyBucket = item => item.upgrade_match === "AVOID" ? 2 : item.upgrade_match === "DONT_UPGRADE" ? 1 : 0;
     return (recommendations || []).map(item => {
       let adjustment = Number(persisted.products?.[contextKey(item, item.product_id)] || 0);
       for (const code of item.direction_codes || []) adjustment += Number(persisted.directions?.[contextKey(item, code)] || 0);
@@ -138,7 +139,7 @@
         }
       }
       return { ...item, personal_adjustment:adjustment, personalized_score:Number(item.recommendation_score || 0) + adjustment };
-    }).sort((a,b) => b.personalized_score - a.personalized_score);
+    }).sort((a,b) => safetyBucket(a) - safetyBucket(b) || b.personalized_score - a.personalized_score || String(a.product_id).localeCompare(String(b.product_id)));
   }
 
   function learningExplanation(beforeProfile, afterProfile, feedback, beforeRanking=[], afterRanking=[]) {
@@ -164,12 +165,32 @@
         score_delta:before ? Number((Number(item.personalized_score ?? item.recommendation_score ?? 0) - before.score).toFixed(4)) : null
       };
     });
+    const targetChange = rankingChanges.find(item => item.product_id === feedback.product_id) || null;
+    const afterTarget = (afterRanking || []).find(item => item.product_id === feedback.product_id);
+    const beforeTarget = (beforeRanking || []).find(item => item.product_id === feedback.product_id);
+    const confidenceBefore = feedback.confidence_at_recommendation || beforeTarget?.confidence || null;
+    const confidenceAfter = afterTarget?.confidence || confidenceBefore;
     return {
       scope:"personal",
       global_model_changed:false,
       trigger:{ verdict:feedback.verdict, reason_codes:[...(feedback.reason_codes || [])], desired_direction_codes:[...(feedback.desired_direction_codes || [])] },
       preference_updates:preferenceUpdates,
       ranking_changes:rankingChanges,
+      user_facing_explanation:{
+        preference_changed:[
+          ...(feedback.reason_codes || []).map(code => ({ category:"rejected_reason", code })),
+          ...(feedback.desired_direction_codes || []).map(code => ({ category:"desired_direction", code }))
+        ],
+        candidate_rank_changed:Boolean(targetChange && targetChange.rank_delta !== 0),
+        why_ranking_changed:[
+          ...(feedback.verdict === "disagree" ? ["rejected_candidate_penalty"] : feedback.verdict === "agree" ? ["accepted_candidate_support"] : []),
+          ...((feedback.desired_direction_codes || []).length ? ["desired_direction_match"] : [])
+        ],
+        confidence_changed:confidenceBefore !== confidenceAfter,
+        confidence_before:confidenceBefore,
+        confidence_after:confidenceAfter,
+        safety_boundary_preserved:true
+      },
       explanation_rule:"One user's feedback changes only that user's context-scoped adjustments."
     };
   }

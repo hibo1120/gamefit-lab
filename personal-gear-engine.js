@@ -8,13 +8,19 @@
   const normalization = root.GameFitNormalization || (
     typeof module === "object" && module.exports ? require("./normalization-engine.js") : null
   );
-  const api = factory(preferences, gameDna, normalization);
+  const readiness = root.GameFitDecisionReadiness || (
+    typeof module === "object" && module.exports ? require("./decision-readiness-engine.js") : null
+  );
+  const priceTiming = root.GameFitPriceTiming || (
+    typeof module === "object" && module.exports ? require("./price-timing-engine.js") : null
+  );
+  const api = factory(preferences, gameDna, normalization, readiness, priceTiming);
   root.GameFitPersonalGear = api;
   if (typeof module === "object" && module.exports) module.exports = api;
-})(typeof window !== "undefined" ? window : globalThis, function (preferences, gameDna, normalization) {
+})(typeof window !== "undefined" ? window : globalThis, function (preferences, gameDna, normalization, readiness, priceTiming) {
   "use strict";
 
-  if (!preferences || !gameDna || !normalization) throw new Error("GameFitPreferences, GameFitGameDNA and GameFitNormalization are required");
+  if (!preferences || !gameDna || !normalization || !readiness || !priceTiming) throw new Error("GameFit recommendation dependencies are required");
 
   const UPGRADE_MATCHES = Object.freeze([
     "SAFE / FAMILIAR", "BETTER_FIT", "VALUE_ALTERNATIVE", "EXPLORE", "AVOID", "DONT_UPGRADE"
@@ -32,6 +38,10 @@
   const COMPATIBILITY_FIELDS = new Set(["platform","gpu_connector","monitor_connector","cable_connector","required_bandwidth_gbps","cable_certified_bandwidth_gbps","device_connector","host_connector","host_high_polling_support","verified_adapter","audio_connector","source_connector","requires_dac","dac_available","connection_type","packet_loss_pct","jitter_ms","bufferbloat_method","bufferbloat_result","client_bands","router_bands","wired_path_capacity"]);
   const SETUP_CHECK_CODES = new Set(["set_os_refresh_rate","test_mouse_direct_usb","verify_actual_usb_polling","verify_display_signal_chain","check_audio_output_settings","test_direct_audio_path","network_stability_check","test_bufferbloat_under_load","compare_temporary_wired_test","check_os_power_and_background_load","verify_controller_platform"]);
   const CABLE_NEED_REASONS = new Set(["required_connector_missing","target_mode_capacity_shortfall","power_delivery_shortfall","verified_physical_fault","required_length_mismatch"]);
+  const GAME_INPUT_RULES = Object.freeze({
+    apex_mnk:Object.freeze({ rule_id:"mouse-apex-mnk-attribute-fit-v1", category:"mouse", allowed_attributes:Object.freeze(["weight","shape","click_latency","length","width","height"]) }),
+    valorant_mnk:Object.freeze({ rule_id:"mouse-valorant-mnk-attribute-fit-v1", category:"mouse", allowed_attributes:Object.freeze(["weight","shape","click_latency","length","width","height"]) })
+  });
 
   function clamp01(value) {
     const number = Number(value);
@@ -221,12 +231,26 @@
     const exactKey = dnaProfile.game_id + "_" + dnaProfile.input_method;
     const exact = candidate?.game_fitness?.[exactKey];
     const exactScore = exact && typeof exact === "object" ? exact.score : exact;
-    if (Number.isFinite(Number(exactScore))) {
+    if (typeof exactScore === "number" && Number.isFinite(exactScore)) {
       const evidenceMeta = exact && typeof exact === "object" ? exact : candidate?.game_fitness_evidence?.[exactKey];
-      const grade = evidenceMeta?.evidence_grade || evidenceMeta?.grade || "D";
+      const rule = GAME_INPUT_RULES[exactKey];
+      const ledger = candidate?.evidence || [];
+      const sourceRecords = Array.isArray(evidenceMeta?.source_ids) ? evidenceMeta.source_ids.map(sourceId => ledger.find(item => item.evidence_id === sourceId)) : [];
+      const sourceAttributes = new Set(sourceRecords.map(item => item?.normalized_fact?.attribute).filter(Boolean));
+      const sourceGrades = [...sourceAttributes].map(attribute => candidate?.attribute_evidence?.[attribute]?.grade);
+      const sourcesResolved = sourceRecords.length >= 2 && sourceRecords.every(record => record &&
+        record.product_id === candidate.product_id && record.product_variant_id === candidate.variant_id &&
+        ["spec","measurement","fact_correction"].includes(record.evidence_type) && rule?.allowed_attributes.includes(record.normalized_fact?.attribute)) &&
+        sourceAttributes.size >= 2 && sourceGrades.every(grade => ["A","B","C"].includes(grade));
+      const profileResolved = evidenceMeta?.game_profile_id === exactKey;
+      const ruleResolved = rule?.category === candidate.category && evidenceMeta?.rule_id === rule.rule_id &&
+        evidenceMeta?.derivation === "attribute_evidence_rule_v1" && evidenceMeta?.calibration_status === "provisional_no_outcomes";
+      const exactVerified = evidenceMeta?.verified === true && evidenceMeta?.assessment_type === "game_input_rules" &&
+        sourcesResolved && profileResolved && ruleResolved;
+      const grade = exactVerified ? "C" : "D";
       return {
-        score:grade === "D" ? 0.5 : clamp01(exactScore), confidence:confidenceFromGrade(grade), coverage:grade === "D" ? 0 : 1, incompatible:false,
-        evidence_grade:grade, data_gaps:grade === "D" ? ["game_fitness_evidence_missing"] : []
+        score:0.5, confidence:exactVerified ? confidenceFromGrade(grade) : "Low", coverage:exactVerified ? 1 : 0, incompatible:false,
+        evidence_grade:grade, exact_verified:exactVerified, data_gaps:grade === "D" || !exactVerified ? ["game_fitness_evidence_missing"] : []
       };
     }
     const traits = candidate?.performance_traits || {};
@@ -244,7 +268,7 @@
     return {
       score:clamp01(weighted / totalWeight),
       confidence:covered >= 5 ? "Medium" : "Low",
-      coverage:covered,
+      coverage:covered, exact_verified:false,
       incompatible:false,
       data_gaps:["game_fitness_is_trait_derived"]
     };
@@ -293,12 +317,11 @@
   }
 
   function calculateValue(candidate, budget) {
-    if (Number.isFinite(Number(candidate?.price)) && Number.isFinite(Number(budget)) && Number(budget) > 0) {
-      return clamp01(1 - Math.max(0, Number(candidate.price) - Number(budget)) / Number(budget));
+    if (typeof candidate?.price === "number" && Number.isFinite(candidate.price) && typeof budget === "number" && Number.isFinite(budget) && budget > 0) {
+      return clamp01(1 - Math.max(0, candidate.price - budget) / budget);
     }
-    if (Number.isFinite(Number(candidate?.value_score))) return clamp01(candidate.value_score);
-    if (!Number.isFinite(Number(candidate?.price)) || !Number.isFinite(Number(budget)) || Number(budget) <= 0) return 0.5;
-    return clamp01(1 - Math.max(0, Number(candidate.price) - Number(budget)) / Number(budget));
+    if (typeof candidate?.value_score === "number" && Number.isFinite(candidate.value_score)) return clamp01(candidate.value_score);
+    return 0.5;
   }
 
   function scoreCandidate(candidate, context) {
@@ -307,7 +330,16 @@
     const regret = evaluateRegretShield(candidate, context.profile, context);
     const currentDeltaKnown = hasCurrentGearDelta(candidate, context.current_gear);
     const currentDelta = calculateCurrentGearDelta(candidate, context.current_gear);
-    const value = calculateValue(candidate, context.budget);
+    const priceAssessment = priceTiming.assess(candidate?.price_snapshot || {}, {
+      as_of:context.as_of,
+      region:context.region,
+      currency:context.currency,
+      product_id:candidate?.product_id,
+      variant_id:candidate?.variant_id
+    });
+    const canonicalPrice = priceAssessment.status === "known" && priceAssessment.price_fresh ?
+      candidate?.price_snapshot?.current_price : null;
+    const value = calculateValue({ ...candidate, price:canonicalPrice, value_score:undefined }, context.budget);
     const evidence = ({ A:1, B:0.8, C:0.55, D:0.25 })[candidate?.evidence_grade] || 0.15;
     const compatibilityAssessment = candidate?.compatibility_assessment;
     const evaluatedFields = compatibilityAssessment?.evaluated_fields;
@@ -322,16 +354,16 @@
       Array.isArray(evaluatedFields) && evaluatedFields.length > 0 &&
       evaluatedFields.every(field => COMPATIBILITY_FIELDS.has(field)) &&
       requiredCompatibilityFields.every(field => evaluatedFields.includes(field)) &&
-      Array.isArray(compatibilityAssessment?.issues) &&
+      Array.isArray(compatibilityAssessment?.issues) && compatibilityAssessment.issues.length === 0 &&
       Array.isArray(compatibilityAssessment?.unknowns) && compatibilityAssessment.unknowns.length === 0;
     const compatibilityVerified = candidate?.compatibility_status === "compatible" && candidate?.compatible === true && compatibilityAssessmentVerified;
     const compatibilityIncompatible = candidate?.compatibility_status === "incompatible" ||
       (candidate?.compatible === false && candidate?.compatibility_status !== "unknown") || gameFit.incompatible;
     const compatibility = compatibilityIncompatible ? 0 : compatibilityVerified ? 1 : null;
     const compatibilityUnknown = compatibility === null;
-    const budgetProvided = Number.isFinite(Number(context.budget)) && Number(context.budget) > 0;
-    const priceKnown = Number.isFinite(Number(candidate?.price)) && Number(candidate.price) >= 0;
-    const budgetExceeded = budgetProvided && priceKnown && Number(candidate.price) > Number(context.budget);
+    const budgetProvided = typeof context.budget === "number" && Number.isFinite(context.budget) && context.budget > 0;
+    const priceKnown = typeof canonicalPrice === "number" && Number.isFinite(canonicalPrice) && canonicalPrice >= 0;
+    const budgetExceeded = budgetProvided && priceKnown && canonicalPrice > context.budget;
     const priceUnknownForBudget = budgetProvided && !priceKnown;
     const lifecycleBlocked = !BUYABLE_LIFECYCLES.includes(candidate?.lifecycle_state);
     const categoryUnknown = !candidate?.category || !["mouse","keyboard","monitor","mousepad","mouse_skates","audio","controller","network","cable"].includes(candidate.category);
@@ -353,7 +385,7 @@
     const confidencePoints = [gameFit.confidence, preferenceFit.confidence, confidenceFromGrade(candidate?.evidence_grade)]
       .reduce((sum, level) => sum + ({ Low:0, Medium:1, High:2 })[level], 0);
     const candidateEvidenceConfidence = confidenceFromGrade(candidate?.evidence_grade);
-    return {
+    const scored = {
       product_id:candidate.product_id,
       category:candidate.category,
       game_id:context.game_id,
@@ -370,7 +402,7 @@
       fix_before_buy:[...(candidate?.fix_before_buy || [])],
       coverage:{ game:gameFit.coverage, preference:preferenceFit.coverage },
       regret_shield:regret,
-      familiar_score:clamp01(candidate.similarity_to_current),
+      familiar_score:hasFiniteValue(candidate?.current_gear_delta_assessment?.similarity_score) ? clamp01(candidate.current_gear_delta_assessment.similarity_score) : 0,
       direction_codes:[...(candidate.direction_codes || [])],
       compatible:compatibility === 1,
       compatibility_status:compatibility === null ? "unknown" : compatibility === 1 ? "compatible" : "incompatible",
@@ -387,13 +419,29 @@
         ...(categoryUnknown ? ["category_unknown"] : []),
         ...(cableNeedUnknown ? ["cable_need_unverified"] : []),
         ...(regret.data_gaps || []),
+        ...(priceAssessment.status !== "known" || !priceAssessment.price_fresh ? ["price_context_unknown"] : []),
         "confidence_calibration_incomplete"
       ]
     };
+    const relevantGrades = (candidate?.current_gear_delta_assessment?.compared_attributes || [])
+      .filter(item => item.critical)
+      .map(item => candidate?.attribute_evidence?.[item.attribute]?.grade)
+      .filter(Boolean);
+    scored.price_assessment = priceAssessment;
+    scored.decision_readiness = readiness.evaluate({
+      candidate, scored, price_assessment:priceAssessment,
+      exact_game_input_profile:gameFit.exact_verified === true,
+      relevant_attribute_grades:relevantGrades,
+      affiliate_used_in_ranking:false,
+      setup_assessment_valid:context.setup_assessment_valid === true,
+      high_priority_fix:context.high_priority_fix === true
+    });
+    return scored;
   }
 
   function classifyUpgradeMatch(scored) {
     if (scored.compatibility_status === "incompatible" || scored.regret_shield.should_block) return "AVOID";
+    if (scored.decision_readiness?.eligible !== true) return "DONT_UPGRADE";
     if (scored.safety_gate && Object.values(scored.safety_gate).some(Boolean)) return "DONT_UPGRADE";
     if ((scored.data_gaps || []).includes("game_fitness_evidence_missing")) return "DONT_UPGRADE";
     if ((scored.data_gaps || []).includes("setup_assessment_missing")) return "DONT_UPGRADE";
@@ -432,7 +480,12 @@
         dna_profile:dnaProfile,
         profile:input.profile || preferences.createProfile(),
         current_gear:currentGear || null,
-        budget:input.budget
+        budget:input.budget,
+        setup_assessment_valid:!setupAssessmentMissing,
+        high_priority_fix:highPriorityFix,
+        as_of:input.as_of,
+        region:input.region,
+        currency:input.currency
       });
       const guarded = setupAssessmentMissing ? { ...result, data_gaps:[...result.data_gaps, "setup_assessment_missing"] } : result;
       return { ...guarded, upgrade_match:classifyUpgradeMatch(guarded) };

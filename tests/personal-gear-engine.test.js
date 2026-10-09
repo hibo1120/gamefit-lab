@@ -64,8 +64,13 @@ test("an exact hard avoid remains a conservative AVOID even with weak source con
 test("Upgrade Match exposes all six required decision classes", () => {
   const base = {
     compatible:true,
+    compatibility_status:"compatible",
+    evidence_grade:"B",
+    decision_readiness:{ eligible:true },
+    safety_gate:{},
+    data_gaps:[],
     components:{ current_gear_delta:0.2, preference_fit:0.6, value:0.5 },
-    regret_shield:{ risk_level:"low", should_block:false },
+    regret_shield:{ risk_level:"low", should_block:false, requires_clarification:false },
     familiar_score:0.2
   };
   assert.equal(engine.classifyUpgradeMatch({ ...base, familiar_score:0.8 }), "SAFE / FAMILIAR");
@@ -125,7 +130,8 @@ test("ranking uses exact Apex context and ignores affiliate economics", () => {
   });
   assert.equal(result.status, "ok");
   assert.equal(result.recommendations[0].product_id, "best-fit-no-affiliate");
-  assert.equal(result.recommendations[0].upgrade_match, "VALUE_ALTERNATIVE");
+  assert.equal(result.recommendations[0].upgrade_match, "DONT_UPGRADE");
+  assert.equal(result.recommendations[0].decision_readiness.checks.exact_game_input_profile,false);
 });
 
 test("high-priority Fix Before Buy keeps purchase decision at DONT_UPGRADE", () => {

@@ -167,9 +167,15 @@
   }
 
   function hardAvoidsFor(profile, category, context={}) {
-    return (profile?.hard_avoid_rules || []).filter(rule => rule.category === category &&
+    const structured = (profile?.hard_avoid_rules || []).filter(rule => rule.category === category &&
       (!rule.game_id || rule.game_id === context.game_id) &&
       (!rule.input_method || rule.input_method === context.input_method));
+    const legacy = Object.entries(profile?.hard_avoids?.[category] || {}).map(([attribute,value]) => ({
+      category, attribute, operator:"equals", value, reason_code:"legacy_hard_avoid",
+      game_id:null, input_method:null, migrated_from:"hard_avoids"
+    }));
+    const seen = new Set(structured.map(rule => [rule.category,rule.attribute,rule.operator,JSON.stringify(rule.value),rule.game_id || "",rule.input_method || ""].join("|")));
+    return [...structured, ...legacy.filter(rule => !seen.has([rule.category,rule.attribute,rule.operator,JSON.stringify(rule.value),"",""].join("|")))];
   }
 
   function nextQuestion(profile, candidates=[]) {

@@ -160,7 +160,14 @@ test("recommendation safety gate treats omitted compatibility and setup assessme
 });
 
 test("hard budget cap cannot be overridden by value_score", () => {
-  const result = recommend(safeCandidate({ price:1000, value_score:1 }));
+  const result = recommend(safeCandidate({
+    variant_scope:"exact",
+    variant_id:"safe-mouse-v1",
+    price:0,
+    value_score:1,
+    price_snapshot:{ product_id:"safe-mouse", variant_id:"safe-mouse-v1", current_price:1000, currency:"USD", region:"US", checked_at:fixtures.CHECKED_DATE,
+      availability:"in_stock", lifecycle_phase:"mature", historical_context_available:false, source_url:"https://example.com/product" }
+  }),{ region:"US", currency:"USD", as_of:fixtures.CHECKED_DATE });
   assert.equal(result.recommendations[0].upgrade_match,"DONT_UPGRADE");
   assert.ok(result.recommendations[0].data_gaps.includes("budget_exceeded"));
 });
@@ -221,7 +228,8 @@ test("buyability is allowlisted and cable need requires evidence-backed assessme
     compatibility_assessment:{ assessment_type:"rule_evaluation", status:"compatible", issues:[], unknowns:[], evaluated_fields:["cable_connector"], variant_id:"cable-exact-1m" },
     need_assessment:{ status:"verified", reason_code:"required_connector_missing", evidence:[{ source:"setup", fact:"required connector is absent" }], variant_id:"cable-exact-1m" }
   });
-  assert.notEqual(recommend(cable).recommendations[0].upgrade_match,"DONT_UPGRADE");
+  assert.equal(recommend(cable).recommendations[0].upgrade_match,"DONT_UPGRADE");
+  assert.ok(recommend(cable).recommendations[0].decision_readiness.failed_checks.includes("exact_game_input_profile"));
   assert.equal(recommend({ ...cable, variant_scope:"family" }).recommendations[0].upgrade_match,"DONT_UPGRADE");
   assert.equal(recommend({ ...cable, variant_scope:undefined }).recommendations[0].upgrade_match,"DONT_UPGRADE");
   assert.equal(recommend({ ...cable, variant_id:undefined }).recommendations[0].upgrade_match,"DONT_UPGRADE");

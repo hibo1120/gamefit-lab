@@ -14,6 +14,8 @@
   const ATTRIBUTE_GRADES = Object.freeze(["A", "B", "C", "D"]);
   const SOURCE_TYPES = Object.freeze(["official","official_support","official_manual","official_documentation","official_compliance","independent_lab","specialist_review","community","esports_database","certification_registry","standards_body"]);
   const COMMERCIAL_RELATIONSHIPS = Object.freeze(["manufacturer","none","affiliate_links_disclosed","reader_supported_affiliate_disclosed","standards_registry","unknown_disclosed"]);
+  const RIGHTS_STATES = Object.freeze(["safe_for_internal_fact","manual_terms_review","do_not_reuse_content"]);
+  const MEASUREMENT_VERIFICATION = Object.freeze(["verified_lab","publisher_test","user_submitted","not_applicable"]);
 
   function validateEvidenceRecord(record) {
     const errors = [];
@@ -52,11 +54,19 @@
     if (record?.normalized_fact && typeof record.normalized_fact !== "object") errors.push("normalized_fact must be an object");
     if (record?.normalized_fact && !record.normalized_fact.attribute) errors.push("normalized_fact.attribute is required");
     if (record?.rights_use_note && String(record.rights_use_note).length > 240) errors.push("rights_use_note is too long");
+    if (record?.rights_status && !RIGHTS_STATES.includes(record.rights_status)) errors.push("rights_status is invalid");
+    if (record?.measurement_verification && !MEASUREMENT_VERIFICATION.includes(record.measurement_verification)) errors.push("measurement_verification is invalid");
+    if (record?.evidence_type === "measurement" && !["verified_lab","publisher_test","user_submitted"].includes(record?.measurement_verification)) {
+      errors.push("measurement_verification is required for measurement");
+    }
     return [...new Set(errors)];
   }
 
   function uniqueIndependent(items) {
     const seen = new Set();
+    const seenOrigins = new Set();
+    const seenPublisherIds = new Set();
+    const seenCommunityAuthors = new Set();
     return items.filter(item => {
       if (item.independent !== true) return false;
       let publisher = null;
@@ -70,16 +80,40 @@
         }
       } catch (_) {}
       const origin = item.source_origin_id || item.origin_source_id || item.source_id;
-      const key = item.source_type === "community" ? origin : (publisher || item.publisher_id || origin);
+      const corporateOwner = item.publisher_group || item.corporate_owner;
+      const communityAuthor = typeof item.community_author_id === "string" && item.community_author_id.trim() ? item.community_author_id.trim() : null;
+      const communitySite = corporateOwner || publisher || item.publisher_id;
+      const key = item.source_type === "community" ?
+        (communityAuthor && communitySite ? "community:" + communitySite + ":" + communityAuthor : communitySite ? "community-site:" + communitySite : null) :
+        (corporateOwner || publisher || item.publisher_id || origin);
       if (!key) return false;
-      if (seen.has(key)) return false;
+      if ((origin && seenOrigins.has(origin)) || seen.has(key) || (item.publisher_id && seenPublisherIds.has(item.publisher_id)) ||
+          (communityAuthor && seenCommunityAuthors.has(communityAuthor))) return false;
+      if (origin) seenOrigins.add(origin);
+      if (item.publisher_id) seenPublisherIds.add(item.publisher_id);
+      if (communityAuthor) seenCommunityAuthors.add(communityAuthor);
       seen.add(key);
       return true;
     });
   }
 
-  function normalizeSubjectiveConsensus(items) {
-    const independent = uniqueIndependent(items.filter(item => item.evidence_type === "subjective"));
+  function currentEvidence(items) {
+    return (items || []).filter(item => {
+      if (validateFixtureEvidenceRecord(item).length) return false;
+      if (!item.checked_date && !item.retrieved_at) return true;
+      const timestamp = Date.parse((item.checked_date || item.retrieved_at) + "T00:00:00Z");
+      return Number.isFinite(timestamp) && timestamp <= Date.now() + 86400000 && Date.now() - timestamp <= 3 * 365.25 * 86400000;
+    });
+  }
+
+  function evidenceForProduct(items, product={}) {
+    const records = items || [];
+    return product?.variant_id ? records.filter(item => item.product_variant_id === product.variant_id) : records;
+  }
+
+  function normalizeSubjectiveConsensus(items, attribute=null) {
+    const independent = uniqueIndependent(items.filter(item => item.evidence_type === "subjective" &&
+      (!attribute || item.attribute === attribute || item.normalized_fact?.attribute === attribute)));
     const stances = independent.map(item => item.stance).filter(Boolean);
     if (independent.length <= 1 || stances.length !== independent.length) return "anecdotal";
     const counts = stances.reduce((acc, stance) => ((acc[stance] = (acc[stance] || 0) + 1), acc), {});
@@ -108,18 +142,27 @@
   }
 
   function gradeFromEvidence(items, product) {
-    const current = (items || []).filter(item => {
-      if (!item.checked_date && !item.retrieved_at) return true;
-      const timestamp = Date.parse((item.checked_date || item.retrieved_at) + "T00:00:00Z");
-      return Number.isFinite(timestamp) && timestamp <= Date.now() + 86400000 && Date.now() - timestamp <= 3 * 365.25 * 86400000;
-    });
-    const measurements = uniqueIndependent(current.filter(i => i.evidence_type === "measurement")).length;
-    const subjectiveConsensus = normalizeSubjectiveConsensus(current);
-    const longTermCoverage = uniqueIndependent(current.filter(i => i.long_term === true && !["adoption", "trend", "price"].includes(i.evidence_type))).length;
+    const exact = evidenceForProduct(currentEvidence(items), product);
+    const measurements = uniqueIndependent(exact.filter(i => i.evidence_type === "measurement" && ["verified_lab","publisher_test"].includes(i.measurement_verification))).length;
+    const officialSpecs = exact.filter(i => i.evidence_type === "spec" && ["official","official_support","official_manual","official_documentation","official_compliance"].includes(i.source_type)).length;
+    const specialistReviews = uniqueIndependent(exact.filter(i => i.evidence_type === "subjective" && i.source_type === "specialist_review")).length;
+    const subjectiveConsensus = normalizeSubjectiveConsensus(exact);
+    const subjectiveAttributes = [...new Set(exact.filter(i=>i.evidence_type === "subjective").map(i=>i.attribute || i.normalized_fact?.attribute).filter(Boolean))];
+    const hasHighAttributeConsensus = subjectiveAttributes.some(attribute => normalizeSubjectiveConsensus(exact,attribute) === "high");
+    const longTermCoverage = uniqueIndependent(exact.filter(i => i.long_term === true && !["adoption", "trend", "price"].includes(i.evidence_type))).length;
+    const measurementValues = new Map();
+    for (const item of exact.filter(i => i.evidence_type === "measurement" && i.normalized_fact?.value !== undefined)) {
+      const key = [item.normalized_fact.attribute,item.methodology_family || "unknown"].join("|");
+      const values = measurementValues.get(key) || new Set();
+      values.add(JSON.stringify([item.normalized_fact.value,item.normalized_fact.unit || null]));
+      measurementValues.set(key,values);
+    }
+    const criticalConflict = [...measurementValues.values()].some(values => values.size > 1);
     let grade = "D";
     if (measurements >= 1 || subjectiveConsensus === "medium") grade = "C";
-    if (measurements >= 1 && ["medium","high"].includes(subjectiveConsensus)) grade = "B";
-    if (measurements >= 2 && subjectiveConsensus === "high" && longTermCoverage >= 1) grade = "A";
+    if (officialSpecs >= 1 && measurements >= 1 && specialistReviews >= 1) grade = "B";
+    if (officialSpecs >= 1 && measurements >= 2 && hasHighAttributeConsensus && longTermCoverage >= 1) grade = "A";
+    if (criticalConflict && ["A","B"].includes(grade)) grade = "C";
 
     const cap = newProductConfidenceCap(product);
     if (cap <= 0.35 && ["A","B"].includes(grade)) grade = "C";
@@ -128,16 +171,26 @@
   }
 
   function buildAssessment(items, product={}) {
-    const strengths = [...new Set(items.filter(i=>i.effect === "strength").map(i=>i.summary).filter(Boolean))];
-    const concerns = [...new Set(items.filter(i=>i.effect === "concern").map(i=>i.summary).filter(Boolean))];
-    const mixed = items.filter(i=>i.effect === "mixed").map(i=>i.summary).filter(Boolean);
+    const scoped = evidenceForProduct(items, product);
+    const strengths = [...new Set(scoped.filter(i=>i.effect === "strength").map(i=>i.summary).filter(Boolean))];
+    const concerns = [...new Set(scoped.filter(i=>i.effect === "concern").map(i=>i.summary).filter(Boolean))];
+    const mixed = scoped.filter(i=>i.effect === "mixed").map(i=>i.summary).filter(Boolean);
     return {
-      evidence_grade: gradeFromEvidence(items, product),
-      subjective_consensus: normalizeSubjectiveConsensus(items),
+      evidence_grade: gradeFromEvidence(scoped, product),
+      subjective_consensus: normalizeSubjectiveConsensus(scoped),
+      subjective_consensus_by_attribute:Object.fromEntries([...new Set(scoped.filter(i=>i.evidence_type === "subjective").map(i=>i.attribute || i.normalized_fact?.attribute).filter(Boolean))]
+        .map(attribute=>[attribute,normalizeSubjectiveConsensus(scoped,attribute)])),
       strengths,
       concerns,
       disagreement_notes:[...new Set(mixed)],
-      measurement_groups:groupCompatibleMeasurements(items)
+      measurement_groups:groupCompatibleMeasurements(scoped),
+      coverage:{
+        official_spec:scoped.some(i=>i.evidence_type === "spec" && String(i.source_type || "").startsWith("official")),
+        independent_measurement:uniqueIndependent(scoped.filter(i=>i.evidence_type === "measurement" && ["verified_lab","publisher_test"].includes(i.measurement_verification))).length > 0,
+        specialist_review:uniqueIndependent(scoped.filter(i=>i.evidence_type === "subjective" && i.source_type === "specialist_review")).length > 0,
+        long_term_or_recurring_issue:scoped.some(i=>i.long_term === true),
+        lifecycle:scoped.some(i=>i.claim_scope === "lifecycle" || i.normalized_fact?.attribute === "lifecycle")
+      }
     };
   }
 
@@ -154,7 +207,7 @@
   }
 
   function buildAttributeAssessment(items, attribute, product={}) {
-    const relevant = (items || []).filter(item => item.attribute === attribute || item.normalized_fact?.attribute === attribute);
+    const relevant = evidenceForProduct(items, product).filter(item => item.attribute === attribute || item.normalized_fact?.attribute === attribute);
     const independent = uniqueIndependent(relevant);
     // A manufacturer is not an independent reviewer, but it is still the primary
     // source for an explicit specification.  Keep one record per origin for
@@ -205,7 +258,7 @@
   }
 
   return {
-    EVIDENCE_TYPES, CONSENSUS, PROHIBITED_COPY_FIELDS, ATTRIBUTE_GRADES, SOURCE_TYPES, COMMERCIAL_RELATIONSHIPS, validateEvidenceRecord, validateFixtureEvidenceRecord,
+    EVIDENCE_TYPES, CONSENSUS, PROHIBITED_COPY_FIELDS, ATTRIBUTE_GRADES, SOURCE_TYPES, COMMERCIAL_RELATIONSHIPS, RIGHTS_STATES, MEASUREMENT_VERIFICATION, validateEvidenceRecord, validateFixtureEvidenceRecord,
     normalizeSubjectiveConsensus, groupCompatibleMeasurements,
     uniqueIndependent, newProductConfidenceCap, gradeFromEvidence, buildAssessment,
     confidenceFromGrade, buildAttributeAssessment, buildAttributeAssessments

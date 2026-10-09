@@ -17,6 +17,8 @@ test("private MVP exposes the required flow and privacy controls without public 
   }
   assert.match(html, /noindex,nofollow,noarchive/);
   assert.match(html, /共有端末では使用しないでください/);
+  assert.ok(html.indexOf("decision-readiness-engine.js") < html.indexOf("personal-gear-engine.js"));
+  assert.ok(html.indexOf("price-timing-engine.js") < html.indexOf("personal-gear-engine.js"));
   assert.equal(index.includes("private/personal-gear.html"), false);
 });
 
@@ -37,4 +39,6 @@ test("feedback UX includes every required reason and desired direction code", ()
     assert.match(script, new RegExp(`\\["${code}"|,"${code}"`), code);
   }
   assert.match(script, /Global learningは無効/);
+  assert.match(script, /user_facing_explanation/);
+  assert.doesNotMatch(script, /update\.delta/);
 });

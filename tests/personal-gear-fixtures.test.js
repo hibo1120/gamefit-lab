@@ -44,7 +44,7 @@ test("pilot preserves official, lab, specialist, community and game-specific ado
   assert.equal(adoption.time_window, "2026-10");
   assert.equal(adoption.sample_size, 87);
   const zero = fixtures.products.find(item => item.product_id === "mousepad-artisan-zero");
-  assert.equal(zero.attribute_evidence.humidity_resistance.consensus, "mixed");
+  assert.equal(zero.attribute_evidence.humidity_resistance.consensus, "anecdotal");
   assert.equal(zero.attribute_evidence.humidity_resistance.confidence, "Low");
   assert.equal(zero.attributes.humidity_resistance, undefined);
 });

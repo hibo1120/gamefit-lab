@@ -243,6 +243,8 @@
       profile:state.profile,
       current_gear:current ? { product_id:current.product_id, category:current.category } : null,
       budget:Number(byId("budget").value),
+      region:"JP",
+      currency:"JPY",
       fix_before_buy:freeFixes,
       setup_assessment:{ status:"evaluated", checks:freeFixes.map(item => item.code) },
       candidates:buildCandidates(category,currentProductId,inputMethod,platform,freeFixes)
@@ -310,9 +312,11 @@
       rerankedResult = learned.recommendations;
       renderCards(byId("reranked"),rerankedResult);
       byId("accept-rerank").hidden = verdict !== "disagree" || !rerankedResult.length;
-      const updates = learned.explanation.preference_updates.map(update => `${update.kind}:${update.delta > 0 ? "+" : ""}${update.delta}`).join(", ");
-      const moves = learned.explanation.ranking_changes.filter(change => change.rank_delta).map(change => `${change.product_id}:${change.rank_delta > 0 ? "+" : ""}${change.rank_delta}`).join(", ");
-      byId("feedback-status").textContent = `Personal更新 ${updates || "なし"} · 順位変化 ${moves || "なし"}。Global learningは無効で、変更していません。`;
+      const explanation = learned.explanation.user_facing_explanation;
+      const changedPreferences = explanation.preference_changed.map(item => item.code).join(", ");
+      const ranking = explanation.candidate_rank_changed ? "あり" : "なし";
+      const confidence = explanation.confidence_changed ? "変更あり" : "変更なし";
+      byId("feedback-status").textContent = `Personal更新 ${changedPreferences || "なし"} · 順位変化 ${ranking} · Confidence ${confidence}。安全分類境界を維持し、Global learningは無効で変更していません。`;
       persist("フィードバックと再ランキングを保存しました。");
     } catch (error) {
       byId("feedback-status").textContent = error.message;

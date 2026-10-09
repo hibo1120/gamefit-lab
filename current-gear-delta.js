@@ -12,12 +12,12 @@
       shape:{ kind:"enum", critical:true }, length:{ kind:"number", threshold:2, critical:true },
       width:{ kind:"number", threshold:2, critical:true }, height:{ kind:"number", threshold:2, critical:true },
       hump:{ kind:"enum", critical:true }, weight:{ kind:"number", threshold:5, critical:true },
-      click:{ kind:"enum" }, polling_rate:{ kind:"number", threshold:500, objective:"higher" }
+      click:{ kind:"enum" }, polling_rate:{ kind:"number", threshold:500 }
     }),
     keyboard:Object.freeze({
       layout:{ kind:"enum", critical:true }, switch:{ kind:"enum" }, actuation:{ kind:"number", threshold:0.2, critical:true },
       rapid_trigger:{ kind:"boolean", critical:true }, key_weight:{ kind:"number", threshold:5 },
-      latency:{ kind:"number", threshold:1, objective:"lower" }, polling_rate:{ kind:"number", threshold:500, objective:"higher" }
+      latency:{ kind:"number", threshold:1, objective:"lower" }, polling_rate:{ kind:"number", threshold:500 }
     }),
     monitor:Object.freeze({
       panel:{ kind:"enum", critical:true }, resolution:{ kind:"enum", critical:true },
@@ -35,7 +35,7 @@
     }),
     controller:Object.freeze({
       layout:{ kind:"enum", critical:true }, stick_type:{ kind:"enum", critical:true }, trigger_type:{ kind:"enum" },
-      polling_rate:{ kind:"number", threshold:250, objective:"higher", critical:true },
+      polling_rate:{ kind:"number", threshold:250, critical:true },
       stick_latency:{ kind:"number", threshold:1, objective:"lower", critical:true }, weight:{ kind:"number", threshold:20 }
     }),
     network:Object.freeze({
@@ -105,8 +105,26 @@
   function confidenceFor(comparisons, excluded, rules) {
     const critical = Object.entries(rules).filter(([, rule]) => rule.critical).map(([attribute]) => attribute);
     const comparedCritical = comparisons.filter(item => critical.includes(item.attribute)).length;
-    if (comparisons.length >= 4 && comparedCritical === critical.length && excluded.length === 0) return "Medium";
+    if (comparisons.length >= 4 && comparedCritical >= Math.min(2, critical.length)) return "Medium";
     return "Low";
+  }
+
+  function preferenceDirection(attribute, comparison, options) {
+    if (!comparison.changed) return "neutral";
+    if (["better_capacity","better_measured_result"].includes(comparison.objective_direction)) return "benefit";
+    if (["lower_capacity","worse_measured_result"].includes(comparison.objective_direction)) return "regression";
+    const directions = new Set(options.desired_direction_codes || []);
+    const numeric = Number(comparison.to) - Number(comparison.from);
+    if (["weight","length","width","height"].includes(attribute) && Number.isFinite(numeric)) {
+      const lowerCode = attribute === "weight" ? "lighter" : "smaller";
+      const higherCode = attribute === "weight" ? "heavier" : "larger";
+      if ((numeric < 0 && directions.has(lowerCode)) || (numeric > 0 && directions.has(higherCode))) return "benefit";
+      if ((numeric > 0 && directions.has(lowerCode)) || (numeric < 0 && directions.has(higherCode))) return "regression";
+    }
+    const preferred = options.preferred_values?.[attribute];
+    if (preferred !== undefined) return comparison.to === preferred ? "benefit" : comparison.from === preferred ? "regression" : "neutral";
+    if (attribute === "hump" && directions.has("lower_hump")) return comparison.to === "low" || comparison.to === "lower" ? "benefit" : "regression";
+    return "neutral";
   }
 
   function compareProducts(current, candidate, options={}) {
@@ -121,21 +139,29 @@
     for (const [attribute, rule] of Object.entries(rules)) {
       const result = compareAttribute(current, candidate, attribute, rule);
       if (result.excluded) excluded.push({ attribute, reason:result.excluded });
-      else comparisons.push({ attribute, ...result, evidence_floor:MIN_EVIDENCE_GRADE });
+      else comparisons.push({ attribute, ...result, critical:rule.critical === true, evidence_floor:MIN_EVIDENCE_GRADE, preference_direction:preferenceDirection(attribute,result,options) });
     }
     const criticalCount = Object.values(rules).filter(rule => rule.critical).length;
     const criticalCompared = comparisons.filter(item => rules[item.attribute].critical).length;
     const changedCount = comparisons.filter(item => item.changed).length;
+    const benefitCount = comparisons.filter(item => item.preference_direction === "benefit").length;
+    const regressionCount = comparisons.filter(item => item.preference_direction === "regression").length;
     const enoughCoverage = comparisons.length >= 2 && criticalCompared >= Math.min(2, criticalCount);
     const status = enoughCoverage ? (excluded.length ? "partial" : "known") : "unknown";
     const deltaBand = !enoughCoverage ? "unknown" : changedCount >= 2 ? "meaningful_change" : changedCount === 1 ? "limited_change" : "small_change";
-    const scoreByBand = { meaningful_change:0.35, limited_change:0.15, small_change:0.03 };
+    const scoreByBand = { meaningful_change:0.35, limited_change:0.15, small_change:0 };
     const confidence = confidenceFor(comparisons, excluded, rules);
+    const unchangedCount = comparisons.filter(item => !item.changed).length;
     return {
+      assessment_type:"evidence_delta",
       status,
       confidence,
       delta_band:deltaBand,
-      model_score:status === "unknown" ? null : scoreByBand[deltaBand],
+      model_score:status === "unknown" || benefitCount === 0 || regressionCount > 0 ? null : scoreByBand[deltaBand],
+      benefit_count:benefitCount,
+      regression_count:regressionCount,
+      neutral_change_count:changedCount - benefitCount - regressionCount,
+      similarity_score:comparisons.length ? Number((unchangedCount / comparisons.length).toFixed(4)) : null,
       compared_attributes:comparisons,
       excluded_attributes:excluded,
       coverage:{ compared:comparisons.length, supported:Object.keys(rules).length, critical_compared:criticalCompared, critical_total:criticalCount },

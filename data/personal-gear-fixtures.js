@@ -27,6 +27,8 @@
       normalized_fact:Object.freeze({ attribute, value:normalizedValue, unit, variant:options.variant || null }),
       attribute,
       variant:options.variant || null,
+      product_variant_id:options.product_variant_id || null,
+      variant_scope:options.variant_scope || "exact",
       locale:options.locale || "en-US",
       methodology_family:options.methodology_family || "official_spec",
       rights_use_note:RIGHTS_NOTE,
@@ -37,19 +39,26 @@
       game_id:options.game_id || null,
       input_method:options.input_method || null,
       time_window:options.time_window || null,
-      sample_size:options.sample_size || null
+      sample_size:options.sample_size || null,
+      publisher_group:options.publisher_group || null,
+      claim_scope:options.claim_scope || null,
+      long_term:options.long_term === true,
+      rights_status:options.rights_status || (["community","specialist_review","independent_lab","esports_database"].includes(options.source_type) ? "manual_terms_review" : "safe_for_internal_fact"),
+      measurement_verification:options.measurement_verification || (options.evidence_type === "measurement" ? "publisher_test" : "not_applicable"),
+      published_at:options.published_at || null
     });
   }
 
   function product(definition) {
     const records = Object.freeze(definition.evidence);
-    const evidenceGrade = evidence.gradeFromEvidence(records,{ lifecycle_state:definition.lifecycle_state });
-    const attributeNames = [...new Set(records.map(record => record.attribute).filter(attribute => attribute !== "product_identity"))];
-    const attributeEvidence = evidence.buildAttributeAssessments(records, attributeNames,{
+    const scopedRecords = definition.variant_id ? records.filter(record => record.product_variant_id === definition.variant_id) : records;
+    const evidenceGrade = evidence.gradeFromEvidence(scopedRecords,{ lifecycle_state:definition.lifecycle_state, variant_id:definition.variant_id, variant_scope:definition.variant_scope || "exact" });
+    const attributeNames = [...new Set(scopedRecords.map(record => record.attribute).filter(attribute => attribute !== "product_identity"))];
+    const attributeEvidence = evidence.buildAttributeAssessments(scopedRecords, attributeNames,{
       lifecycle_state:definition.lifecycle_state, evidence_grade:evidenceGrade
     });
     const attributes = {};
-    for (const record of records) {
+    for (const record of scopedRecords) {
       const normalized = record.normalized_fact;
       if (!normalized || normalized.attribute === "product_identity" ||
           !["spec", "measurement", "fact_correction"].includes(record.evidence_type) ||
@@ -73,6 +82,9 @@
       attributes:Object.freeze(attributes),
       attribute_evidence:Object.freeze(attributeEvidence),
       compatibility_profile:Object.freeze(definition.compatibility_profile || {}),
+      price_snapshot:definition.price_snapshot ? Object.freeze(definition.price_snapshot) : null,
+      price:definition.price_snapshot?.current_price ?? null,
+      game_fitness:Object.freeze(definition.game_fitness || {}),
       evidence:records
     });
   }
@@ -80,23 +92,32 @@
   const definitions = [
     {
       product_id:"mouse-razer-viper-v4-pro", product_name:"Razer Viper V4 Pro", category:"mouse",
-      fixture_role:"current_flagship", lifecycle_state:"available",
+      fixture_role:"current_flagship", lifecycle_state:"available", variant_id:"RZ01-05630100-R3U1",
+      price_snapshot:{ product_id:"mouse-razer-viper-v4-pro", variant_id:"RZ01-05630100-R3U1", current_price:159.99, currency:"USD", region:"US", checked_at:CHECKED_DATE, availability:"in_stock", lifecycle_phase:"launch", historical_context_available:false, source_url:"https://www.razer.com/gaming-mice/razer-viper-v4-pro/RZ01-05630100-R3U1" },
       evidence:[
-        fact("mouse-razer-viper-v4-pro",1,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","weight","Razer lists 49 g for the black edition.",49,"g",{variant:"black"}),
-        fact("mouse-razer-viper-v4-pro",2,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","polling_rate","Razer lists polling up to 8000 Hz.",8000,"hz"),
-        fact("mouse-razer-viper-v4-pro",3,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","shape","Razer describes a right-handed symmetrical shape.","right_handed_symmetrical"),
-        fact("mouse-razer-viper-v4-pro",4,"https://www.rtings.com/mouse/reviews/razer/viper-v4-pro","click_latency","RTINGS tested the black unit under mouse methodology 1.5.2; the method-specific result is retained without converting it to another lab's scale.","measured_rtings_v1_5_2",null,{ evidence_type:"measurement", source_type:"independent_lab", source_id:"rtings-viper-v4-pro", source_origin_id:"rtings-viper-v4-pro", methodology_family:"rtings_mouse_v1_5_2", independent:true, commercial_relationship:"reader_supported_affiliate_disclosed", variant:"black" }),
-        fact("mouse-razer-viper-v4-pro",5,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","length","Razer lists 127.1 mm length.",127.1,"mm"),
-        fact("mouse-razer-viper-v4-pro",6,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","width","Razer lists 63.9 mm width.",63.9,"mm"),
-        fact("mouse-razer-viper-v4-pro",7,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","height","Razer lists 39.9 mm height.",39.9,"mm")
+        fact("mouse-razer-viper-v4-pro",1,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","weight","Razer lists 49 g for the black edition.",49,"g",{variant:"black",product_variant_id:"RZ01-05630100-R3U1"}),
+        fact("mouse-razer-viper-v4-pro",2,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","polling_rate","Razer lists polling up to 8000 Hz.",8000,"hz",{product_variant_id:"RZ01-05630100-R3U1"}),
+        fact("mouse-razer-viper-v4-pro",3,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","shape","Razer describes a right-handed symmetrical shape.","right_handed_symmetrical",null,{product_variant_id:"RZ01-05630100-R3U1"}),
+        fact("mouse-razer-viper-v4-pro",4,"https://www.rtings.com/mouse/reviews/razer/viper-v4-pro","click_latency","RTINGS tested the black unit under mouse methodology 1.5.2; the method-specific result is retained without converting it to another lab's scale.","measured_rtings_v1_5_2",null,{ evidence_type:"measurement", source_type:"independent_lab", source_id:"rtings-viper-v4-pro", source_origin_id:"rtings-viper-v4-pro", methodology_family:"rtings_mouse_v1_5_2", measurement_verification:"verified_lab", independent:true, commercial_relationship:"reader_supported_affiliate_disclosed", publisher_group:"rtings", variant:"black", product_variant_id:"RZ01-05630100-R3U1" }),
+        fact("mouse-razer-viper-v4-pro",5,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","length","Razer lists 127.1 mm length.",127.1,"mm",{product_variant_id:"RZ01-05630100-R3U1"}),
+        fact("mouse-razer-viper-v4-pro",6,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","width","Razer lists 63.9 mm width.",63.9,"mm",{product_variant_id:"RZ01-05630100-R3U1"}),
+        fact("mouse-razer-viper-v4-pro",7,"https://www.razer.com/gaming-mice/razer-viper-v4-pro","height","Razer lists 39.9 mm height.",39.9,"mm",{product_variant_id:"RZ01-05630100-R3U1"}),
+        fact("mouse-razer-viper-v4-pro",8,"https://www.techradar.com/computing/mice/razer-viper-v4-pro-review","review_scope","TechRadar evaluated a retail-category Viper V4 Pro and reported an overall positive specialist assessment; this does not prove personal fit.","positive_specialist_assessment",null,{ evidence_type:"subjective", source_type:"specialist_review", source_id:"techradar-viper-v4-pro", source_origin_id:"techradar-viper-v4-pro", methodology_family:"specialist_editorial", independent:true, stance:"positive", effect:"strength", commercial_relationship:"affiliate_links_disclosed", publisher_group:"future_plc", rights_status:"manual_terms_review", product_variant_id:"RZ01-05630100-R3U1" }),
+        fact("mouse-razer-viper-v4-pro",9,"https://www.razer.com/newsroom/product-news/razer-viper-v4-pro","lifecycle","Razer announced the Viper V4 Pro in 2026, so long-term reliability evidence is not yet mature.","launch_2026_long_term_gap",null,{ evidence_type:"trend", source_type:"official", source_id:"razer-viper-v4-pro-launch", source_origin_id:"razer-viper-v4-pro-launch", methodology_family:"launch_timeline", claim_scope:"lifecycle", product_variant_id:"RZ01-05630100-R3U1" }),
+        fact("mouse-razer-viper-v4-pro",10,"https://www.razer.com/gaming-mice/razer-viper-v4-pro/RZ01-05630100-R3U1","current_price","Razer US listed the black SKU in stock at USD 159.99 on the checked date.",159.99,"usd",{ evidence_type:"price", source_type:"official", source_id:"razer-viper-v4-pro-us-listing", source_origin_id:"razer-viper-v4-pro-us-listing", methodology_family:"official_listing_snapshot", claim_scope:"lifecycle", product_variant_id:"RZ01-05630100-R3U1" })
       ]
     },
     {
       product_id:"mouse-logitech-pro-x2-superstrike", product_name:"Logitech G PRO X2 SUPERSTRIKE", category:"mouse",
-      fixture_role:"staple", lifecycle_state:"available",
+      fixture_role:"staple", lifecycle_state:"available", variant_id:"910-007700",
+      price_snapshot:{ product_id:"mouse-logitech-pro-x2-superstrike", variant_id:"910-007700", current_price:179.99, currency:"USD", region:"US", checked_at:CHECKED_DATE, availability:"in_stock", lifecycle_phase:"mature", historical_context_available:false, source_url:"https://www.logitechg.com/en-us/shop/p/pro-x2-superstrike-mouse.910-007700" },
       evidence:[
-        fact("mouse-logitech-pro-x2-superstrike",1,"https://www.logitechg.com/en-us/shop/p/pro-x2-superstrike-mouse","rapid_trigger","Logitech lists adjustable rapid-trigger reset points for the main buttons.",true),
-        fact("mouse-logitech-pro-x2-superstrike",2,"https://www.logitechg.com/en-us/shop/p/pro-x2-superstrike-mouse","product_identity","Logitech lists PRO X2 SUPERSTRIKE as a LIGHTSPEED wireless gaming mouse.","logitech_pro_x2_superstrike")
+        fact("mouse-logitech-pro-x2-superstrike",1,"https://www.logitechg.com/en-us/shop/p/pro-x2-superstrike-mouse.910-007700","rapid_trigger","Logitech lists adjustable rapid-trigger reset points for the main buttons.",true,null,{product_variant_id:"910-007700"}),
+        fact("mouse-logitech-pro-x2-superstrike",2,"https://www.logitechg.com/en-us/shop/p/pro-x2-superstrike-mouse.910-007700","product_identity","Logitech lists PRO X2 SUPERSTRIKE as a LIGHTSPEED wireless gaming mouse.","logitech_pro_x2_superstrike",null,{product_variant_id:"910-007700"}),
+        fact("mouse-logitech-pro-x2-superstrike",3,"https://www.rtings.com/mouse/reviews/logitech/g-pro-x2-superstrike","click_latency","RTINGS tested the product under mouse methodology 1.5.2; the method-specific result is retained without merging it with another lab.","measured_rtings_v1_5_2",null,{ evidence_type:"measurement", source_type:"independent_lab", source_id:"rtings-pro-x2-superstrike", source_origin_id:"rtings-pro-x2-superstrike", methodology_family:"rtings_mouse_v1_5_2", measurement_verification:"verified_lab", independent:true, commercial_relationship:"reader_supported_affiliate_disclosed", publisher_group:"rtings", product_variant_id:"910-007700" }),
+        fact("mouse-logitech-pro-x2-superstrike",4,"https://www.techradar.com/computing/mice/logitech-g-pro-x2-superstrike-review","click","TechRadar found the adjustable haptic click novel but not universally convincing; this is a specialist opinion, not a performance fact.","mixed_haptic_click_assessment",null,{ evidence_type:"subjective", source_type:"specialist_review", source_id:"techradar-pro-x2-superstrike", source_origin_id:"techradar-pro-x2-superstrike", methodology_family:"specialist_editorial", independent:true, stance:"mixed", effect:"mixed", commercial_relationship:"affiliate_links_disclosed", publisher_group:"future_plc", rights_status:"manual_terms_review", product_variant_id:"910-007700" }),
+        fact("mouse-logitech-pro-x2-superstrike",5,"https://www.logitech.com/blog/2026/02/10/pro-x2-superstrike-the-fastest-fully-customizable-click-in-competitive-gaming-lands-february-10th/","lifecycle","Logitech states the product became available in February 2026; long-term evidence remains immature.","launched_2026_long_term_gap",null,{ evidence_type:"trend", source_type:"official", source_id:"logitech-pro-x2-launch", source_origin_id:"logitech-pro-x2-launch", methodology_family:"launch_timeline", claim_scope:"lifecycle", product_variant_id:"910-007700" }),
+        fact("mouse-logitech-pro-x2-superstrike",6,"https://www.logitechg.com/en-us/shop/p/pro-x2-superstrike-mouse.910-007700","current_price","Logitech US listed SKU 910-007700 in stock at USD 179.99 on the checked date.",179.99,"usd",{ evidence_type:"price", source_type:"official", source_id:"logitech-pro-x2-us-listing", source_origin_id:"logitech-pro-x2-us-listing", methodology_family:"official_listing_snapshot", claim_scope:"lifecycle", product_variant_id:"910-007700" })
       ]
     },
     {
@@ -109,27 +130,36 @@
     },
     {
       product_id:"mouse-razer-viper-v3-pro", product_name:"Razer Viper V3 Pro", category:"mouse",
-      fixture_role:"hidden_gem_candidate", lifecycle_state:"available",
+      fixture_role:"hidden_gem_candidate", lifecycle_state:"discounting", variant_id:"RZ01-05120100-R3U1",
+      price_snapshot:{ product_id:"mouse-razer-viper-v3-pro", variant_id:"RZ01-05120100-R3U1", current_price:129.99, currency:"USD", region:"US", checked_at:CHECKED_DATE, availability:"in_stock", lifecycle_phase:"discounting", historical_context_available:false, source_url:"https://www.razer.com/gaming-mice/razer-viper-v3-pro/RZ01-05120100-R3U1" },
       evidence:[
-        fact("mouse-razer-viper-v3-pro",1,"https://www.razer.com/gaming-mice/razer-viper-v3-pro?page=tech-specs","weight","Razer lists 54 g for the black edition.",54,"g",{variant:"black"}),
-        fact("mouse-razer-viper-v3-pro",2,"https://www.razer.com/gaming-mice/razer-viper-v3-pro?page=tech-specs","hump","Razer describes a raised rear-shifted hump.","rear",null,{methodology_family:"manufacturer_positioning"}),
-        fact("mouse-razer-viper-v3-pro",3,"https://www.razer.com/gaming-mice/razer-viper-v3-pro?page=tech-specs","shape","Razer describes a right-handed symmetrical form factor.","right_handed_symmetrical",null,{methodology_family:"manufacturer_positioning"}),
+        fact("mouse-razer-viper-v3-pro",1,"https://www.razer.com/gaming-mice/razer-viper-v3-pro?page=tech-specs","weight","Razer lists 54 g for the black edition.",54,"g",{variant:"black",product_variant_id:"RZ01-05120100-R3U1"}),
+        fact("mouse-razer-viper-v3-pro",2,"https://www.razer.com/gaming-mice/razer-viper-v3-pro?page=tech-specs","hump","Razer describes a raised rear-shifted hump.","rear",null,{methodology_family:"official_spec",product_variant_id:"RZ01-05120100-R3U1"}),
+        fact("mouse-razer-viper-v3-pro",3,"https://www.razer.com/gaming-mice/razer-viper-v3-pro?page=tech-specs","shape","Razer describes a right-handed symmetrical form factor.","right_handed_symmetrical",null,{methodology_family:"official_spec",product_variant_id:"RZ01-05120100-R3U1"}),
         fact("mouse-razer-viper-v3-pro",4,"https://www.rtings.com/mouse/reviews/razer/viper-v3-pro","click_latency","RTINGS' 2026 retest reports very low click latency under mouse methodology 1.5.2.","very_low_under_rtings_v1_5_2",null,{
           evidence_type:"measurement", source_type:"independent_lab", source_id:"rtings-mouse-viper-v3-pro",
-          source_origin_id:"rtings-mouse-viper-v3-pro", methodology_family:"rtings_mouse_v1_5_2", independent:true,
+          source_origin_id:"rtings-mouse-viper-v3-pro", methodology_family:"rtings_mouse_v1_5_2", measurement_verification:"verified_lab", independent:true,
+          publisher_group:"rtings", product_variant_id:"RZ01-05120100-R3U1",
           commercial_relationship:"reader_supported_affiliate_disclosed"
         }),
         fact("mouse-razer-viper-v3-pro",5,"https://prosettings.net/guides/apex-legends-mouse/","shape","ProSettings describes the Viper V3 Pro shape as broadly accommodating; this is reviewer opinion, not personal-fit proof.","broad_fit_claim",null,{
           evidence_type:"subjective", source_type:"specialist_review", source_id:"prosettings-apex-mouse-2026-10",
           source_origin_id:"prosettings-apex-mouse-2026-10", methodology_family:"specialist_editorial", independent:true,
           stance:"positive", effect:"strength", game_id:"apex", time_window:"2026-10", sample_size:87,
-          commercial_relationship:"affiliate_links_disclosed"
+          commercial_relationship:"affiliate_links_disclosed", publisher_group:"prosettings", product_variant_id:"RZ01-05120100-R3U1"
         }),
         fact("mouse-razer-viper-v3-pro",6,"https://prosettings.net/guides/apex-legends-mouse/","pro_adoption","The October 2026 ProSettings snapshot lists 6 of 87 tracked Apex players using this model.",6,"players",{
           evidence_type:"adoption", source_type:"esports_database", source_id:"prosettings-apex-mouse-2026-10",
           source_origin_id:"prosettings-apex-mouse-2026-10", methodology_family:"prosettings_observed_roster_snapshot", independent:true,
-          game_id:"apex", input_method:"mnk", time_window:"2026-10", sample_size:87, commercial_relationship:"affiliate_links_disclosed"
-        })
+          game_id:"apex", input_method:"mnk", time_window:"2026-10", sample_size:87, commercial_relationship:"affiliate_links_disclosed", publisher_group:"prosettings", product_variant_id:"RZ01-05120100-R3U1"
+        }),
+        fact("mouse-razer-viper-v3-pro",7,"https://www.techradar.com/computing/peripherals-accessories/mice/razer-viper-v3-pro-review","review_scope","TechRadar reports a positive specialist assessment of the Viper V3 Pro; it is not treated as proof of individual fit.","positive_specialist_assessment",null,{ evidence_type:"subjective", source_type:"specialist_review", source_id:"techradar-viper-v3-pro", source_origin_id:"techradar-viper-v3-pro", methodology_family:"specialist_editorial", independent:true, stance:"positive", effect:"strength", commercial_relationship:"affiliate_links_disclosed", publisher_group:"future_plc", rights_status:"manual_terms_review", product_variant_id:"RZ01-05120100-R3U1" }),
+        fact("mouse-razer-viper-v3-pro",8,"https://insider.razer.com/razer-support-45/viper-v3-pro-sensor-issues-77336","sensor_issue_signal","Multiple community replies report a sensor-tracking symptom; prevalence and root cause are not established.","recurring_unquantified_signal",null,{ evidence_type:"issue", source_type:"community", source_id:"razer-community-viper-v3-sensor", source_origin_id:"razer-community-viper-v3-sensor", methodology_family:"community_issue_cluster", independent:true, effect:"concern", long_term:true, commercial_relationship:"none", rights_status:"manual_terms_review", product_variant_id:"RZ01-05120100-R3U1" }),
+        fact("mouse-razer-viper-v3-pro",9,"https://www.razer.com/gaming-mice/razer-viper-v3-pro/RZ01-05120100-R3U1","current_price","Razer US listed the black SKU in stock at USD 129.99 on the checked date.",129.99,"usd",{ evidence_type:"price", source_type:"official", source_id:"razer-viper-v3-pro-us-listing", source_origin_id:"razer-viper-v3-pro-us-listing", methodology_family:"official_listing_snapshot", claim_scope:"lifecycle", product_variant_id:"RZ01-05120100-R3U1" }),
+        fact("mouse-razer-viper-v3-pro",10,"https://www.razer.com/gaming-mice/razer-viper-v3-pro?page=tech-specs","length","Razer lists 127.1 mm length for the black Viper V3 Pro.",127.1,"mm",{variant:"black",product_variant_id:"RZ01-05120100-R3U1"}),
+        fact("mouse-razer-viper-v3-pro",11,"https://www.razer.com/gaming-mice/razer-viper-v3-pro?page=tech-specs","width","Razer lists 63.9 mm width for the black Viper V3 Pro.",63.9,"mm",{variant:"black",product_variant_id:"RZ01-05120100-R3U1"}),
+        fact("mouse-razer-viper-v3-pro",12,"https://www.razer.com/gaming-mice/razer-viper-v3-pro?page=tech-specs","height","Razer lists 39.9 mm height for the black Viper V3 Pro.",39.9,"mm",{variant:"black",product_variant_id:"RZ01-05120100-R3U1"}),
+        fact("mouse-razer-viper-v3-pro",13,"https://www.razer.com/gaming-mice/razer-viper-v3-pro?page=tech-specs","polling_rate","Razer lists up to 8000 Hz HyperPolling for the Viper V3 Pro.",8000,"hz",{variant:"black",product_variant_id:"RZ01-05120100-R3U1"})
       ]
     },
     {
