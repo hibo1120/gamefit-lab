@@ -12,7 +12,7 @@
   ]);
 
   const gameProfiles = Object.freeze({
-    valorant: Object.freeze({
+    valorant_mnk: Object.freeze({
       game_id:"valorant", input_method:"mnk",
       traits:Object.freeze({
         flicking:"high", micro_correction:"high", precise_tracking:"medium", reactive_tracking:"low",
@@ -39,7 +39,7 @@
       }),
       notes:"Controller recommendations must not inherit mouse/keyboard-specific logic."
     }),
-    cs2: Object.freeze({
+    cs2_mnk: Object.freeze({
       game_id:"cs2", input_method:"mnk",
       traits:Object.freeze({
         flicking:"high", micro_correction:"high", precise_tracking:"medium", reactive_tracking:"low",
@@ -69,9 +69,7 @@
   });
 
   function get(gameId, inputMethod="mnk") {
-    const key = gameId === "apex" ? "apex_" + inputMethod :
-      gameId === "overwatch2" ? "overwatch2_" + inputMethod :
-      gameId === "fortnite" ? "fortnite_" + inputMethod : gameId;
+    const key = gameId + "_" + inputMethod;
     return gameProfiles[key] || null;
   }
 
