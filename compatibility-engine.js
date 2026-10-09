@@ -14,6 +14,11 @@
     return Number.isFinite(number) ? number : null;
   }
 
+  function positiveMeasurement(value) {
+    const number = finiteMeasurement(value);
+    return number != null && number > 0 ? number : null;
+  }
+
   function evaluateDisplayLink(input) {
     const issues = [];
     if (input.monitor_refresh_hz && input.output_max_hz && input.output_max_hz < input.monitor_refresh_hz) {
@@ -46,10 +51,11 @@
       const endpointMatch = input.gpu_connector === input.cable_connector && input.monitor_connector === input.cable_connector;
       if (!endpointMatch) issues.push({ code:"display_connector_mismatch", severity:"high", message:"The display cable connector does not match both endpoints." });
     }
-    if (input.required_bandwidth_gbps == null) unknowns.push("target_mode_bandwidth_missing");
-    if (input.cable_certified_bandwidth_gbps == null) unknowns.push("cable_certified_bandwidth_missing");
-    if (Number.isFinite(Number(input.required_bandwidth_gbps)) && Number.isFinite(Number(input.cable_certified_bandwidth_gbps)) &&
-        Number(input.cable_certified_bandwidth_gbps) < Number(input.required_bandwidth_gbps)) {
+    const requiredBandwidth = positiveMeasurement(input.required_bandwidth_gbps);
+    const cableBandwidth = positiveMeasurement(input.cable_certified_bandwidth_gbps);
+    if (requiredBandwidth == null) unknowns.push(input.required_bandwidth_gbps == null ? "target_mode_bandwidth_missing" : "target_mode_bandwidth_invalid");
+    if (cableBandwidth == null) unknowns.push(input.cable_certified_bandwidth_gbps == null ? "cable_certified_bandwidth_missing" : "cable_certified_bandwidth_invalid");
+    if (requiredBandwidth != null && cableBandwidth != null && cableBandwidth < requiredBandwidth) {
       issues.push({ code:"certified_cable_bandwidth_insufficient", severity:"high", message:"Certified cable bandwidth is below the target mode requirement." });
     }
     return result(issues, unknowns,["gpu_connector","monitor_connector","cable_connector","required_bandwidth_gbps","cable_certified_bandwidth_gbps"]);
@@ -66,7 +72,10 @@
   function evaluateUsbCompatibility(input) {
     const issues = evaluateUsbPath(input);
     const unknowns = [];
-    if (input.high_polling_device && input.host_high_polling_support == null) unknowns.push("host_high_polling_support_unknown");
+    if (input.high_polling_device === true && typeof input.host_high_polling_support !== "boolean") unknowns.push("host_high_polling_support_unknown");
+    if (input.high_polling_device === true && input.host_high_polling_support === false) {
+      issues.push({ code:"host_high_polling_unsupported", severity:"high", message:"The host is explicitly recorded as not supporting the requested high polling mode." });
+    }
     if (!input.device_connector) unknowns.push("device_connector_missing");
     if (!input.host_connector) unknowns.push("host_connector_missing");
     if (input.device_connector && input.host_connector && input.device_connector !== input.host_connector && input.verified_adapter !== true) {
@@ -80,7 +89,7 @@
     const unknowns = [];
     if (!input.audio_connector) unknowns.push("audio_connector_missing");
     if (!input.source_connector) unknowns.push("source_connector_missing");
-    if (input.requires_dac === true && input.dac_available == null) unknowns.push("dac_availability_unknown");
+    if (input.requires_dac === true && typeof input.dac_available !== "boolean") unknowns.push("dac_availability_unknown");
     if (input.requires_dac === true && input.dac_available === false) {
       issues.push({ code:"dac_required", severity:"high", message:"The audio device requires a DAC or interface not present in the setup." });
     }
@@ -119,17 +128,24 @@
       else if (input.bufferbloat_result === "fail") issues.push({ code:"bufferbloat_failed", severity:"high", message:"Latency under load failed the recorded check." });
     } else unknowns.push("connection_type_unknown");
     if (input.connection_type === "wifi") {
-      if (!input.client_bands || !input.router_bands) unknowns.push("wifi_band_support_unknown");
+      const validBands = value => Array.isArray(value) && value.length > 0 && value.every(band => typeof band === "string" && band.length > 0);
+      if (!validBands(input.client_bands) || !validBands(input.router_bands)) unknowns.push("wifi_band_support_unknown");
       else if (!input.client_bands.some(band => input.router_bands.includes(band))) {
         issues.push({ code:"wifi_band_mismatch", severity:"high", message:"The router and client have no verified common Wi-Fi band." });
       }
     }
     if (input.required_wired_gbps != null) {
-      if (input.router_lan_gbps == null || input.client_lan_gbps == null || input.cable_certified_gbps == null) {
+      const required = positiveMeasurement(input.required_wired_gbps);
+      const router = positiveMeasurement(input.router_lan_gbps);
+      const client = positiveMeasurement(input.client_lan_gbps);
+      const cable = positiveMeasurement(input.cable_certified_gbps);
+      if (required == null) {
+        unknowns.push("required_wired_capacity_invalid");
+      } else if (router == null || client == null || cable == null) {
         unknowns.push("wired_path_capacity_unknown");
       } else {
-        const pathCapacity = Math.min(Number(input.router_lan_gbps), Number(input.client_lan_gbps), Number(input.cable_certified_gbps));
-        if (pathCapacity < Number(input.required_wired_gbps)) issues.push({ code:"wired_path_capacity_insufficient", severity:"high", message:"One part of the wired path is below the required link capacity." });
+        const pathCapacity = Math.min(router, client, cable);
+        if (pathCapacity < required) issues.push({ code:"wired_path_capacity_insufficient", severity:"high", message:"One part of the wired path is below the required link capacity." });
       }
     }
     return result(issues, unknowns,["connection_type","packet_loss_pct","jitter_ms","bufferbloat_method","bufferbloat_result","client_bands","router_bands","wired_path_capacity"]);

@@ -17,13 +17,22 @@
   const RIGHTS_STATES = Object.freeze(["safe_for_internal_fact","manual_terms_review","do_not_reuse_content"]);
   const MEASUREMENT_VERIFICATION = Object.freeze(["verified_lab","publisher_test","user_submitted","not_applicable"]);
 
+  function validHttpsUrl(value) {
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === "https:" && Boolean(parsed.hostname);
+    } catch (_) {
+      return false;
+    }
+  }
+
   function validateEvidenceRecord(record) {
     const errors = [];
     for (const key of ["evidence_id", "source_id", "product_id", "evidence_type", "summary", "source_url", "retrieved_at"]) {
       if (record?.[key] === undefined || record?.[key] === "") errors.push(key + " is required");
     }
     if (record?.evidence_type && !EVIDENCE_TYPES.includes(record.evidence_type)) errors.push("evidence_type is invalid");
-    if (record?.source_url && !/^https:\/\//i.test(record.source_url)) errors.push("source_url must use https");
+    if (record?.source_url && !validHttpsUrl(record.source_url)) errors.push("source_url must be a valid https URL");
     if (String(record?.summary || "").length > 280) errors.push("summary must be a concise GameFit-authored normalization");
     for (const key of PROHIBITED_COPY_FIELDS) {
       if (record?.[key] !== undefined && record[key] !== null && record[key] !== "") errors.push(key + " is prohibited");
@@ -33,7 +42,7 @@
 
   function validateFixtureEvidenceRecord(record) {
     const errors = validateEvidenceRecord(record);
-    for (const key of ["source_origin_id", "source_type", "checked_date", "raw_fact", "normalized_fact", "locale", "methodology_family", "rights_use_note", "commercial_relationship"]) {
+    for (const key of ["source_origin_id", "source_type", "checked_date", "raw_fact", "normalized_fact", "locale", "methodology_family", "rights_use_note", "rights_status", "commercial_relationship"]) {
       if (record?.[key] === undefined || record?.[key] === "") errors.push(key + " is required");
     }
     if (typeof record?.independent !== "boolean") errors.push("independent must be explicit");
@@ -53,6 +62,7 @@
     if (record?.commercial_relationship && !COMMERCIAL_RELATIONSHIPS.includes(record.commercial_relationship)) errors.push("commercial_relationship is invalid");
     if (record?.normalized_fact && typeof record.normalized_fact !== "object") errors.push("normalized_fact must be an object");
     if (record?.normalized_fact && !record.normalized_fact.attribute) errors.push("normalized_fact.attribute is required");
+    if (record?.normalized_fact && record.normalized_fact.value === undefined) errors.push("normalized_fact.value is required");
     if (record?.rights_use_note && String(record.rights_use_note).length > 240) errors.push("rights_use_note is too long");
     if (record?.rights_status && !RIGHTS_STATES.includes(record.rights_status)) errors.push("rights_status is invalid");
     if (record?.measurement_verification && !MEASUREMENT_VERIFICATION.includes(record.measurement_verification)) errors.push("measurement_verification is invalid");
@@ -207,7 +217,8 @@
   }
 
   function buildAttributeAssessment(items, attribute, product={}) {
-    const relevant = evidenceForProduct(items, product).filter(item => item.attribute === attribute || item.normalized_fact?.attribute === attribute);
+    const relevant = evidenceForProduct(currentEvidence(items), product)
+      .filter(item => item.attribute === attribute || item.normalized_fact?.attribute === attribute);
     const independent = uniqueIndependent(relevant);
     // A manufacturer is not an independent reviewer, but it is still the primary
     // source for an explicit specification.  Keep one record per origin for
@@ -220,8 +231,8 @@
       objectiveOrigins.add(origin);
       return true;
     });
-    const official = objective.filter(item => item.source_type === "official" && item.methodology_family === "official_spec");
-    const measurement = objective.filter(item => item.evidence_type === "measurement");
+    const official = objective.filter(item => ["official","official_support","official_manual","official_documentation","official_compliance"].includes(item.source_type) && item.methodology_family === "official_spec");
+    const measurement = objective.filter(item => item.evidence_type === "measurement" && ["verified_lab","publisher_test"].includes(item.measurement_verification));
     const subjective = independent.filter(item => item.evidence_type === "subjective");
     const consensus = normalizeSubjectiveConsensus(subjective);
     const knownValues = [...new Set(objective.map(normalizedFactKey).filter(Boolean))];
@@ -260,7 +271,7 @@
   return {
     EVIDENCE_TYPES, CONSENSUS, PROHIBITED_COPY_FIELDS, ATTRIBUTE_GRADES, SOURCE_TYPES, COMMERCIAL_RELATIONSHIPS, RIGHTS_STATES, MEASUREMENT_VERIFICATION, validateEvidenceRecord, validateFixtureEvidenceRecord,
     normalizeSubjectiveConsensus, groupCompatibleMeasurements,
-    uniqueIndependent, newProductConfidenceCap, gradeFromEvidence, buildAssessment,
+    uniqueIndependent, currentEvidence, newProductConfidenceCap, gradeFromEvidence, buildAssessment,
     confidenceFromGrade, buildAttributeAssessment, buildAttributeAssessments
   };
 });

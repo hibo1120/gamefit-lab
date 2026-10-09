@@ -217,7 +217,12 @@
 
   function latestByUser(records) {
     const latest = new Map();
-    for (const record of records) latest.set(record.user_key, record);
+    for (const record of records) {
+      const timestamp = Date.parse(record.type === "post_purchase_outcome" ? (record.evaluated_at || record.created_at) : record.created_at);
+      const previous = latest.get(record.user_key);
+      const previousTimestamp = previous ? Date.parse(previous.type === "post_purchase_outcome" ? (previous.evaluated_at || previous.created_at) : previous.created_at) : -Infinity;
+      if (!previous || timestamp > previousTimestamp) latest.set(record.user_key, record);
+    }
     return [...latest.values()];
   }
 
@@ -228,6 +233,18 @@
     const valid = (records || []).filter(item => item && item.user_key && item.product_id && item.game_id && item.input_method && item.scope === "global_candidate");
     if (valid.length !== (records || []).length) {
       return { eligible:false, reason:"missing_target_or_user", independent_users:0, outcome_users:0, agreement_ratio:null };
+    }
+    const timestampsValid = valid.every(item => Number.isFinite(Date.parse(
+      item.type === "post_purchase_outcome" ? (item.evaluated_at || item.created_at) : item.created_at
+    )));
+    if (!timestampsValid) {
+      return { eligible:false, reason:"verified_timestamp_missing", independent_users:0, outcome_users:0, agreement_ratio:null };
+    }
+    const trustedMethods = new Set(["moderated_research","verified_purchase","server_deduped"]);
+    const unverified = valid.some(item => item.independence_verified !== true || !trustedMethods.has(item.verification_method) ||
+      (item.type === "post_purchase_outcome" && item.outcome_verified !== true));
+    if (unverified) {
+      return { eligible:false, reason:"independence_or_outcome_unverified", independent_users:0, outcome_users:0, agreement_ratio:null };
     }
     const keys = new Set(valid.map(targetKey));
     if (keys.size !== 1) {
@@ -269,12 +286,12 @@
   }
 
   function confidenceCalibration(samples) {
-    const valid = (samples || []).filter(item => Number.isFinite(Number(item.predicted_probability)) &&
-      Number(item.predicted_probability) >= 0 && Number(item.predicted_probability) <= 1 &&
+    const valid = (samples || []).filter(item => typeof item?.predicted_probability === "number" && Number.isFinite(item.predicted_probability) &&
+      item.predicted_probability >= 0 && item.predicted_probability <= 1 &&
       (item.success === true || item.success === false));
     if (!valid.length) return { sample_size:0, brier_score:null, mean_confidence:null, observed_success_rate:null };
-    const brier = valid.reduce((sum, item) => sum + Math.pow(Number(item.predicted_probability) - (item.success ? 1 : 0), 2), 0) / valid.length;
-    const mean = valid.reduce((sum, item) => sum + Number(item.predicted_probability), 0) / valid.length;
+    const brier = valid.reduce((sum, item) => sum + Math.pow(item.predicted_probability - (item.success ? 1 : 0), 2), 0) / valid.length;
+    const mean = valid.reduce((sum, item) => sum + item.predicted_probability, 0) / valid.length;
     const success = valid.filter(item => item.success).length / valid.length;
     return {
       sample_size:valid.length,

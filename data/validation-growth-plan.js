@@ -38,18 +38,18 @@
     status:"hypothesis_only"
   });
   const workstreams = Object.freeze([
-    Object.freeze({ name:"catalog maintenance", automation_class:"B", workload_units:30, mature_human_hours:6 }),
-    Object.freeze({ name:"evidence refresh", automation_class:"B", workload_units:28, mature_human_hours:8 }),
-    Object.freeze({ name:"rights review", automation_class:"C", workload_units:5, mature_human_hours:5 }),
-    Object.freeze({ name:"variant verification", automation_class:"B", workload_units:10, mature_human_hours:4 }),
-    Object.freeze({ name:"product launch watch", automation_class:"A", workload_units:10, mature_human_hours:2 }),
-    Object.freeze({ name:"affiliate maintenance", automation_class:"B", workload_units:7, mature_human_hours:3 }),
-    Object.freeze({ name:"user support", automation_class:"B", workload_units:10, mature_human_hours:7 })
+    Object.freeze({ name:"catalog maintenance", automation_class:"B", workload_units:18, mature_human_hours:5 }),
+    Object.freeze({ name:"evidence refresh", automation_class:"B", workload_units:15, mature_human_hours:6 }),
+    Object.freeze({ name:"rights review", automation_class:"C", workload_units:15, mature_human_hours:6 }),
+    Object.freeze({ name:"variant verification", automation_class:"C", workload_units:15, mature_human_hours:5 }),
+    Object.freeze({ name:"product launch watch", automation_class:"A", workload_units:15, mature_human_hours:2 }),
+    Object.freeze({ name:"affiliate maintenance", automation_class:"B", workload_units:12, mature_human_hours:4 }),
+    Object.freeze({ name:"user support", automation_class:"D", workload_units:10, mature_human_hours:7 })
   ]);
   const revenue_scenarios = Object.freeze([
-    Object.freeze({ name:"pessimistic", assumptions:"hypothesis", monthly_users:1000, diagnosis_setup_completion:0.25, purchase_intent:0.08, affiliate_click:0.30, affiliate_cv:0.02, average_commission:500, premium_conversion:0, premium_arpu:600, infra_api_cost:0, human_hours:15, human_hourly_cost:2500 }),
-    Object.freeze({ name:"base", assumptions:"hypothesis", monthly_users:10000, diagnosis_setup_completion:0.40, purchase_intent:0.15, affiliate_click:0.40, affiliate_cv:0.04, average_commission:800, premium_conversion:0.005, premium_arpu:600, infra_api_cost:3000, human_hours:35, human_hourly_cost:2500 }),
-    Object.freeze({ name:"success", assumptions:"hypothesis", monthly_users:50000, diagnosis_setup_completion:0.50, purchase_intent:0.20, affiliate_click:0.45, affiliate_cv:0.05, average_commission:1000, premium_conversion:0.015, premium_arpu:600, infra_api_cost:15000, human_hours:80, human_hourly_cost:2500 })
+    Object.freeze({ name:"pessimistic", assumptions:"hypothesis; taxes excluded", monthly_users:1000, diagnosis_setup_completion:0.25, purchase_intent:0.08, affiliate_click:0.30, affiliate_cv:0.02, average_commission:300, affiliate_reversal_rate:0.30, merchant_closure_haircut_rate:0.20, premium_conversion:0, premium_arpu:600, premium_refund_rate:0, payment_fee_rate:0.036, infra_api_cost:0, data_maintenance_cost:5000, human_hours:15, human_hourly_cost:2500 }),
+    Object.freeze({ name:"base", assumptions:"hypothesis; taxes excluded", monthly_users:10000, diagnosis_setup_completion:0.40, purchase_intent:0.15, affiliate_click:0.40, affiliate_cv:0.04, average_commission:500, affiliate_reversal_rate:0.15, merchant_closure_haircut_rate:0.10, premium_conversion:0.005, premium_arpu:600, premium_refund_rate:0.08, payment_fee_rate:0.036, infra_api_cost:3000, data_maintenance_cost:10000, human_hours:35, human_hourly_cost:2500 }),
+    Object.freeze({ name:"success", assumptions:"hypothesis; taxes excluded", monthly_users:50000, diagnosis_setup_completion:0.50, purchase_intent:0.20, affiliate_click:0.45, affiliate_cv:0.05, average_commission:800, affiliate_reversal_rate:0.10, merchant_closure_haircut_rate:0.05, premium_conversion:0.015, premium_arpu:600, premium_refund_rate:0.05, payment_fee_rate:0.036, infra_api_cost:15000, data_maintenance_cost:50000, human_hours:80, human_hourly_cost:2500 })
   ]);
   const sources = Object.freeze([
     Object.freeze({ title:"Amazon Associates JP fee schedule", url:"https://affiliate.amazon.co.jp/help/node/topic/GRXPHT8U84RAYDXZ", type:"official_program_terms", checked_date }),

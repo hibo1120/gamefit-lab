@@ -14,7 +14,7 @@ class MemoryStorage {
 test("local state saves, loads and exports without generating an identity", () => {
   const storage = new MemoryStorage();
   const state = store.createState();
-  state.feedback.push({ type:"recommendation_feedback", verdict:"agree" });
+  state.feedback.push({ type:"recommendation_feedback", verdict:"agree", created_at:"2026-10-09T00:00:00.000Z" });
   const saved = store.save(storage,state,"2026-10-09T00:00:00.000Z");
   const loaded = store.load(storage);
   assert.equal(loaded.status,"ok");

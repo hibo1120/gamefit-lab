@@ -70,7 +70,7 @@
   function sameMethodology(current, candidate, attribute) {
     const left = evidenceFor(current, attribute)?.methodology_families || [];
     const right = evidenceFor(candidate, attribute)?.methodology_families || [];
-    if (!left.length || !right.length) return true;
+    if (!left.length || !right.length) return false;
     return left.some(item => right.includes(item));
   }
 

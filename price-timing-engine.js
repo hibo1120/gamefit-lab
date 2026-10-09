@@ -6,6 +6,34 @@
   "use strict";
 
   const PHASES = Object.freeze(["launch","mature","discounting","eol"]);
+  function validDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return false;
+    const parsed = Date.parse(value + "T00:00:00Z");
+    return Number.isFinite(parsed) && new Date(parsed).toISOString().slice(0,10) === value;
+  }
+  function validHttpsUrl(value) {
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === "https:" && Boolean(parsed.hostname);
+    } catch (_) {
+      return false;
+    }
+  }
+  function comparableHistory(snapshot, asOf) {
+    if (snapshot?.historical_context_available !== true || !Array.isArray(snapshot.history)) return [];
+    const asOfMs = Date.parse(asOf + "T00:00:00Z");
+    const seenDates = new Set();
+    return snapshot.history.filter(item => {
+      if (!item || item.product_id !== snapshot.product_id || item.variant_id !== snapshot.variant_id ||
+          item.region !== snapshot.region || item.currency !== snapshot.currency ||
+          typeof item.price !== "number" || !Number.isFinite(item.price) || item.price < 0 ||
+          !validDate(item.checked_at)) return false;
+      const dateMs = Date.parse(item.checked_at + "T00:00:00Z");
+      if (!Number.isFinite(dateMs) || dateMs > asOfMs || seenDates.has(item.checked_at)) return false;
+      seenDates.add(item.checked_at);
+      return true;
+    });
+  }
   function assess(snapshot, options={}) {
     const asOf = options.as_of || new Date().toISOString().slice(0,10);
     const errors = [];
@@ -21,12 +49,13 @@
     if (!options.currency) errors.push("evaluation_currency_missing");
     else if (snapshot?.currency !== options.currency) errors.push("currency_mismatch");
     if (snapshot?.availability !== "in_stock") errors.push("availability_not_in_stock");
-    if (!/^https:\/\//i.test(snapshot?.source_url || "")) errors.push("listing_source_missing");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(snapshot?.checked_at || "")) errors.push("price_checked_at_missing");
+    if (!validHttpsUrl(snapshot?.source_url)) errors.push("listing_source_missing_or_invalid");
+    if (!validDate(snapshot?.checked_at)) errors.push("price_checked_at_missing_or_invalid");
     if (!PHASES.includes(snapshot?.lifecycle_phase)) errors.push("lifecycle_phase_invalid");
-    const age = snapshot?.checked_at ? Math.floor((Date.parse(asOf + "T00:00:00Z") - Date.parse(snapshot.checked_at + "T00:00:00Z")) / 86400000) : null;
+    const age = validDate(snapshot?.checked_at) && validDate(asOf) ? Math.floor((Date.parse(asOf + "T00:00:00Z") - Date.parse(snapshot.checked_at + "T00:00:00Z")) / 86400000) : null;
     const fresh = Number.isFinite(age) && age >= 0 && age <= Number(options.fresh_days || 30);
-    const historical = snapshot?.historical_context_available === true && Array.isArray(snapshot?.history) && snapshot.history.length >= 3;
+    const history = comparableHistory(snapshot, asOf);
+    const historical = history.length >= 3 && history.length === snapshot?.history?.length;
     return {
       status:errors.length ? "unknown" : "known",
       errors,
@@ -40,19 +69,20 @@
       price_age_days:age,
       lifecycle_phase:snapshot?.lifecycle_phase || null,
       historical_context_available:historical,
-      deal_score:historical ? calculateDealScore(snapshot) : null,
+      deal_score:historical ? calculateDealScore(snapshot, history) : null,
       buy_timing:historical ? "history_supported" : "unknown",
       caveat:historical ? null : "A fresh price is not proof of a deal; no Deal Score is generated without comparable price history."
     };
   }
 
-  function calculateDealScore(snapshot) {
-    const prices = snapshot.history.map(item => Number(item.price)).filter(Number.isFinite);
+  function calculateDealScore(snapshot, history=snapshot?.history || []) {
+    const prices = history.map(item => item.price);
     if (prices.length < 3) return null;
     const high = Math.max(...prices);
     const low = Math.min(...prices);
     if (high === low) return 0.5;
-    return Number(((high - Number(snapshot.current_price)) / (high - low)).toFixed(4));
+    const score = (high - Number(snapshot.current_price)) / (high - low);
+    return Number(Math.max(0, Math.min(1, score)).toFixed(4));
   }
 
   return { PHASES, assess };

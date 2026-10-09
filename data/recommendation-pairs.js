@@ -60,7 +60,10 @@
       budget:200,
       as_of:fixtures.CHECKED_DATE,
       fix_before_buy:[],
-      setup_assessment:{ status:"evaluated", checks:["test_mouse_direct_usb","verify_actual_usb_polling"] },
+      setup_assessment:{ assessment_type:"observed_setup_checks", status:"evaluated", checks:[
+        { code:"test_mouse_direct_usb", result:"pass" },
+        { code:"verify_actual_usb_polling", result:"pass" }
+      ] },
       candidates:[candidate],
       decision_brief_id:"usb-polling",
       decision_brief:briefs.buildResearchDigest("usb-polling")

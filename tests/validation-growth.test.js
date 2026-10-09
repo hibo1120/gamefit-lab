@@ -86,9 +86,10 @@ test("internal QA and suspected bot traffic are excluded from validation denomin
 
 test("keep and DONT_UPGRADE suppress product Affiliate CTAs", () => {
   const enabled = [{ merchant_id:"test", merchant_name:"Test", enabled:true, affiliate_url:"https://example.test/", categories:["ram"], destination_type:"product_page", disclosure_label:"Ad", priority:1 }];
-  assert.deepEqual(affiliate.modelsForResult({ topRecommendation:"keep", ranked:[{ key:"keep" },{ key:"ram" }] },{},enabled),[]);
-  assert.deepEqual(affiliate.modelsForResult({ recommendations:[{ upgrade_match:"DONT_UPGRADE" }], ranked:[{ key:"ram" }] },{},enabled),[]);
-  assert.deepEqual(affiliate.modelsForResult({ recommendations:[{ upgrade_match:"SAFE / FAMILIAR" }], topRecommendation:"keep", ranked:[{ key:"ram" }] },{},enabled),[]);
+  assert.deepEqual(affiliate.modelsForPersonalGearResult({ topRecommendation:"keep", ranked:[{ key:"keep" },{ key:"ram" }] },{},enabled),[]);
+  assert.deepEqual(affiliate.modelsForPersonalGearResult({ recommendations:[{ upgrade_match:"DONT_UPGRADE" }], ranked:[{ key:"ram" }] },{},enabled),[]);
+  assert.deepEqual(affiliate.modelsForPersonalGearResult({ recommendations:[{ upgrade_match:"SAFE / FAMILIAR" }], topRecommendation:"keep", ranked:[{ key:"ram" }] },{},enabled),[]);
+  assert.equal(affiliate.modelsForResult({ topRecommendation:"keep", ranked:[{ key:"ram" }] },{},enabled).length,1);
 });
 
 test("listing selection fails closed on SKU, region, currency, age, URL, and negative price", () => {
@@ -175,18 +176,22 @@ test("three-case revenue model is transparent math and remains hypothesis-only",
   const results = plan.revenue_scenarios.map(business.calculateScenario);
   assert.deepEqual(plan.revenue_scenarios.map(item => item.name),["pessimistic","base","success"]);
   assert.equal(results[0].status,"hypothesis_not_actual");
-  assert.equal(results[0].affiliate_revenue,60);
-  assert.equal(results[1].affiliate_revenue,7680);
-  assert.equal(results[1].premium_revenue,30000);
+  assert.equal(results[0].affiliate_revenue,20.16);
+  assert.equal(results[1].affiliate_revenue,3672);
+  assert.equal(results[1].premium_revenue,27600);
+  assert.equal(results[1].revenue,30192);
+  assert.equal(results[2].revenue,488250);
+  assert.equal(results[2].net_profit,223250);
+  assert.equal(results[0].taxes_included,false);
   assert.ok(results[0].net_profit < 0);
   assert.ok(results[2].net_profit > 0);
 });
 
-test("human-time model uses workload-weighted A/B/C/D classes and treats 90 percent as a projection", () => {
+test("human-time model uses a conservative workload-weighted A/B/C/D baseline", () => {
   const result = business.automationRatio(plan.workstreams);
   assert.equal(result.basis,"weighted workload units, not task count");
   assert.equal(result.total_units,100);
-  assert.equal(result.ratio,0.95);
+  assert.equal(result.ratio,0.60);
   assert.equal(plan.workstreams.reduce((sum,item)=>sum+item.mature_human_hours,0),35);
 });
 

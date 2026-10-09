@@ -7,6 +7,7 @@
 
   const STORAGE_KEY = "gamefit.personal_gear.v1";
   const SCHEMA_VERSION = 1;
+  const PROFILE_SCHEMA_VERSION = 2;
   const MAX_BYTES = 512 * 1024;
   const MAX_RECORDS = 500;
   const RETENTION_DAYS = 365;
@@ -19,7 +20,7 @@
   function createState() {
     return {
       schema_version:SCHEMA_VERSION,
-      profile:{ version:2, product_feedback:[], attribute_preferences:{}, hard_avoids:{}, hard_avoid_rules:[], game_context:{}, recommendation_feedback:[], personal_adjustments:{ products:{}, directions:{} } },
+      profile:{ version:PROFILE_SCHEMA_VERSION, product_feedback:[], attribute_preferences:{}, hard_avoids:{}, hard_avoid_rules:[], game_context:{}, recommendation_feedback:[], personal_adjustments:{ products:{}, directions:{} } },
       setup:{}, recommendations:[], feedback:[], outcomes:[], rerank_events:[], confidence_samples:[],
       updated_at:null
     };
@@ -60,23 +61,42 @@
     if (!Number.isInteger(state.schema_version)) errors.push("schema_version must be an integer");
     if (state.schema_version !== SCHEMA_VERSION) errors.push("schema_version is unsupported");
     if (!isPlainObject(state.profile)) errors.push("profile must be an object");
+    else if (state.profile.version !== PROFILE_SCHEMA_VERSION) errors.push("profile.version is unsupported");
+    if (!isPlainObject(state.setup)) errors.push("setup must be an object");
     for (const key of Object.keys(state)) if (!ROOT_KEYS.has(key)) errors.push("root." + key + " is not allowed");
-    if (isPlainObject(state.profile)) for (const key of Object.keys(state.profile)) if (!PROFILE_KEYS.has(key)) errors.push("root.profile." + key + " is not allowed");
+    if (isPlainObject(state.profile)) {
+      for (const key of Object.keys(state.profile)) if (!PROFILE_KEYS.has(key)) errors.push("root.profile." + key + " is not allowed");
+      for (const key of ["product_feedback","hard_avoid_rules","recommendation_feedback"]) if (!Array.isArray(state.profile[key])) errors.push(`profile.${key} must be an array`);
+      for (const key of ["attribute_preferences","hard_avoids","game_context","personal_adjustments"]) if (!isPlainObject(state.profile[key])) errors.push(`profile.${key} must be an object`);
+    }
     if (isPlainObject(state.setup)) for (const key of Object.keys(state.setup)) if (!SETUP_KEYS.has(key)) errors.push("root.setup." + key + " is not allowed");
     for (const key of ["recommendations", "feedback", "outcomes", "rerank_events", "confidence_samples"]) {
       if (!Array.isArray(state[key])) errors.push(key + " must be an array");
       else if (state[key].length > MAX_RECORDS) errors.push(key + " exceeds retention limit");
+      else if (state[key].some(item => !isPlainObject(item))) errors.push(key + " records must be objects");
     }
+    if (Array.isArray(state.feedback) && state.feedback.some(item => item.type !== "recommendation_feedback")) errors.push("feedback record type is invalid");
+    if (Array.isArray(state.outcomes) && state.outcomes.some(item => item.type !== "post_purchase_outcome")) errors.push("outcome record type is invalid");
     errors.push(...validateSafeTree(state));
     return [...new Set(errors)];
   }
 
   function migrateState(value) {
     if (!isPlainObject(value)) throw new Error("stored state is not an object");
-    if (value.schema_version === SCHEMA_VERSION) return value;
+    function migrateProfile(profile) {
+      if (!isPlainObject(profile)) return profile;
+      if (Number(profile.version) > PROFILE_SCHEMA_VERSION) {
+        const error = new Error("stored profile schema is newer than this UI");
+        error.code = "FUTURE_SCHEMA";
+        throw error;
+      }
+      if (![undefined, 1, PROFILE_SCHEMA_VERSION].includes(profile.version)) throw new Error("stored profile schema cannot be migrated safely");
+      return { ...createState().profile, ...profile, version:PROFILE_SCHEMA_VERSION };
+    }
+    if (value.schema_version === SCHEMA_VERSION) return { ...value, profile:migrateProfile(value.profile) };
     if (value.schema_version === 0 || value.schema_version === undefined) {
       const next = createState();
-      if (isPlainObject(value.profile)) next.profile = value.profile;
+      if (isPlainObject(value.profile)) next.profile = migrateProfile(value.profile);
       if (Array.isArray(value.feedback)) next.feedback = value.feedback;
       if (Array.isArray(value.outcomes)) next.outcomes = value.outcomes;
       next.updated_at = value.updated_at || null;
@@ -99,20 +119,20 @@
       if (!Array.isArray(next[key])) continue;
       next[key] = next[key].filter(item => {
         const timestamp = item?.created_at || item?.completed_at || item?.recorded_at || null;
-        if (!timestamp) return true;
+        if (!timestamp) return false;
         const parsed = Date.parse(timestamp);
         return Number.isFinite(parsed) && parsed >= cutoff && parsed <= nowMs + 86400000;
       });
     }
     if (Array.isArray(next.profile?.product_feedback)) next.profile.product_feedback = next.profile.product_feedback.filter(item => {
-      const timestamp = item?.created_at || null;
-      if (!timestamp) return true;
+      const timestamp = item?.created_at || item?.observed_at || null;
+      if (!timestamp) return false;
       const parsed = Date.parse(timestamp);
       return Number.isFinite(parsed) && parsed >= cutoff && parsed <= nowMs + 86400000;
     });
     if (Array.isArray(next.profile?.recommendation_feedback)) next.profile.recommendation_feedback = next.profile.recommendation_feedback.filter(item => {
       const timestamp = item?.created_at || null;
-      if (!timestamp) return true;
+      if (!timestamp) return false;
       const parsed = Date.parse(timestamp);
       return Number.isFinite(parsed) && parsed >= cutoff && parsed <= nowMs + 86400000;
     });
@@ -187,7 +207,7 @@
   }
 
   return {
-    STORAGE_KEY, SCHEMA_VERSION, MAX_BYTES, MAX_RECORDS, RETENTION_DAYS, FORBIDDEN_KEYS, SENSITIVE_KEYS,
+    STORAGE_KEY, SCHEMA_VERSION, PROFILE_SCHEMA_VERSION, MAX_BYTES, MAX_RECORDS, RETENTION_DAYS, FORBIDDEN_KEYS, SENSITIVE_KEYS,
     createState, validateState, migrateState, pruneExpiredRecords, parse, load, save, exportState, exportRecovery, deleteAll, reset
   };
 });

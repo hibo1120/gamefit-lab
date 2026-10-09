@@ -11,6 +11,7 @@ function validRow(id,type,options={}) {
     normalized_fact:{ attribute:options.attribute || "test_attribute", value:options.value ?? "same" }, locale:"en-US",
     methodology_family:options.methodology_family || (type === "measurement" ? "lab_method" : type === "subjective" ? "specialist_editorial" : "official_spec"),
     rights_use_note:"No copied content.", commercial_relationship:sourceType === "official" ? "manufacturer" : "none",
+    rights_status:"safe_for_internal_fact",
     independent:sourceType !== "official", stance:options.stance || null, long_term:options.long_term === true,
     measurement_verification:type === "measurement" ? "verified_lab" : "not_applicable"
   };
@@ -114,6 +115,7 @@ test("Evidence records keep normalized facts and reject copied media or review b
     ...base, source_origin_id:"origin-1", source_type:"official", checked_date:"2026-10-09",
     raw_fact:"Short GameFit-authored fact.", normalized_fact:{ attribute:"weight", value:55, unit:"g" },
     locale:"en-US", rights_use_note:"GameFit fact only; do not copy source content.",
+    rights_status:"safe_for_internal_fact",
     commercial_relationship:"manufacturer", independent:false
   };
   assert.deepEqual(evidence.validateFixtureEvidenceRecord(fixtureBase),[]);
@@ -154,8 +156,8 @@ test("attribute evidence is independent from product-level grade and preserves c
     consensus:"anecdotal", methodology_families:[], normalized_facts:[], data_gaps:["attribute_evidence_missing"]
   });
   const assessment = evidence.buildAttributeAssessment([
-    { evidence_type:"measurement", source_id:"lab-a", independent:true, methodology_family:"lab-a", normalized_fact:{ attribute:"weight", value:49, unit:"g" } },
-    { evidence_type:"measurement", source_id:"lab-b", independent:true, methodology_family:"lab-b", normalized_fact:{ attribute:"weight", value:52, unit:"g" } }
+    validRow("lab-a","measurement",{ attribute:"weight", value:49, methodology_family:"lab-a" }),
+    validRow("lab-b","measurement",{ attribute:"weight", value:52, methodology_family:"lab-b" })
   ],"weight",{ lifecycle_state:"mature" });
   assert.equal(assessment.conflict,true);
   assert.equal(assessment.confidence,"Low");

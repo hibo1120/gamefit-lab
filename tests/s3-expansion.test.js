@@ -270,6 +270,8 @@ test("high confidence remains locked until evidence and real outcome gates all p
   assert.equal(locked.eligible,false);
   const open = gear.highConfidenceGate({ critical_attribute_grades:["A","B"], game_fit_grade:"B", delta_verified:true, compatibility_verified:true,
     critical_data_gaps:[], affiliate_permutation_passed:true, adversarial_pass_rate:1, decided_feedback_count:30, purchase_outcome_count:10,
+    real_outcomes_only:true, independent_decided_users:30, calibration_sample_size:30, holdout_sample_size:10,
+    same_category_game_input:true, outcome_verification_passed:true,
     calibration_gap:0.1, brier_score:0.15, regret_rate:0.1, severe_error_count:0 });
   assert.equal(open.eligible,true);
   assert.equal(open.provisional,true);

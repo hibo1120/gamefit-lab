@@ -36,8 +36,6 @@
   }
 
   function modelsForResult(result, context = {}, catalog = merchantCatalog.merchants) {
-    const decisions = [result?.recommendations?.[0]?.upgrade_match, result?.topRecommendation, result?.ranked?.[0]?.key].filter(Boolean);
-    if (decisions.some(value => ["keep","DONT_UPGRADE","AVOID","CLARIFY"].includes(value))) return [];
     const usedMerchants = new Set();
     const models = [];
 
@@ -61,6 +59,15 @@
     }
 
     return models;
+  }
+
+  // Personal Gear Intelligence has stronger purchase-suppression rules than
+  // the existing public diagnosis. Keep that policy on a separate API so the
+  // private experiment cannot silently change the production funnel.
+  function modelsForPersonalGearResult(result, context = {}, catalog = merchantCatalog.merchants) {
+    const decisions = [result?.recommendations?.[0]?.upgrade_match, result?.topRecommendation, result?.ranked?.[0]?.key].filter(Boolean);
+    if (decisions.some(value => ["keep","DONT_UPGRADE","AVOID","CLARIFY"].includes(value))) return [];
+    return modelsForResult(result, context, catalog);
   }
 
   function render(container, result, context = {}) {
@@ -102,5 +109,5 @@
     return models;
   }
 
-  return { buildLinkModel, modelsForResult, render };
+  return { buildLinkModel, modelsForResult, modelsForPersonalGearResult, render };
 });

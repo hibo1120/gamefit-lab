@@ -24,11 +24,12 @@ test("global learning requires independent agreement plus post-purchase outcomes
 
   const records = ["u1","u2","u3"].map(user_key => ({
     type:"recommendation_feedback", scope:"global_candidate", user_key,
-    product_id:"m1", game_id:"apex", input_method:"mnk", verdict:"agree"
+    product_id:"m1", game_id:"apex", input_method:"mnk", verdict:"agree",
+    independence_verified:true, verification_method:"moderated_research", created_at:"2026-10-01T00:00:00.000Z"
   }));
   records.push(
-    { type:"post_purchase_outcome", scope:"global_candidate", user_key:"u1", product_id:"m1", game_id:"apex", input_method:"mnk", satisfaction:5, still_using:true },
-    { type:"post_purchase_outcome", scope:"global_candidate", user_key:"u2", product_id:"m1", game_id:"apex", input_method:"mnk", satisfaction:4, still_using:true }
+    { type:"post_purchase_outcome", scope:"global_candidate", user_key:"u1", product_id:"m1", game_id:"apex", input_method:"mnk", satisfaction:5, still_using:true, independence_verified:true, outcome_verified:true, verification_method:"moderated_research", evaluated_at:"2026-10-02T00:00:00.000Z" },
+    { type:"post_purchase_outcome", scope:"global_candidate", user_key:"u2", product_id:"m1", game_id:"apex", input_method:"mnk", satisfaction:4, still_using:true, independence_verified:true, outcome_verified:true, verification_method:"moderated_research", evaluated_at:"2026-10-02T00:00:00.000Z" }
   );
   assert.equal(feedback.globalLearningEligible(records), true);
   assert.equal(feedback.globalLearningEligible(records.concat({
@@ -132,14 +133,14 @@ test("global outcomes must be linked to the same independent users and explicit 
 });
 
 test("global learning counts the latest decision per user and can gate negative outcomes", () => {
-  const target = { scope:"global_candidate", product_id:"m1", game_id:"apex", input_method:"mnk" };
+  const target = { scope:"global_candidate", product_id:"m1", game_id:"apex", input_method:"mnk", independence_verified:true, verification_method:"moderated_research", created_at:"2026-10-01T00:00:00.000Z" };
   const contradictory = [
-    { ...target, type:"recommendation_feedback", user_key:"u1", verdict:"agree" },
-    { ...target, type:"recommendation_feedback", user_key:"u1", verdict:"disagree" },
+    { ...target, type:"recommendation_feedback", user_key:"u1", verdict:"agree", created_at:"2026-09-01T00:00:00.000Z" },
+    { ...target, type:"recommendation_feedback", user_key:"u1", verdict:"disagree", created_at:"2026-10-01T00:00:00.000Z" },
     { ...target, type:"recommendation_feedback", user_key:"u2", verdict:"agree" },
     { ...target, type:"recommendation_feedback", user_key:"u3", verdict:"agree" },
-    { ...target, type:"post_purchase_outcome", user_key:"u2", satisfaction:5, still_using:true },
-    { ...target, type:"post_purchase_outcome", user_key:"u3", satisfaction:5, still_using:true }
+    { ...target, type:"post_purchase_outcome", user_key:"u2", satisfaction:5, still_using:true, outcome_verified:true, evaluated_at:"2026-10-02T00:00:00.000Z" },
+    { ...target, type:"post_purchase_outcome", user_key:"u3", satisfaction:5, still_using:true, outcome_verified:true, evaluated_at:"2026-10-02T00:00:00.000Z" }
   ];
   assert.equal(feedback.globalLearningAssessment(contradictory).eligible, false);
 
@@ -147,8 +148,8 @@ test("global learning counts the latest decision per user and can gate negative 
     ...target, type:"recommendation_feedback", user_key, verdict:"disagree"
   }));
   negative.push(
-    { ...target, type:"post_purchase_outcome", user_key:"u1", satisfaction:1, still_using:false, returned_to_previous:true },
-    { ...target, type:"post_purchase_outcome", user_key:"u2", satisfaction:2, still_using:false, sold_or_replaced:true }
+    { ...target, type:"post_purchase_outcome", user_key:"u1", satisfaction:1, still_using:false, returned_to_previous:true, outcome_verified:true, evaluated_at:"2026-10-02T00:00:00.000Z" },
+    { ...target, type:"post_purchase_outcome", user_key:"u2", satisfaction:2, still_using:false, sold_or_replaced:true, outcome_verified:true, evaluated_at:"2026-10-02T00:00:00.000Z" }
   );
   const assessment = feedback.globalLearningAssessment(negative);
   assert.equal(assessment.eligible, true);

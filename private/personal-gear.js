@@ -23,7 +23,7 @@
     mouse:[
       { attribute:"shape", label:"Shape", values:[["right_handed_symmetrical","右手用symmetrical"],["ergonomic","ergonomic"]] },
       { attribute:"hump", label:"Hump", values:[["rear","rear / back hump"],["center","center hump"]] },
-      { attribute:"weight", label:"Weight", values:[["80 g","80 g以上が苦手"],["55 g","55 g付近が苦手"]] },
+      { attribute:"weight", label:"Weight", values:[["80 g","80 gが苦手"],["55 g","55 g付近が苦手"]] },
       { attribute:"click", label:"Click", values:[["heavy","重いclick"],["light","軽いclick"]] }
     ],
     keyboard:[
@@ -246,7 +246,7 @@
       region:"JP",
       currency:"JPY",
       fix_before_buy:freeFixes,
-      setup_assessment:{ status:"evaluated", checks:freeFixes.map(item => item.code) },
+      setup_assessment:{ assessment_type:"observed_setup_checks", status:"evaluated", checks:freeFixes.map(item => ({ code:item.code, result:"pending" })) },
       candidates:buildCandidates(category,currentProductId,inputMethod,platform,freeFixes)
     });
     const summary = byId("decision-summary");
@@ -276,10 +276,12 @@
     const currentProductId = byId("current-product").value;
     state.profile = prefs.recordProductFeedback(state.profile, {
       product_id:currentProductId, category, sentiment:"dislike",
-      reasons:[{ attribute, sentiment:"dislike", value, reason_code:attribute }]
+      reasons:[{ attribute, sentiment:"dislike", value, reason_code:attribute }],
+      observed_at:new Date().toISOString()
     });
     if (byId("hard-avoid").checked) state.profile = prefs.addHardAvoid(state.profile, {
-      category, attribute, value, operator:attribute === "bands" ? "includes" : "equals", reason_code:"explicit_hard_avoid"
+      category, attribute, value, operator:attribute === "bands" ? "includes" : "equals", reason_code:"explicit_hard_avoid",
+      created_at:new Date().toISOString()
     });
     persist("Gear Tasteをこのブラウザ内に保存しました。");
     gotoStep("context");

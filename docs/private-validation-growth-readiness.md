@@ -108,19 +108,19 @@ Paid candidates are advanced Watch, price history/Buy Window, multiple setup pro
 
 ## Human-time model
 
-The mature model assigns catalog maintenance/evidence refresh/variant/affiliate/support to B, launch watch to A, and rights review to C. Weighted workload projects A+B at 95%, with 35 human hours/month at the modeled scale. This is a design target, not a measured automation rate.
+The conservative pre-validation baseline assigns launch watch to A; catalog, evidence and Affiliate maintenance to B; rights and variant review to C; and user support to D. Weighted workload is A 15%, B 45%, C 30%, D 10%, so A+B is 60%, with 35 human hours/month in the base hypothesis. The 90% mature target is not treated as achieved or probable until timed operations data exists.
 
 The next test must time four weeks of catalog, evidence, rights, variant, launch, Affiliate, and support work. Expansion is HOLD if first-SKU verification exceeds a median 60 minutes, 50 active SKUs require more than 10 maintenance hours/month, tester support exceeds 10 minutes/person, or observed A+B remains below 80%. Mature target remains at least 90% A+B.
 
 ## Three-case revenue hypotheses
 
-Formulae are executable in `business-model.js`. Human cost is included at JPY 2,500/hour. No scenario is a forecast.
+Formulae are executable in `business-model.js`. Human cost is included at JPY 2,500/hour. Affiliate reversals, merchant/program closure haircuts, Premium refunds, payment fees, data maintenance, and infrastructure are explicit. Taxes are excluded. No scenario is a forecast.
 
-| Scenario | Monthly users | Setup completion | Purchase intent | Affiliate clicks | Affiliate CV | Avg commission | Premium conversion / ARPU | Infra | Human h | Affiliate revenue | Premium revenue | Net profit | Net / human h |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Pessimistic | 1,000 | 25% | 8% | 30% | 2% | ¥500 | 0% / ¥600 | ¥0 | 15 | ¥60 | ¥0 | -¥37,440 | -¥2,496 |
-| Base | 10,000 | 40% | 15% | 40% | 4% | ¥800 | 0.5% / ¥600 | ¥3,000 | 35 | ¥7,680 | ¥30,000 | -¥52,820 | -¥1,509 |
-| Success | 50,000 | 50% | 20% | 45% | 5% | ¥1,000 | 1.5% / ¥600 | ¥15,000 | 80 | ¥112,500 | ¥450,000 | ¥347,500 | ¥4,344 |
+| Scenario | Monthly users | Setup completion | Purchase intent | Affiliate clicks | Affiliate CV | Avg commission | Reversal / closure haircut | Premium conversion / ARPU / refund | Payment fee | Infra + data | Human h | Realized revenue | Net profit | Net / human h |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Pessimistic | 1,000 | 25% | 8% | 30% | 2% | ¥300 | 30% / 20% | 0% / ¥600 / 0% | 3.6% | ¥0 + ¥5,000 | 15 | ¥20 | -¥42,480 | -¥2,832 |
+| Base | 10,000 | 40% | 15% | 40% | 4% | ¥500 | 15% / 10% | 0.5% / ¥600 / 8% | 3.6% | ¥3,000 + ¥10,000 | 35 | ¥30,192 | -¥70,308 | -¥2,009 |
+| Success | 50,000 | 50% | 20% | 45% | 5% | ¥800 | 10% / 5% | 1.5% / ¥600 / 5% | 3.6% | ¥15,000 + ¥50,000 | 80 | ¥488,250 | ¥223,250 | ¥2,791 |
 
 Even the success hypothesis is below the mature target of ¥5,000 net profit per human hour. The base case is negative after human time. This is a HOLD signal for scaling, not a reason to suppress DONT_UPGRADE or bias recommendations toward higher commission.
 
@@ -166,14 +166,14 @@ Hard later gates: at least one approved, non-refunded commission for plumbing; a
 | Validation | HOLD for real users; GO for local design | measurement is ready, recruitment/sending is not authorized |
 | Growth | HOLD | hypotheses and hooks exist; no PGI channel result exists |
 | Monetization | HOLD | all programs are disabled and no order/commission exists |
-| Operations | TEST | projected A+B is 95%; real time has not been logged |
+| Operations | TEST | conservative A+B baseline is 60%; real time has not been logged and the 90% target is unproven |
 | Scale/revenue | NO-GO | code and modeled scenarios are not business evidence |
 
 Priority allocation: Validation/measurement 35%, Evidence/rights 20%, Growth hypotheses 20%, human-time automation 10%, monetization intent 10%, revenue/stop dashboard 5%. Next-gate cap: 20–30 human hours and ¥0.
 
 ## Tests
 
-`node --test tests/*.test.js`: 185 passed, 0 failed. The first sandboxed run produced one local-loopback `EACCES`; the authorized local rerun passed its HTTP smoke test. `git diff --check`: clean, with line-ending conversion warnings only. No browser dependency, external Analytics, Affiliate URL, deployment, or tester sending was added.
+Superseded by `docs/final-investment-committee-audit.md`. No browser dependency, external Analytics, Affiliate URL, deployment, or tester sending was added.
 
 ## Next-stage conditions
 

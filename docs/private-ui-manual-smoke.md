@@ -17,3 +17,7 @@ Test at 1440 px desktop and 390 px mobile:
 11. Confirm layout has no horizontal overflow at 390 px.
 
 Automation is optional. The repository has a Playwright smoke script but no package manifest or pinned browser dependency; this pack does not add a dependency or CI change.
+
+## Latest manual result
+
+2026-10-10: PASS in the local Codex in-app browser at 1440×1000 and 390×844. The required flow reached five recommendation cards, conservative DONT/AVOID output, feedback explanation, and a five-card rerank. `noindex`, shared-device warning, schema version, external-transmission-off label, no horizontal overflow, no console error/warning, and no external resource entry were confirmed. Export/recovery/Delete remain covered by static/unit tests; the UI Delete action was not repeated during this smoke because it is destructive local state management.

@@ -75,7 +75,7 @@ test("Upgrade Match exposes all six required decision classes", () => {
   };
   assert.equal(engine.classifyUpgradeMatch({ ...base, familiar_score:0.8 }), "SAFE / FAMILIAR");
   assert.equal(engine.classifyUpgradeMatch({ ...base, components:{ ...base.components, preference_fit:0.8 } }), "BETTER_FIT");
-  assert.equal(engine.classifyUpgradeMatch({ ...base, components:{ ...base.components, value:0.8 } }), "VALUE_ALTERNATIVE");
+  assert.equal(engine.classifyUpgradeMatch({ ...base, components:{ ...base.components, value:0.8 }, value_alternative_verified:true }), "VALUE_ALTERNATIVE");
   assert.equal(engine.classifyUpgradeMatch(base), "EXPLORE");
   assert.equal(engine.classifyUpgradeMatch({ ...base, regret_shield:{ risk_level:"high", should_block:true } }), "AVOID");
   assert.equal(engine.classifyUpgradeMatch({ ...base, components:{ ...base.components, current_gear_delta:0.03 } }), "DONT_UPGRADE");
