@@ -29,6 +29,10 @@ GitHub Pagesで配信できるよう、ビルド不要のHTML・CSS・JavaScript
 | `en/` | Global最小版。英語UI、USD予算アダプター、英語ガイド4本 |
 | `growth/en/` | Global需要検証用のShorts 6本、X 10本、Reddit調査案5本 |
 | `tests/` | 診断、Affiliate、Analytics、SEO、リンクの回帰テスト |
+| `private/` | Personal Gear Intelligenceの非公開・noindex・localStorage限定S3検証UI |
+| `data/personal-gear-fixtures.js` | 5カテゴリ30製品のfixture-only Evidence ledger |
+| `normalization-engine.js` | 単位・表記揺れをraw値と分離して正規化 |
+| `storage-engine.js` | localStorage schema、Export/Reset/Delete、破損復旧境界 |
 
 データの流れは `games.js → diagnosis-engine.js → diagnose-page.js` です。診断結果の上位カテゴリを `affiliate.js` が `merchants.js` と照合します。広告主が無効、URLが空、カテゴリ不一致のいずれかならCTAは生成されません。
 
@@ -56,6 +60,8 @@ node --test tests/*.test.js
 
 ローカル表示はリポジトリのルートをHTTPサーバーで配信し、`diagnose.html` を開いて確認します。`file://` 直開きではなくHTTP経由を使ってください。
 Playwrightを利用できる環境では `node tests/browser-smoke.js` でPC幅と390px幅の実ブラウザースモークテストも実行できます。
+
+Personal Gear IntelligenceのS3検証画面はローカルサーバー上の`/private/personal-gear.html`で確認します。本番サイトからはリンクせず、サイトマップにも含めません。商品・Evidenceはfixture専用であり、実購入向け公開データではありません。
 
 ## ゲームの追加方法
 

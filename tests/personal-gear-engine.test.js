@@ -151,6 +151,20 @@ test("evidence grade D cannot become purchase advice from self-reported fit scor
   assert.equal(result.decision, "DONT_UPGRADE");
 });
 
+test("missing current-gear delta stays Low confidence and stops purchase advice", () => {
+  const result = engine.recommendUpgrades({
+    game_id:"apex", input_method:"mnk", profile:prefs.createProfile(), current_gear:{ category:"mouse" },
+    candidates:[{
+      product_id:"real-product-without-comparable-delta", category:"mouse", evidence_grade:"B",
+      game_fitness:{ apex_mnk:{ score:0.95, evidence_grade:"B" } }, value_score:0.9,
+      compatible:true, attributes:{ weight:55 }, attribute_evidence:{ weight:{ confidence:"High" } }
+    }]
+  }).recommendations[0];
+  assert.equal(result.confidence,"Low");
+  assert.equal(result.upgrade_match,"DONT_UPGRADE");
+  assert.ok(result.data_gaps.includes("current_gear_delta_missing"));
+});
+
 test("input incompatibility is reflected in both decision and score component", () => {
   const result = engine.recommendUpgrades({
     game_id:"apex", input_method:"controller", profile:prefs.createProfile(),

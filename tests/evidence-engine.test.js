@@ -93,4 +93,55 @@ test("Evidence records keep normalized facts and reject copied media or review b
   assert.deepEqual(evidence.validateEvidenceRecord(base), []);
   assert.ok(evidence.validateEvidenceRecord({ ...base, review_body:"copied review" }).includes("review_body is prohibited"));
   assert.ok(evidence.validateEvidenceRecord({ ...base, thumbnail_url:"https://example.test/thumb.jpg" }).includes("thumbnail_url is prohibited"));
+  for (const field of ["body","quote","captions","ocr_text","html","markdown","raw_table","image_data"]) {
+    assert.ok(evidence.validateEvidenceRecord({ ...base, [field]:"copied" }).includes(field + " is prohibited"), field);
+  }
+  const fixtureBase = {
+    ...base, source_origin_id:"origin-1", source_type:"official", checked_date:"2026-10-09",
+    raw_fact:"Short GameFit-authored fact.", normalized_fact:{ attribute:"weight", value:55, unit:"g" },
+    locale:"en-US", rights_use_note:"GameFit fact only; do not copy source content.",
+    commercial_relationship:"manufacturer", independent:false
+  };
+  assert.deepEqual(evidence.validateFixtureEvidenceRecord(fixtureBase),[]);
+  assert.ok(evidence.validateFixtureEvidenceRecord({ ...fixtureBase, raw_fact:"x".repeat(281) })
+    .includes("raw_fact must be a concise plain-text GameFit-authored fact"));
+  const implicit = { ...fixtureBase };
+  delete implicit.independent;
+  assert.ok(evidence.validateFixtureEvidenceRecord(implicit).includes("independent must be explicit"));
+});
+
+test("stance-free records and conflicting subjective claims cannot manufacture consensus", () => {
+  const stanceFree = ["a","b","c"].map(source_id => ({ evidence_type:"subjective", source_id, independent:true }));
+  assert.equal(evidence.normalizeSubjectiveConsensus(stanceFree), "anecdotal");
+  const conflict = [
+    ...["a","b","c"].map(source_id => ({ evidence_type:"subjective", source_id, independent:true, stance:"positive" })),
+    ...["d","e"].map(source_id => ({ evidence_type:"subjective", source_id, independent:true, stance:"negative" }))
+  ];
+  assert.equal(evidence.normalizeSubjectiveConsensus(conflict), "mixed");
+});
+
+test("mirrors with the same origin and adoption-only history do not inflate evidence grade", () => {
+  const records = [
+    { evidence_type:"measurement", source_id:"mirror-a", source_origin_id:"lab-origin", independent:true },
+    { evidence_type:"measurement", source_id:"mirror-b", source_origin_id:"lab-origin", independent:true },
+    { evidence_type:"subjective", source_id:"r1", independent:true, stance:"positive" },
+    { evidence_type:"subjective", source_id:"r2", independent:true, stance:"positive" },
+    { evidence_type:"subjective", source_id:"r3", independent:true, stance:"positive" },
+    { evidence_type:"adoption", source_id:"pros", independent:true, long_term:true }
+  ];
+  assert.equal(evidence.uniqueIndependent(records.slice(0,2)).length,1);
+  assert.equal(evidence.gradeFromEvidence(records,{ lifecycle_state:"mature" }),"B");
+});
+
+test("attribute evidence is independent from product-level grade and preserves conflicts", () => {
+  assert.deepEqual(evidence.buildAttributeAssessment([],"shape",{ evidence_grade:"A" }), {
+    attribute:"shape", grade:"D", confidence:"Low", source_count:0, independent_source_count:0, conflict:false,
+    consensus:"anecdotal", methodology_families:[], normalized_facts:[], data_gaps:["attribute_evidence_missing"]
+  });
+  const assessment = evidence.buildAttributeAssessment([
+    { evidence_type:"measurement", source_id:"lab-a", independent:true, methodology_family:"lab-a", normalized_fact:{ attribute:"weight", value:49, unit:"g" } },
+    { evidence_type:"measurement", source_id:"lab-b", independent:true, methodology_family:"lab-b", normalized_fact:{ attribute:"weight", value:52, unit:"g" } }
+  ],"weight",{ lifecycle_state:"mature" });
+  assert.equal(assessment.conflict,true);
+  assert.equal(assessment.confidence,"Low");
 });

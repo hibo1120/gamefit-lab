@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>GameFit Private S3 — Personal Gear Intelligence</title>
+  <link rel="stylesheet" href="./personal-gear.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">PRIVATE S3 VALIDATION · LOCAL ONLY</p>
+      <h1>Personal Gear Intelligence</h1>
+      <p>実商品fixtureを使った非公開検証UIです。購入を断定せず、根拠不足なら「買い替えない」を返します。</p>
+      <div class="privacy-banner" role="note">
+        <strong>共有端末では使用しないでください。</strong>
+        入力はこのブラウザのlocalStorageだけに保存されます。同期・送信・バックアップはなく、プライベートブラウズや容量整理で消える場合があります。
+        noindexはアクセス制御ではありません。このページはローカル検証専用で、deployしません。
+      </div>
+      <div class="privacy-actions" aria-label="保存データ管理">
+        <button type="button" id="export-data" class="secondary">Export</button>
+        <button type="button" id="reset-data" class="secondary">Reset</button>
+        <button type="button" id="delete-data" class="danger">Delete all</button>
+      </div>
+      <p id="storage-status" class="status" aria-live="polite"></p>
+    </header>
+
+    <ol class="steps" aria-label="診断ステップ">
+      <li data-step-indicator="setup" class="active">My Setup Lite</li>
+      <li data-step-indicator="taste">Gear Taste</li>
+      <li data-step-indicator="context">Game / Input</li>
+      <li data-step-indicator="recommend">Next Upgrade</li>
+      <li data-step-indicator="feedback">Why Not? / 再推薦</li>
+    </ol>
+
+    <section class="panel" data-step="setup">
+      <p class="step-number">STEP 1</p>
+      <h2>My Setup Lite</h2>
+      <label>検証カテゴリ
+        <select id="category">
+          <option value="mouse">Mouse</option>
+          <option value="keyboard">Keyboard</option>
+          <option value="monitor">Monitor</option>
+          <option value="mousepad">Mousepad</option>
+          <option value="audio">Audio</option>
+        </select>
+      </label>
+      <label>現在使っている製品
+        <select id="current-product"></select>
+      </label>
+      <label>予算帯
+        <select id="budget">
+          <option value="10000">〜1万円</option>
+          <option value="30000">〜3万円</option>
+          <option value="60000">〜6万円</option>
+          <option value="120000">〜12万円</option>
+          <option value="250000">〜25万円</option>
+        </select>
+      </label>
+      <button type="button" id="to-taste">Gear Tasteへ</button>
+    </section>
+
+    <section class="panel" data-step="taste" hidden>
+      <p class="step-number">STEP 2</p>
+      <h2>Gear Taste</h2>
+      <p>過去の苦手属性を1つだけ登録します。未確認値を推測入力しません。</p>
+      <label>苦手な属性
+        <select id="avoid-attribute"></select>
+      </label>
+      <label>避けたい値
+        <select id="avoid-value"></select>
+      </label>
+      <label class="check-row"><input type="checkbox" id="hard-avoid"> hard avoidとして必ず避ける</label>
+      <div class="button-row">
+        <button type="button" data-back="setup" class="secondary">戻る</button>
+        <button type="button" id="save-taste">Game / Inputへ</button>
+      </div>
+    </section>
+
+    <section class="panel" data-step="context" hidden>
+      <p class="step-number">STEP 3</p>
+      <h2>Game / Input</h2>
+      <label>ゲーム
+        <select id="game">
+          <option value="apex">Apex Legends</option>
+          <option value="valorant">VALORANT</option>
+        </select>
+      </label>
+      <label>入力方式
+        <select id="input-method">
+          <option value="mnk">Mouse & Keyboard</option>
+          <option value="controller">Controller</option>
+        </select>
+      </label>
+      <p id="context-warning" class="warning" role="alert" hidden></p>
+      <div class="button-row">
+        <button type="button" data-back="taste" class="secondary">戻る</button>
+        <button type="button" id="to-recommend">Next Upgradeへ</button>
+      </div>
+    </section>
+
+    <section class="panel" data-step="recommend" hidden>
+      <p class="step-number">STEP 4–6</p>
+      <h2>Next Upgrade → Upgrade Match → Regret Shield</h2>
+      <div id="decision-summary" class="decision" aria-live="polite"></div>
+      <div id="recommendations" class="cards"></div>
+      <div class="button-row">
+        <button type="button" data-back="context" class="secondary">条件を戻す</button>
+        <button type="button" id="to-feedback">Why Not?</button>
+      </div>
+    </section>
+
+    <section class="panel" data-step="feedback" hidden>
+      <p class="step-number">STEP 7–8</p>
+      <h2>Why Not? → 再推薦</h2>
+      <fieldset>
+        <legend>最初の推薦は合っていますか？</legend>
+        <label><input type="radio" name="verdict" value="agree"> 合っている</label>
+        <label><input type="radio" name="verdict" value="disagree"> 違う</label>
+        <label><input type="radio" name="verdict" value="unsure"> わからない</label>
+      </fieldset>
+      <div id="disagree-details" hidden>
+        <fieldset id="reason-codes"><legend>なぜ違いますか？</legend></fieldset>
+        <fieldset id="direction-codes"><legend>どういう方向なら良い？</legend></fieldset>
+      </div>
+      <button type="button" id="rerank">保存して再推薦</button>
+      <p id="feedback-status" class="status" aria-live="polite"></p>
+      <div id="reranked" class="cards"></div>
+      <button type="button" id="accept-rerank" hidden>こっちなら合う</button>
+    </section>
+
+    <aside class="method-note">
+      <h2>Calibrationの扱い</h2>
+      <p>この画面のConfidenceはfixture上の仮評価です。購入後Outcomeがないため、実世界で較正済みとは表示しません。Highでも外れる例、Lowでも当たる例を敵対fixtureで保持します。</p>
+      <p>実商品fixtureには未検証の性能差を埋めていません。比較可能なcurrent-gear deltaがない候補は安全側の <code>DONT_UPGRADE</code> になります。全6分類の境界は敵対fixtureで別に検証します。</p>
+      <p>Schema version: <span id="schema-version"></span> · 外部送信: なし · Global learning: 無効</p>
+    </aside>
+  </main>
+
+  <script src="../preference-engine.js"></script>
+  <script src="../normalization-engine.js"></script>
+  <script src="../data/game-dna.js"></script>
+  <script src="../evidence-engine.js"></script>
+  <script src="../personal-gear-engine.js"></script>
+  <script src="../feedback-engine.js"></script>
+  <script src="../storage-engine.js"></script>
+  <script src="../data/personal-gear-fixtures.js"></script>
+  <script src="./personal-gear.js"></script>
+</body>
+</html>

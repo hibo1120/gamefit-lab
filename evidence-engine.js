@@ -8,8 +8,10 @@
   const EVIDENCE_TYPES = Object.freeze(["spec","measurement","subjective","issue","trend","price","adoption","fact_correction"]);
   const CONSENSUS = Object.freeze(["anecdotal","medium","high","mixed","not_applicable"]);
   const PROHIBITED_COPY_FIELDS = Object.freeze([
-    "raw_text", "review_body", "image_url", "thumbnail_url", "video_file", "transcript", "table_data", "graph_data"
+    "raw_text", "review_body", "body", "quote", "quotes", "caption", "captions", "ocr_text", "html", "markdown",
+    "image_url", "image_data", "thumbnail_url", "video_file", "transcript", "table_data", "raw_table", "graph_data"
   ]);
+  const ATTRIBUTE_GRADES = Object.freeze(["A", "B", "C", "D"]);
 
   function validateEvidenceRecord(record) {
     const errors = [];
@@ -25,11 +27,30 @@
     return errors;
   }
 
+  function validateFixtureEvidenceRecord(record) {
+    const errors = validateEvidenceRecord(record);
+    for (const key of ["source_origin_id", "source_type", "checked_date", "raw_fact", "normalized_fact", "locale", "methodology_family", "rights_use_note", "commercial_relationship"]) {
+      if (record?.[key] === undefined || record?.[key] === "") errors.push(key + " is required");
+    }
+    if (typeof record?.independent !== "boolean") errors.push("independent must be explicit");
+    if (record?.raw_fact && (typeof record.raw_fact !== "string" || record.raw_fact.length > 280 || /[\r\n<>]/.test(record.raw_fact))) {
+      errors.push("raw_fact must be a concise plain-text GameFit-authored fact");
+    }
+    if (record?.checked_date && !/^\d{4}-\d{2}-\d{2}$/.test(record.checked_date)) errors.push("checked_date must be YYYY-MM-DD");
+    if (record?.retrieved_at && record?.checked_date && record.retrieved_at !== record.checked_date) {
+      errors.push("retrieved_at and checked_date must match");
+    }
+    if (record?.normalized_fact && typeof record.normalized_fact !== "object") errors.push("normalized_fact must be an object");
+    if (record?.normalized_fact && !record.normalized_fact.attribute) errors.push("normalized_fact.attribute is required");
+    if (record?.rights_use_note && String(record.rights_use_note).length > 240) errors.push("rights_use_note is too long");
+    return [...new Set(errors)];
+  }
+
   function uniqueIndependent(items) {
     const seen = new Set();
     return items.filter(item => {
-      if (item.independent === false) return false;
-      const key = item.source_id;
+      if (item.independent !== true) return false;
+      const key = item.source_origin_id || item.origin_source_id || item.source_id;
       if (!key) return false;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -39,12 +60,11 @@
 
   function normalizeSubjectiveConsensus(items) {
     const independent = uniqueIndependent(items.filter(item => item.evidence_type === "subjective"));
-    if (independent.length <= 1) return "anecdotal";
     const stances = independent.map(item => item.stance).filter(Boolean);
-    if (!stances.length) return independent.length >= 3 ? "medium" : "anecdotal";
+    if (independent.length <= 1 || stances.length !== independent.length) return "anecdotal";
     const counts = stances.reduce((acc, stance) => ((acc[stance] = (acc[stance] || 0) + 1), acc), {});
     const values = Object.values(counts).sort((a,b)=>b-a);
-    if (values.length > 1 && values[0] === values[1]) return "mixed";
+    if (values.length > 1) return "mixed";
     if (values[0] >= 3) return "high";
     if (values[0] >= 2) return "medium";
     return "mixed";
@@ -70,7 +90,7 @@
   function gradeFromEvidence(items, product) {
     const measurements = uniqueIndependent(items.filter(i => i.evidence_type === "measurement")).length;
     const subjectiveConsensus = normalizeSubjectiveConsensus(items);
-    const longTermCoverage = uniqueIndependent(items.filter(i => i.long_term === true)).length;
+    const longTermCoverage = uniqueIndependent(items.filter(i => i.long_term === true && !["adoption", "trend", "price"].includes(i.evidence_type))).length;
     let grade = "D";
     if (measurements >= 1 || subjectiveConsensus === "medium") grade = "C";
     if (measurements >= 1 && ["medium","high"].includes(subjectiveConsensus)) grade = "B";
@@ -96,9 +116,73 @@
     };
   }
 
+  function confidenceFromGrade(grade) {
+    if (grade === "A" || grade === "B") return "High";
+    if (grade === "C") return "Medium";
+    return "Low";
+  }
+
+  function normalizedFactKey(item) {
+    const fact = item?.normalized_fact;
+    if (!fact || typeof fact !== "object" || fact.value === undefined) return null;
+    return JSON.stringify([fact.value, fact.unit || null, fact.variant || item.variant || null]);
+  }
+
+  function buildAttributeAssessment(items, attribute, product={}) {
+    const relevant = (items || []).filter(item => item.attribute === attribute || item.normalized_fact?.attribute === attribute);
+    const independent = uniqueIndependent(relevant);
+    // A manufacturer is not an independent reviewer, but it is still the primary
+    // source for an explicit specification.  Keep one record per origin for
+    // objective facts; independence remains mandatory for subjective consensus.
+    const objectiveOrigins = new Set();
+    const objective = relevant.filter(item => {
+      if (!["spec", "measurement", "fact_correction"].includes(item.evidence_type)) return false;
+      const origin = item.source_origin_id || item.origin_source_id || item.source_id;
+      if (!origin || objectiveOrigins.has(origin)) return false;
+      objectiveOrigins.add(origin);
+      return true;
+    });
+    const official = objective.filter(item => item.source_type === "official" && item.methodology_family === "official_spec");
+    const measurement = objective.filter(item => item.evidence_type === "measurement");
+    const subjective = independent.filter(item => item.evidence_type === "subjective");
+    const consensus = normalizeSubjectiveConsensus(subjective);
+    const knownValues = [...new Set(objective.map(normalizedFactKey).filter(Boolean))];
+    const conflict = knownValues.length > 1 || consensus === "mixed";
+    const allOrigins = new Set(relevant.map(item => item.source_origin_id || item.origin_source_id || item.source_id).filter(Boolean));
+    let grade = "D";
+    if (!conflict && official.length >= 1) grade = measurement.length >= 1 ? "A" : "B";
+    else if (!conflict && measurement.length >= 2) grade = "A";
+    else if (!conflict && measurement.length >= 1) grade = "B";
+    else if (!conflict && consensus === "high") grade = "B";
+    else if (!conflict && consensus === "medium") grade = "C";
+    else if (independent.length >= 1) grade = "D";
+
+    const cap = newProductConfidenceCap(product);
+    if (cap <= 0.35 && ["A", "B"].includes(grade)) grade = "C";
+    if (cap <= 0.55 && grade === "A") grade = "B";
+    return {
+      attribute,
+      grade,
+      confidence:confidenceFromGrade(grade),
+      source_count:allOrigins.size,
+      independent_source_count:independent.length,
+      conflict,
+      consensus,
+      methodology_families:[...new Set(relevant.map(item => item.methodology_family).filter(Boolean))],
+      normalized_facts:relevant.map(item => item.normalized_fact).filter(Boolean),
+      data_gaps:relevant.length ? [] : ["attribute_evidence_missing"]
+    };
+  }
+
+  function buildAttributeAssessments(items, attributes, product={}) {
+    const names = attributes || [...new Set((items || []).map(item => item.attribute || item.normalized_fact?.attribute).filter(Boolean))];
+    return Object.fromEntries(names.map(attribute => [attribute, buildAttributeAssessment(items, attribute, product)]));
+  }
+
   return {
-    EVIDENCE_TYPES, CONSENSUS, PROHIBITED_COPY_FIELDS, validateEvidenceRecord,
+    EVIDENCE_TYPES, CONSENSUS, PROHIBITED_COPY_FIELDS, ATTRIBUTE_GRADES, validateEvidenceRecord, validateFixtureEvidenceRecord,
     normalizeSubjectiveConsensus, groupCompatibleMeasurements,
-    uniqueIndependent, newProductConfidenceCap, gradeFromEvidence, buildAssessment
+    uniqueIndependent, newProductConfidenceCap, gradeFromEvidence, buildAssessment,
+    confidenceFromGrade, buildAttributeAssessment, buildAttributeAssessments
   };
 });

@@ -9,13 +9,15 @@
   const OUTCOMES = Object.freeze(["great", "good", "neutral", "poor", "bad"]);
   const DISPOSITIONS = Object.freeze(["kept", "returned_to_previous", "sold", "exchanged", "other"]);
   const REASON_CODES = Object.freeze([
-    "shape", "price", "wrong_shape", "wrong_size", "too_heavy", "too_light", "too_expensive",
+    "shape", "size", "weight", "click", "price", "brand", "game_fit", "durability", "software", "current_gear_delta_small",
+    "wrong_shape", "wrong_size", "too_heavy", "too_light", "too_expensive",
     "insufficient_delta", "game_mismatch", "input_mismatch", "comfort", "sound", "latency",
     "evidence_weak", "other"
   ]);
   const DIRECTION_CODES = Object.freeze([
-    "lighter", "heavier", "smaller", "larger", "safer_familiar", "more_control", "more_speed",
-    "lower_latency", "cheaper", "better_fit", "different_layout", "more_bass", "less_bass"
+    "lighter", "heavier", "smaller", "larger", "lower_hump", "cheaper", "same_brand", "different_brand",
+    "higher_performance", "safer_familiar", "do_not_upgrade", "more_control", "more_speed",
+    "lower_latency", "better_fit", "different_layout", "more_bass", "less_bass"
   ]);
 
   function uniqueCodes(values) {

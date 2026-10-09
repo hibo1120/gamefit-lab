@@ -1,6 +1,6 @@
 # GameFit Personal Gear Intelligence v1
 
-Status: S3 MVP specification and decision-engine prototype. This branch does not change production UI, merge to `main`, deploy, add accounts, send email, create a database, or implement price monitoring.
+Status: Private S3 fixture-validation MVP. This branch adds an unlinked, `noindex` local UI under `private/`; it does not change the production UI, merge to `main`, deploy, add accounts, send email, create a database, or implement price monitoring.
 
 ## Product decision
 
@@ -135,11 +135,11 @@ Every KPI includes its sample size. A zero denominator returns `null`, not zero.
 
 ## 8. MVP UX specification
 
-The production UI is intentionally not implemented in this branch. The minimum future flow is:
+The production UI is intentionally not implemented in this branch. The private validation flow is available at `private/personal-gear.html` and is not linked from the public site or sitemap. `noindex` and the missing link are not access control: this page must not be deployed until a separate production/privacy approval:
 
 ### My Setup Lite
 
-Ask only current category/product, target game, input method, budget band, and the main problem. Run Compatibility Guard and Fix Before Buy before showing products.
+Ask only current category/product and budget band. Game and input are collected as a separate exact context before a recommendation runs. Compatibility Guard and Fix Before Buy remain mandatory inputs before any future purchase advice.
 
 ### Gear Taste
 
@@ -161,7 +161,29 @@ Collect `agree / disagree / unsure`. For `disagree`, require short reason-code a
 
 Apply personal learning immediately within the same game/input context. Show what changed and retain the original recommendation snapshot. Never present the update as global learning.
 
-## 9. Local storage and privacy
+## 9. Real-product fixture and normalization contract
+
+`data/personal-gear-fixtures.js` contains a 30-product, fixture-only pilot: six products in each of mouse, keyboard, monitor, mousepad, and audio. Each category includes one `staple`, `current_flagship`, `value`, `hidden_gem_candidate`, `new_low_evidence`, and `legacy` test stratum. These internal strata are omitted from the UI and are not recommendations, price claims, or market claims.
+
+Every stored Evidence record must contain:
+
+- source URL and source type
+- checked date
+- a short GameFit-authored raw fact
+- normalized fact
+- methodology family
+- rights/use note
+- product and source-origin identifiers
+
+Unknown attributes are omitted. They are never inferred from a product name, family, review reputation, another region, or an earlier revision. Manufacturer pages support identity and explicit specifications; they do not create independent subjective consensus. Product Evidence grades are computed from the ledger at load time rather than declared in fixture rows. Adoption, trend, price, and Affiliate availability cannot promote an Evidence grade or personal-fit score.
+
+`normalization-engine.js` preserves `raw_value` and separately creates a canonical `normalized_value` and `normalized_unit`. It currently normalizes grams/kilograms, millimetres/centimetres/inches, Hz/kHz/MHz, milliseconds/microseconds, common panel names, symmetric/ambidextrous wording, rapid-trigger booleans, and rear/back-hump synonyms. Invalid, non-finite, or physically impossible measurements are rejected.
+
+Attribute Evidence is independent from the product-level grade. Shape, click, weight, latency, glide, response time, imaging, or any other attribute can have its own A–D grade, confidence, source count, methodology set, conflict flag, normalized facts, and data gaps. Missing attribute evidence remains Low and does not inherit a product-level grade. Regret Shield uses the confidence of the compared attribute first.
+
+The real-product pilot deliberately omits an unverified current-gear performance delta and unknown compatibility. Therefore the private UI safely returns `DONT_UPGRADE` rather than inventing a positive upgrade. The six Upgrade Match branches and re-ranking mechanics are exercised separately with adversarial synthetic fixtures; this is pipeline safety validation, not recommendation-accuracy validation.
+
+## 10. Local storage and privacy
 
 Future UI storage key: `gamefit.personal_gear.v1`.
 
@@ -179,17 +201,27 @@ The document shape is:
 }
 ```
 
-Storage stays on the current browser origin. The UI must offer export and delete, warn that private browsing or storage eviction can remove records, and never imply device sync. No login, email, notification, cloud DB, or cross-user learning is included.
+Storage stays on the current browser origin. The private UI provides JSON Export, Reset, and Delete all; displays the schema version; warns about shared devices, private browsing, and storage eviction; and never implies device sync. Corrupt or future-schema data is not overwritten automatically: the UI enters read-only recovery mode and exports the unchanged original bytes as a recovery text file until the user explicitly resets or deletes it. Deletion is limited to keys beginning with `gamefit.personal_gear.`. Writes are validated, size-limited, and atomic at the storage API boundary so a failed quota write keeps the last good record.
 
-## 10. Evidence and copyright
+No user ID or other personal identifier is generated. No login, email, notification, analytics, external request, cloud DB, or cross-user learning is included in the private page.
+
+## 11. Evidence and copyright
 
 External articles, videos, specialist reviews, and lab results are back-office Evidence only. GameFit stores its own normalized fact or trend plus source metadata; it does not republish review prose, images, thumbnails, videos, proprietary tables, graphs, 3D models, or transcripts.
 
-Minimum source ledger fields are `source_id`, URL, source type, retrieved date, product variant, locale, methodology family, evidence type, normalized fact/claim, and commercial relationship. Same-source duplicates do not count as independent consensus. Measurements from incompatible methodologies remain separate.
+Minimum source ledger fields are `source_id`, source-origin ID, URL, source type, checked/retrieved date, product variant, locale, methodology family, evidence type, a concise plain-text GameFit-authored raw fact, normalized fact, rights/use note, explicit independence, and commercial relationship. Same-origin mirrors do not count as independent consensus. Independence is opt-in only. Subjective claims without an explicit stance do not create consensus. Conflicting claims remain `mixed`. Measurements from incompatible methodologies remain separate.
+
+For any future automated collection, add and review `access_method`, `terms_checked_at`, `license_url`, `automation_allowed`, `redistribution_allowed`, and `permission_status` before collection begins. The current pilot is manual, small-volume citation and paraphrase only; it does not authorize scraping or redistribution.
 
 Manufacturer specifications are preferred for dimensions, weight, layout, connection standards, and supported features. Lab/subjective attributes remain confidence-scored and must respect source terms. Pro adoption is a game/time-window market signal, never personal fit proof and never cross-game evidence.
 
-## 11. Test and release gates
+## 12. Adversarial and calibration fixtures
+
+`data/adversarial-fixtures.js` defines expected safe behavior for disliked familiar shapes, flagship products with negligible delta, Pro-adoption/popularity pressure, Affiliate and non-Affiliate ordering, new Grade-D products, contradictory community opinion, incompatibility, 240 Hz panels configured at 144 Hz, Apex controller/mouse contamination, missing hard-avoid attributes, and raw/normalized type mismatches.
+
+The calibration samples deliberately include High-confidence failures and Low-confidence successes. They are marked synthetic and `has_real_outcomes:false`. Brier score and calibration gap calculated from them test the pipeline only; they are not evidence that real-world Confidence is calibrated.
+
+## 13. Test and release gates
 
 Required branch tests cover:
 
@@ -202,6 +234,13 @@ Required branch tests cover:
 - immediate personal re-ranking without double application or context leakage
 - post-purchase outcome consistency
 - all six KPIs, including confidence calibration
+- strict real-product Evidence-ledger validation and copyright-field rejection
+- raw/normalized unit and synonym equivalence
+- attribute-level confidence, conflict retention, and no product-grade inheritance
+- missing hard-avoid clarification and type-normalized hard-avoid matching
+- popular-product, Pro-adoption, Affiliate, duplicate-origin, and fake-consensus attacks
+- corrupt/future localStorage recovery, scoped deletion, and quota-failure safety
+- private UI flow, personal-only re-ranking, shared-device warning, and external-request absence
 - all existing regression tests
 
-Merge/deploy remain separate human decisions. Real-user calibration, product-fact coverage, source-permission review, and privacy UX are still required before a production recommendation launch.
+Merge/deploy remain separate human decisions. S3 stays HOLD for `main` until a human reviews the fixture facts and source permissions. Production launch additionally requires independent lab/subjective coverage for recommendation-critical attributes, verified current-gear delta and compatibility inputs, real post-purchase outcomes, and real-world confidence calibration.
