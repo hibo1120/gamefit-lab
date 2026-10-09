@@ -1,6 +1,6 @@
 # GameFit Lab
 
-ゲーミング環境の追加予算を、PC・CPU/GPU・RAM・ストレージ・モニター・デバイスのどこへ使うと費用対効果が高いか診断する静的サイトです。「買わない・現状維持」も正式な結果として扱います。
+ゲーミング環境の追加予算を、PC・CPU/GPU・メモリ・ストレージ・モニター・デバイスのどこへ使うと費用対効果が高いか診断する静的サイトです。「買わない・現状維持」も正式な結果として扱います。
 
 - 公開サイト: https://hibo1120.github.io/gamefit-lab/
 - 診断: https://hibo1120.github.io/gamefit-lab/diagnose.html
@@ -47,7 +47,7 @@ GitHub Pagesで配信できるよう、ビルド不要のHTML・CSS・JavaScript
 | `ram` | RAM | メモリ販売先 |
 | `storage` | ストレージ | SSD販売先 |
 | `cpu_gpu` | CPU / GPU | パーツまたはBTO販売先 |
-| `pc_replacement` | PC買替 | BTOメーカー |
+| `pc_replacement` | PCの買い替え | BTOメーカー |
 | `device` | デバイス | マウス・キーボード販売先 |
 
 公式動作環境は `official_*`、GameFit独自の診断目安は `gamefit_*` と分けています。画面上のスコアは公式保証値ではありません。
@@ -61,7 +61,7 @@ node --test tests/*.test.js
 ```
 
 ローカル表示はリポジトリのルートをHTTPサーバーで配信し、`diagnose.html` を開いて確認します。`file://` 直開きではなくHTTP経由を使ってください。
-Playwrightを利用できる環境では `node tests/browser-smoke.js` でPC幅と390px幅の実ブラウザースモークテストも実行できます。
+Playwrightを利用できる環境では `node tests/browser-smoke.js` でPC幅と390px幅の実ブラウザ・スモークテストも実行できます。
 
 Personal Gear IntelligenceのS3検証画面はローカルサーバー上の`/private/personal-gear.html`で確認します。本番サイトからはリンクせず、サイトマップにも含めません。商品・Evidenceはfixture専用であり、実購入向け公開データではありません。
 
@@ -164,7 +164,7 @@ PostHogでは`utm_source`、`utm_medium`、`utm_campaign`、`utm_content`、`sou
 - 結果共有文にCPU/GPU自由入力値が含まれず、X IntentとコピーURLのUTMが正しい。
 - Growth URLの媒体、campaign、content IDが`content_calendar.csv`と一致する。
 - PC幅と390px幅で横スクロールや重なりがない。
-- ブラウザーのコンソールエラー、内部リンク404がない。
+- ブラウザのコンソールエラー、内部リンク404がない。
 - `sitemap.xml`と`robots.txt`がHTTP 200である。
 - 8ガイド、公式動作環境、広告・免責・プライバシー表記を確認する。
 - Globalのトップ、診断、英語4ガイド、言語切替、hreflang、canonical、OG/Twitter、USD 6予算帯を確認する。

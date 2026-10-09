@@ -160,6 +160,7 @@ test("all guide, SEO, CTA, and internal asset URLs return HTTP 200 locally", asy
   const paths = [
     ...guides.map(file => `/gamefit-lab/guides/${file}`),
     "/gamefit-lab/diagnose.html",
+    "/gamefit-lab/404.html",
     "/gamefit-lab/sitemap.xml",
     "/gamefit-lab/robots.txt"
   ];
@@ -193,4 +194,12 @@ test("all guide, SEO, CTA, and internal asset URLs return HTTP 200 locally", asy
   }
   const missing = await fetch(`${origin}/gamefit-lab/does-not-exist.html`);
   assert.equal(missing.status, 404);
+});
+
+test("custom 404 keeps Japanese users inside the service", () => {
+  const html = fs.readFileSync(path.join(projectRoot, "404.html"), "utf8");
+  assert.match(html, /ページが見つかりません/);
+  assert.match(html, /\/gamefit-lab\//);
+  assert.match(html, /\/gamefit-lab\/diagnose\.html/);
+  assert.match(html, /noindex/);
 });

@@ -19,6 +19,10 @@ button,select,input { font:inherit; }
 .eyebrow,.step-number { margin:0; color:var(--accent); font-size:.78rem; font-weight:800; letter-spacing:.16em; }
 .privacy-banner { margin:22px 0 14px; padding:14px 16px; color:#f8e7bd; background:#302713; border:1px solid #67531f; border-radius:12px; }
 .privacy-actions,.button-row { display:flex; gap:10px; flex-wrap:wrap; }
+.privacy-action-note { margin:.7rem 0 0; color:var(--muted); font-size:.82rem; }
+.privacy-banner p { margin:.55rem 0 0; }
+.privacy-banner details { margin-top:.7rem; }
+.privacy-banner summary { cursor:pointer; font-weight:700; }
 button { min-height:44px; border:0; border-radius:11px; padding:10px 16px; background:var(--accent); color:var(--accent-ink); font-weight:800; cursor:pointer; }
 button.secondary { background:#273246; color:var(--text); }
 button.danger { background:#51252d; color:#ffdbe0; }
@@ -42,7 +46,7 @@ fieldset label { margin:10px 0; color:var(--text); }
 .card details { margin-top:10px; }
 .card summary { cursor:pointer; color:var(--accent); font-weight:800; }
 .badge { display:inline-flex; margin-right:7px; padding:4px 8px; border-radius:999px; background:#213047; color:#dce9ff; font-size:.78rem; font-weight:800; }
-.decision { padding:16px; border-left:4px solid var(--accent); background:#0b1515; }
+.decision { padding:16px; border-left:4px solid var(--accent); background:#0b1515; white-space:pre-wrap; overflow-wrap:anywhere; }
 .warning { color:var(--warning); }
 .status { min-height:1.4em; color:var(--accent); }
 .method-note { margin-top:24px; color:var(--muted); }
@@ -54,7 +58,10 @@ fieldset label { margin:10px 0; color:var(--text); }
 @media (max-width:700px) {
   .shell { width:min(100% - 20px,980px); padding-top:20px; }
   .hero,.panel,.method-note { padding:20px; border-radius:15px; }
-  .steps { grid-template-columns:1fr; }
-  .steps li { text-align:left; }
+  .steps { grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; }
+  .steps li { padding:8px 4px; font-size:0; line-height:1.35; overflow-wrap:anywhere; }
+  .steps li::after { content:attr(data-short); font-size:.75rem; }
   .card dl { grid-template-columns:1fr; }
+  .button-row > button,.privacy-actions > button { flex:1 1 100%; }
+  .decision,.card { overflow-wrap:anywhere; }
 }

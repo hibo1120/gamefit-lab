@@ -190,18 +190,18 @@ async function verifyPrivateGearViewport(browser, origin, viewport) {
   await page.selectOption("#input-method", "mnk");
   await page.click("#to-recommend");
   assert.equal(await page.locator("#recommendations .card").count(), 5);
-  assert.match(await page.locator("#decision-summary").innerText(), /Confidenceは仮評価/);
+  assert.match(await page.locator("#decision-summary").innerText(), /判断材料の多さはテスト用データによる仮評価/);
 
   await page.click("#to-feedback");
   await page.check('input[name="verdict"][value="disagree"]');
   await page.check('input[name="reason_code"][value="shape"]');
   await page.check('input[name="direction_code"][value="lower_hump"]');
   await page.click("#rerank");
-  assert.match(await page.locator("#feedback-status").innerText(), /Global learningは無効/);
+  assert.match(await page.locator("#feedback-status").innerText(), /他の利用者の判定へ反映されることはありません/);
   assert.equal(await page.locator("#reranked .card").count(), 5);
   assert.equal(await page.locator("#accept-rerank").isVisible(), true);
   await page.click("#accept-rerank");
-  assert.match(await page.locator("#feedback-status").innerText(), /こっちなら合う/);
+  assert.match(await page.locator("#feedback-status").innerText(), /見直した候補の方が合う/);
 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("gamefit.personal_gear.v1")));
   assert.equal(saved.schema_version, 1);
@@ -216,7 +216,7 @@ async function verifyPrivateGearViewport(browser, origin, viewport) {
 
   await page.evaluate(() => localStorage.setItem("gamefit.personal_gear.v1", "{broken"));
   await page.reload({ waitUntil: "networkidle" });
-  assert.match(await page.locator("#storage-status").innerText(), /破損/);
+  assert.match(await page.locator("#storage-status").innerText(), /保存内容を読み取れません/);
   const recoveryDownloadPromise = page.waitForEvent("download");
   await page.click("#export-data");
   const recoveryDownload = await recoveryDownloadPromise;
@@ -224,12 +224,16 @@ async function verifyPrivateGearViewport(browser, origin, viewport) {
   assert.equal(fs.readFileSync(await recoveryDownload.path(), "utf8"), "{broken");
   page.once("dialog", dialog => dialog.accept());
   await page.click("#reset-data");
-  assert.match(await page.locator("#storage-status").innerText(), /Reset/);
-  await page.evaluate(() => localStorage.setItem("other.application.key", "keep"));
+  assert.match(await page.locator("#storage-status").innerText(), /初期状態に戻しました/);
+  await page.evaluate(() => {
+    localStorage.setItem("other.application.key", "keep");
+    localStorage.setItem("gamefit.private_validation.v1", "keep-validation");
+  });
   page.once("dialog", dialog => dialog.accept());
   await page.click("#delete-data");
   assert.equal(await page.evaluate(() => localStorage.getItem("gamefit.personal_gear.v1")), null);
   assert.equal(await page.evaluate(() => localStorage.getItem("other.application.key")), "keep");
+  assert.equal(await page.evaluate(() => localStorage.getItem("gamefit.private_validation.v1")), "keep-validation");
 
   if (viewport.width === 390) {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
@@ -252,6 +256,9 @@ async function verifyPrivateGearViewport(browser, origin, viewport) {
     assert.match(fs.readFileSync(path.join(projectRoot, "index.md"), "utf8"), /\(\.\/diagnose\.html\)/);
     assert.equal((await fetch(`${origin}/gamefit-lab/sitemap.xml`)).status, 200);
     assert.equal((await fetch(`${origin}/gamefit-lab/robots.txt`)).status, 200);
+    const notFoundPage = await fetch(`${origin}/gamefit-lab/404.html`);
+    assert.equal(notFoundPage.status, 200);
+    assert.match(await notFoundPage.text(), /ページが見つかりません/);
     for (const route of [
       "/gamefit-lab/en/",
       "/gamefit-lab/en/diagnose.html",

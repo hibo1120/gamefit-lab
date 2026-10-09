@@ -103,7 +103,7 @@ The local ledger records only a fixed anonymous ID and structured codes:
 - self-reported intended judgment and UX/privacy issue codes;
 - facilitator teach-back result, assistance level, and individual STOP flags.
 
-The ledger excludes free text and contact data. It expires after 30 days. `Delete all` removes Personal Gear and validation data; the console also has a validation-only Delete.
+The ledger excludes free text and contact data. Browser-held validation records are pruned after 30 days the next time the facilitator console loads. Exported JSON files are not automatically deleted: the facilitator must store them only in the approved test location and delete them within 30 days after the 10-person test ends. The participant-facing `入力内容を削除` control removes only the Personal Gear profile and decision history; the facilitator console has a separate validation-ledger delete control.
 
 ## Blind comparison (optional secondary test)
 
