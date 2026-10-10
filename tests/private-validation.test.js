@@ -85,7 +85,7 @@ test("private validation storage protects identity/context fields and awaits fac
   assert.equal(event.properties.journey_id,"t01");
   assert.equal(event.properties.source,"private_tester");
   assert.equal(event.properties.cohort,"n10");
-  assert.equal(event.properties.build_id,"pgi-n10-preflight-v2");
+  assert.equal(event.properties.build_id,"pgi-n10-preflight-v3");
   store.submitTesterReview(storage,{ category:"mouse",game_id:"apex",input_method:"mnk",self_reported_reason_understood:true,intended_judgment:"keep_current",ux_issue_codes:["none"] },"2026-10-10T00:01:00.000Z");
   state=store.load(storage).state;
   assert.equal(store.report(state).finalized,0);

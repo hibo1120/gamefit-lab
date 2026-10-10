@@ -4,7 +4,7 @@
 
 対象: Draft PR #1 / `feature/personal-gear-intelligence-v1`
 
-Build: `pgi-n10-preflight-v2`
+Build: `pgi-n10-preflight-v3`
 
 ## Synthetic QA結果
 
@@ -80,15 +80,15 @@ URL構造:
 
 - production deployment: 無効
 - preview branch: `feature/personal-gear-intelligence-v1`だけ
-- build command: なし
-- output: repository root
+- build command: `node scripts/build-private-preview.js`
+- output: `preview-dist`（明示allowlistで生成。repository rootは公開しない）
 - Functions / Workers / Analytics / Affiliate: なし
 - HTML meta: `noindex,nofollow,noarchive`
 - HTTP header: `X-Robots-Tag: noindex, nofollow, noarchive`
 - `Cache-Control: no-store`
 - `connect-src 'none'`, `frame-ancestors 'none'`
 - 本番トップ・sitemapからリンクしない
-- preview上の`/private/validation-console.html`とextensionless routeは`_redirects`で404へ送る。担当者管理画面はローカルcheckoutだけで使用
+- `preview-dist`には担当者管理画面を含めない。`/private/validation-console.html`とextensionless routeは`_redirects`でも404側へ送り、担当者管理画面はローカルcheckoutだけで使用
 
 費用: Cloudflare Pages Free範囲を想定。公式のFree limitでは月500 builds、1 concurrent build、1 projectあたり20,000 filesであり、本テスト規模は範囲内。ただし契約・課金画面が出た場合は停止する。
 
@@ -164,7 +164,7 @@ PASS:
 
 - Synthetic結果に `synthetic:true` と `real_tester_eligible:false` を固定し、real 10人Gateから除外。
 - 72 personaすべてに7段階traceと個別safety checksを保持。
-- real validationは固定build `pgi-n10-preflight-v2`、T01〜T10、順序付きevent、elapsed timeを使用。
+- real validationは固定build `pgi-n10-preflight-v3`、T01〜T10、順序付きevent、elapsed timeを使用。
 - existing event schemaはLanding、My Setup、Decision、Why Not、rerank、Save/Return、Purchase route intentを区別。
 - CLARIFYはRecommendation Acceptanceの分母へ入れず、DONT_UPGRADE受容は成功候補として扱う。
 - SyntheticデータをConfidence calibrationや実Outcomeへ流用しない。
@@ -197,8 +197,8 @@ Cloudflare公式ではpreview URLは標準でpublic、`X-Robots-Tag: noindex`付
 - 担当者のローカル管理画面へ1slotずつ取り込み、build・出所・連番・重複・未知metadata・担当者専用eventを拒否してからレビュー確定する導線を追加。
 - event外側も`name` / `properties`の完全一致とし、連絡先や自由記述を追加して取り込む経路を拒否。
 - preview上の担当者管理画面は`_redirects`で404へ送り、ローカルの信頼済みcheckoutでだけ使用。
-- private routeへnoindex、no-store、CSP、frame denialを準備。
-- build IDをv2へ更新し、変更前cohortとの混在を防止。
+- dedicated preview全体へnoindex、no-store、CSP、frame denialを適用し、`preview-dist`だけを配信する。
+- allowlist preview bundle化に伴いbuild IDをv3へ更新し、変更前cohortとの混在を防止。
 
 ## ④レッド
 

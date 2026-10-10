@@ -232,7 +232,8 @@
     const stopped=report?.gate?.status==="STOP";
     byId("begin-validation").disabled=Boolean(stopped);
     setFlowDisabled(Boolean(active&&activeStatus!=="in_progress"));
-    byId("validation-report-status").textContent=report
+    const validationReportStatus=byId("validation-report-status");
+    if (validationReportStatus) validationReportStatus.textContent=report
       ? `${report.finalized}/10人確認済み · 担当者確認待ち ${report.awaiting_review}人 · 判定 ${gateLabel(report.gate.status)} · 自動送信なし`
       : "参加者番号付きテスト記録を読み取れません。";
     if (activeStatus==="awaiting_review") validationStatus("回答を保存しました。担当者の安全確認が終わるまで、この画面はそのままにしてください。");
@@ -578,7 +579,8 @@
     } catch (error) { validationStatus(friendlyError(error,"回答を保存できませんでした。担当者へお知らせください。"),true); }
   });
 
-  byId("export-validation").addEventListener("click", () => {
+  const exportValidationButton=byId("export-validation");
+  if (exportValidationButton) exportValidationButton.addEventListener("click", () => {
     try {
       const loaded=validationLoad();
       if (!loaded.state) throw new Error(loaded.error||"テスト記録を読み取れません");
@@ -607,7 +609,8 @@
     } catch (error) { byId("session-export-status").textContent=friendlyError(error,"テスト結果を書き出せませんでした。担当者へお知らせください。"); }
   });
 
-  byId("delete-validation").addEventListener("click", () => {
+  const deleteValidationButton=byId("delete-validation");
+  if (deleteValidationButton) deleteValidationButton.addEventListener("click", () => {
     if (!window.confirm("参加者番号付きの10人テスト記録をすべて削除します。元に戻せません。")) return;
     try {
       validationStore.deleteAll(storage);
@@ -659,7 +662,8 @@
     } catch (error) { setStatus(friendlyError(error,"初期化できませんでした。ブラウザの保存設定をご確認ください。"),true); }
   });
 
-  byId("schema-version").textContent = String(storageApi.SCHEMA_VERSION);
+  const schemaVersionNode=byId("schema-version");
+  if (schemaVersionNode) schemaVersionNode.textContent = String(storageApi.SCHEMA_VERSION);
   for (const testerId of validationStore.TESTER_IDS) byId("tester-id").append(option(testerId,testerId.toUpperCase()));
   const linkedTester=testerSlotFromHash();
   if (linkedTester) {

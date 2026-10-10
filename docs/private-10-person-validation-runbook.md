@@ -2,7 +2,7 @@
 
 Status: tester-URL preflight implementation complete; real participants 0/10
 
-Build: `pgi-n10-preflight-v2`
+Build: `pgi-n10-preflight-v3`
 Scope: private, moderated safety/usability test using either a facilitator-controlled local browser or an approved unlisted preview URL. No purchase, payment, public recruitment, monetization, or expansion beyond ten.
 
 ## Purpose and interpretation
@@ -30,7 +30,7 @@ After a separate preview-deployment approval, distribute one pseudonymous hash-f
 
 through `#T10`. A URL fragment is read only in the browser and is not sent as part of the HTTP request. Do not put a name, email address, social handle, or contact identifier in the URL. Use the deployment-hash URL rather than the branch alias. The page remains unlinked, has HTML and HTTP `noindex`, sends no input or analytics, and stores answers only in localStorage. The hosting provider can still process ordinary request metadata such as IP address; the page discloses that boundary. The tester result is not strictly anonymous: the fixed slot and the one-to-one return channel can be associated during operations, so call it a participant-number/pseudonymous record.
 
-The preview redirects `/private/validation-console.html` and its extensionless route to the custom 404. Run the facilitator console only from a local trusted checkout; never give its URL to a participant. The console imports one participant JSON at a time, rejects another build, reused slot, non-contiguous sequence, facilitator-only event, unknown metadata key, or sensitive free-form field, and then requires the facilitator review before the next import. These are structural checks, not a cryptographic signature; an exported file is not tamper-proof.
+The Cloudflare preview build is generated into `preview-dist` from an explicit allowlist. The facilitator console, docs, tests, scripts, exports, and other internal-only files are not copied into the deployment package. The preview also redirects `/private/validation-console.html` and its extensionless route to the custom 404 as a second layer of defense. Run the facilitator console only from a local trusted checkout; never give its URL to a participant. The console imports one participant JSON at a time, rejects another build, reused slot, non-contiguous sequence, facilitator-only event, unknown metadata key, or sensitive free-form field, and then requires the facilitator review before the next import. These are structural checks, not a cryptographic signature; an exported file is not tamper-proof.
 
 `noindex`, an unlinked page, and an opaque URL are not access control. If link leakage or source-code visibility is unacceptable, stop and use Cloudflare Access or a facilitator-controlled session instead. Access introduces login and identity processing and must receive a separate privacy/operations review.
 

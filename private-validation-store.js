@@ -12,7 +12,7 @@
   const TESTER_IDS = Object.freeze(Array.from({ length:10 }, (_,index)=>`t${String(index+1).padStart(2,"0")}`));
   const COMMON = Object.freeze({
     source:"private_tester", content_id:"private-validation-v1", entry_offer:"diagnosis",
-    campaign:"pgi-n10-2026-10", cohort:"n10", locale:"ja", traffic_class:"tester", build_id:"pgi-n10-preflight-v2"
+    campaign:"pgi-n10-2026-10", cohort:"n10", locale:"ja", traffic_class:"tester", build_id:"pgi-n10-preflight-v3"
   });
   const PARTICIPANT_ONLY_EVENTS = Object.freeze(new Set([
     "landing_viewed","tester_profile_recorded","my_setup_started","gear_taste_completed","next_upgrade_reached",
