@@ -249,12 +249,13 @@
   }
 
   function strategyBuckets(){
-    const out={core:[],deferred:[],reference:[],differentiation:[],research:[]};
+    const out={core:[],deferred:[],reference:[],differentiation:[],pc:[],research:[]};
     for(const item of Object.values(classifications)){
       if(["core_input","core_guard"].includes(item.surface)) out.core.push(item.classification_id);
       else if(item.surface==="deferred_input") out.deferred.push(item.classification_id);
       else if(item.surface==="reference_only") out.reference.push(item.classification_id);
       else if(item.surface==="result_core"&&item.differentiation==="high") out.differentiation.push(item.classification_id);
+      else if(item.surface==="pc_context") out.pc.push(item.classification_id);
       else out.research.push(item.classification_id);
     }
     return out;

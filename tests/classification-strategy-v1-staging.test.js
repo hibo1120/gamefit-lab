@@ -70,6 +70,7 @@ test("strategy buckets expose a low-friction surface plan",()=>{
   assert.ok(buckets.deferred.includes("budget"));
   assert.ok(buckets.reference.includes("pro_adoption"));
   assert.ok(buckets.differentiation.includes("current_gear_delta"));
+  assert.ok(buckets.pc.includes("pc_performance_target"));
   assert.ok(buckets.research.includes("role_weapon_style"));
 });
 

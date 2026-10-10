@@ -354,4 +354,4 @@ after real validation.
 - Pro reference: **TEST / reference-only**
 - Role/Weapon/Combat Style: **HOLD, preserve as optional/research**
 - Game-specific peripheral weights: **HOLD**
-- Separate PC Performance Context: **NEXT**
+- Separate PC Performance Context: **STAGING STARTED**
