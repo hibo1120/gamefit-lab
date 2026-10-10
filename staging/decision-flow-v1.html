@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>GameFit Decision Flow Staging</title>
+  <link rel="stylesheet" href="./decision-flow-v1.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top"><span class="brand-mark">GF</span><span><strong>GameFit</strong><small>Personal Gear Intelligence</small></span></a>
+    <span class="staging">STAGING</span>
+  </header>
+
+  <main id="top" class="shell">
+    <section class="hero">
+      <p class="eyebrow">PERSONAL GEAR DECISION</p>
+      <h1>今の機材、変えるべき？</h1>
+      <p class="lead">ゲームと今の機材から、まず<strong>「買う」「買わない」「先に直す」</strong>を整理します。必要なときだけ、あとから予算や細かな好みを聞きます。</p>
+      <button class="button button-primary" id="start-flow" type="button">判断を始める</button>
+      <ul class="principles">
+        <li>高い製品を優先しない</li>
+        <li>Affiliateは順位に使わない</li>
+        <li>Roleや戦闘スタイルは必須にしない</li>
+      </ul>
+    </section>
+
+    <section class="flow-card" id="flow" hidden aria-labelledby="flow-title">
+      <div class="flow-head">
+        <div>
+          <p class="eyebrow">必要なことだけ</p>
+          <h2 id="flow-title">3ステップで確認します</h2>
+        </div>
+        <p class="flow-status" id="flow-status" aria-live="polite">1 / 3</p>
+      </div>
+
+      <ol class="progress" aria-label="診断ステップ">
+        <li class="active" data-progress="1"><span>1</span>ゲーム</li>
+        <li data-progress="2"><span>2</span>操作方法</li>
+        <li data-progress="3"><span>3</span>今の機材</li>
+      </ol>
+
+      <section class="step-panel" data-step-panel="1">
+        <p class="field-label">遊んでいるゲーム <span>必須</span></p>
+        <p class="field-note">カード下部は<strong>GameFitが現在判定できる操作方法</strong>です。ゲーム自体の対応デバイスとは別です。</p>
+        <div class="choice-grid game-grid" id="game-choices">
+          <button class="choice" type="button" data-game="valorant" aria-pressed="false"><strong>VALORANT</strong><small class="support-label">GameFit対応: MnKのみ</small></button>
+          <button class="choice" type="button" data-game="apex" aria-pressed="false"><strong>Apex Legends</strong><small class="support-label">GameFit対応: MnK / Controller</small></button>
+          <button class="choice" type="button" data-game="cs2" aria-pressed="false"><strong>Counter-Strike 2</strong><small class="support-label">GameFit対応: MnKのみ</small></button>
+          <button class="choice" type="button" data-game="overwatch2" aria-pressed="false"><strong>Overwatch 2</strong><small class="support-label">GameFit対応: MnKのみ</small></button>
+          <button class="choice" type="button" data-game="fortnite" aria-pressed="false"><strong>Fortnite</strong><small class="support-label">GameFit対応: MnKのみ</small></button>
+        </div>
+      </section>
+
+      <section class="step-panel" data-step-panel="2" hidden>
+        <p class="field-label">操作方法 <span>必須</span></p>
+        <div id="input-summary" class="inline-note" hidden></div>
+        <div class="choice-grid" id="input-choices"></div>
+        <div class="step-actions">
+          <button class="button button-secondary" type="button" data-back="1">戻る</button>
+          <button class="button button-primary" id="input-next" type="button" disabled>次へ</button>
+        </div>
+      </section>
+
+      <section class="step-panel" data-step-panel="3" hidden>
+        <p class="field-label">何を見直したい？ <span>必須</span></p>
+        <div class="choice-grid" id="primary-categories"></div>
+
+        <details class="more-gear">
+          <summary>モニター・オーディオなどを見る</summary>
+          <div class="choice-grid choice-grid-small" id="secondary-categories"></div>
+        </details>
+
+        <div id="current-gear-block" class="current-gear" hidden>
+          <label for="current-product">現在使っている製品 <span>必須</span></label>
+          <input id="current-product" list="demo-products" type="search" autocomplete="off" placeholder="製品名を入力または選択">
+          <datalist id="demo-products">
+            <option value="Razer Viper V3 Pro"></option>
+            <option value="Logitech G PRO X SUPERLIGHT 2"></option>
+            <option value="Wooting 80HE"></option>
+            <option value="ZOWIE XL2566X+"></option>
+          </datalist>
+          <button class="text-button" id="product-not-listed" type="button">一覧にない製品を使っている</button>
+          <p class="hint">ここでは予算やRoleは聞きません。購入候補の比較が必要になったときだけ追加で確認します。</p>
+        </div>
+
+        <div class="step-actions">
+          <button class="button button-secondary" type="button" data-back="2">戻る</button>
+          <button class="button button-primary" id="finish-input" type="button" disabled>まず判断する</button>
+        </div>
+      </section>
+
+      <section class="flow-result" id="flow-result" hidden>
+        <p class="eyebrow">INPUT COMPLETE</p>
+        <h2>入力はここまでです</h2>
+        <p>最初の判断に必要な情報だけを受け取りました。予算・Role・細かな好みは、結論に必要な場合だけ後から聞く設計です。</p>
+        <dl class="summary-list">
+          <div><dt>ゲーム</dt><dd id="summary-game"></dd></div>
+          <div><dt>操作方法</dt><dd id="summary-input"></dd></div>
+          <div><dt>見直す機材</dt><dd id="summary-category"></dd></div>
+          <div><dt>現在機材</dt><dd id="summary-product"></dd></div>
+        </dl>
+        <a class="button button-primary" href="./decision-result-v1.html">結果レイアウト例を見る</a>
+        <p class="staging-note">このページは入力UXの設計検証用です。リンク先の結果も合成レイアウト例で、ここで選んだ内容から計算された推薦ではありません。実推薦エンジンや実ユーザーデータには接続していません。</p>
+      </section>
+    </section>
+
+    <section class="why-section">
+      <p class="eyebrow">WHY THIS FLOW</p>
+      <h2>質問を増やす前に、答えを返す</h2>
+      <div class="why-grid">
+        <article><strong>必要情報だけ</strong><p>Game / Input / 対象機材 / 現在機材を最初の判断に使います。</p></article>
+        <article><strong>予算は後から</strong><p>買い替え不要なら、購入予算を聞く必要はありません。</p></article>
+        <article><strong>Roleは参考情報</strong><p>診断を複雑にせず、Pro参考情報を絞るときだけ使います。</p></article>
+        <article><strong>一覧にないも正解</strong><p>似た製品で代用せず、情報不足なら追加確認へ止めます。</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer><p>GameFit Decision Flow Staging — synthetic UI only / production未接続</p></footer>
+  <script src="./decision-flow-v1.js"></script>
+</body>
+</html>

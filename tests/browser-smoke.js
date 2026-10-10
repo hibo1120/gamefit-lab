@@ -156,6 +156,93 @@ async function verifyViewport(browser, origin, viewport) {
   await context.close();
 }
 
+async function verifyPrivateGearViewport(browser, origin, viewport) {
+  const context = await browser.newContext({ viewport, acceptDownloads: true });
+  const page = await context.newPage();
+  const errors = [];
+  const externalRequests = [];
+  page.on("console", message => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("request", request => {
+    if (!request.url().startsWith(origin)) externalRequests.push(request.url());
+  });
+  page.on("requestfailed", request => errors.push(`request failed: ${request.url()}`));
+
+  const response = await page.goto(`${origin}/gamefit-lab/private/personal-gear.html`, { waitUntil: "networkidle" });
+  assert.equal(response.status(), 200);
+  assert.equal(await page.locator('meta[name="robots"]').getAttribute("content"), "noindex,nofollow,noarchive");
+  assert.match(await page.locator("body").innerText(), /共有端末では使用しないでください/);
+  assert.match(await page.locator("body").innerText(), /外部送信: なし/);
+  assert.equal(await page.locator("#schema-version").innerText(), "1");
+  assert.equal(await page.locator("#current-product option").count(), 6);
+
+  await page.click("#to-taste");
+  await page.selectOption("#avoid-attribute", "hump");
+  await page.selectOption("#avoid-value", "rear");
+  await page.check("#hard-avoid");
+  await page.click("#save-taste");
+  await page.selectOption("#input-method", "controller");
+  await page.click("#to-recommend");
+  assert.equal(await page.locator("#context-warning").isVisible(), true);
+  assert.match(await page.locator("#context-warning").innerText(), /流用しません/);
+  await page.selectOption("#input-method", "mnk");
+  await page.click("#to-recommend");
+  assert.equal(await page.locator("#recommendations .card").count(), 5);
+  assert.match(await page.locator("#decision-summary").innerText(), /判断材料の多さはテスト用データによる仮評価/);
+
+  await page.click("#to-feedback");
+  await page.check('input[name="verdict"][value="disagree"]');
+  await page.check('input[name="reason_code"][value="shape"]');
+  await page.check('input[name="direction_code"][value="lower_hump"]');
+  await page.click("#rerank");
+  assert.match(await page.locator("#feedback-status").innerText(), /他の利用者の判定へ反映されることはありません/);
+  assert.equal(await page.locator("#reranked .card").count(), 5);
+  assert.equal(await page.locator("#accept-rerank").isVisible(), true);
+  await page.click("#accept-rerank");
+  assert.match(await page.locator("#feedback-status").innerText(), /見直した候補の方が合う/);
+
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("gamefit.personal_gear.v1")));
+  assert.equal(saved.schema_version, 1);
+  assert.equal(saved.user_id, undefined);
+  assert.equal(saved.feedback.length, 2);
+  assert.equal(saved.rerank_events.length, 1);
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.click("#export-data");
+  const download = await downloadPromise;
+  assert.equal(download.suggestedFilename(), "gamefit-personal-gear-export.json");
+
+  await page.evaluate(() => localStorage.setItem("gamefit.personal_gear.v1", "{broken"));
+  await page.reload({ waitUntil: "networkidle" });
+  assert.match(await page.locator("#storage-status").innerText(), /保存内容を読み取れません/);
+  const recoveryDownloadPromise = page.waitForEvent("download");
+  await page.click("#export-data");
+  const recoveryDownload = await recoveryDownloadPromise;
+  assert.equal(recoveryDownload.suggestedFilename(), "gamefit-personal-gear-recovery.txt");
+  assert.equal(fs.readFileSync(await recoveryDownload.path(), "utf8"), "{broken");
+  page.once("dialog", dialog => dialog.accept());
+  await page.click("#reset-data");
+  assert.match(await page.locator("#storage-status").innerText(), /初期状態に戻しました/);
+  await page.evaluate(() => {
+    localStorage.setItem("other.application.key", "keep");
+    localStorage.setItem("gamefit.private_validation.v1", "keep-validation");
+  });
+  page.once("dialog", dialog => dialog.accept());
+  await page.click("#delete-data");
+  assert.equal(await page.evaluate(() => localStorage.getItem("gamefit.personal_gear.v1")), null);
+  assert.equal(await page.evaluate(() => localStorage.getItem("other.application.key")), "keep");
+  assert.equal(await page.evaluate(() => localStorage.getItem("gamefit.private_validation.v1")), "keep-validation");
+
+  if (viewport.width === 390) {
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
+  }
+  assert.deepEqual(externalRequests, []);
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+
 (async () => {
   const server = await serve();
   const origin = `http://127.0.0.1:${server.address().port}`;
@@ -164,9 +251,14 @@ async function verifyViewport(browser, origin, viewport) {
     browser = await launchBrowser();
     await verifyViewport(browser, origin, { width: 1440, height: 1000 });
     await verifyViewport(browser, origin, { width: 390, height: 844 });
+    await verifyPrivateGearViewport(browser, origin, { width: 1440, height: 1000 });
+    await verifyPrivateGearViewport(browser, origin, { width: 390, height: 844 });
     assert.match(fs.readFileSync(path.join(projectRoot, "index.md"), "utf8"), /\(\.\/diagnose\.html\)/);
     assert.equal((await fetch(`${origin}/gamefit-lab/sitemap.xml`)).status, 200);
     assert.equal((await fetch(`${origin}/gamefit-lab/robots.txt`)).status, 200);
+    const notFoundPage = await fetch(`${origin}/gamefit-lab/404.html`);
+    assert.equal(notFoundPage.status, 200);
+    assert.match(await notFoundPage.text(), /ページが見つかりません/);
     for (const route of [
       "/gamefit-lab/en/",
       "/gamefit-lab/en/diagnose.html",
@@ -176,7 +268,7 @@ async function verifyViewport(browser, origin, viewport) {
       "/gamefit-lab/en/guides/do-i-need-new-gaming-pc.html"
     ]) assert.equal((await fetch(`${origin}${route}`)).status, 200, route);
     assert.equal((await fetch(`${origin}/gamefit-lab/not-found.html`)).status, 404);
-    process.stdout.write("browser smoke: jp+global desktop=ok mobile390=ok games=4 usd=6 invalid=ok share=ok console=clean 404=ok\n");
+    process.stdout.write("browser smoke: jp+global+private-PGI desktop=ok mobile390=ok games=4 usd=6 privacy=ok rerank=ok external=none console=clean 404=ok\n");
   } finally {
     await browser?.close();
     await new Promise(resolve => server.close(resolve));

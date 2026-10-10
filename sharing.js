@@ -13,11 +13,11 @@
   const CAMPAIGN = "gamefit_growth_v1";
   const RESULT_PHRASES = Object.freeze({
     keep: "今は何も買わず現状維持",
-    monitor: "PC買替よりモニター優先",
-    ram: "まずRAMを見直す",
+    monitor: "PCの買い替えよりモニター優先",
+    ram: "まずメモリを見直す",
     storage: "まずストレージを見直す",
-    cpu_gpu: "CPU / GPU改善を優先",
-    pc_replacement: "PC買替を比較",
+    cpu_gpu: "CPU・GPUの見直しを優先",
+    pc_replacement: "PCの買い替えを比較",
     device: "入力デバイスを見直す"
   });
 

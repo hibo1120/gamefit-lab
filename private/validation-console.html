@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>GameFit 非公開テスト管理</title>
+  <link rel="stylesheet" href="./personal-gear.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">担当者専用 · この端末内だけで使用</p>
+      <h1>10人テスト管理</h1>
+      <p>参加者には見せず、担当者が安全確認、途中離脱、テスト停止、参加者番号付き記録の取込・書き出しを行います。</p>
+      <p class="privacy-banner"><strong>自動送信なし。</strong> 氏名・メール・連絡先・自由記述を入力しないでください。このブラウザ内の参加者番号付き記録は、30日を過ぎて次にこの画面を開いたときに削除されます。書き出したファイルは自動削除されないため、10人テストの終了後30日以内に担当者が削除します。</p>
+    </header>
+
+    <section class="panel">
+      <h2>現在の状態</h2>
+      <pre id="console-summary" class="decision"></pre>
+      <div class="button-row">
+        <button type="button" id="refresh-console" class="secondary">再読み込み</button>
+        <button type="button" id="export-console" class="secondary">参加者番号付き記録を書き出す</button>
+        <button type="button" id="delete-console" class="danger">参加者番号付き記録をすべて削除</button>
+      </div>
+      <p id="console-status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" id="tester-import">
+      <h2>参加者の結果を取り込む</h2>
+      <p>参加者から受け取ったJSONを1件ずつ確認します。同じbuildで、担当者確認待ちの未使用番号だけを取り込めます。内容を置き換えたり、重複して取り込んだりはできません。</p>
+      <label>参加者番号付きJSON
+        <input type="file" id="import-tester-file" accept="application/json,.json">
+      </label>
+      <button type="button" id="import-tester">確認して取り込む</button>
+      <p id="import-status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" id="active-console" hidden>
+      <h2>対応中: <span id="console-tester-id"></span></h2>
+      <label>すぐにテストを止める理由
+        <select id="console-stop-reason">
+          <option value="dangerous_recommendation">危険な誤推薦</option>
+          <option value="hard_avoid_violation">必ず避けたい条件を無視</option>
+          <option value="game_input_contamination">別のゲーム・入力方法が混入</option>
+          <option value="compatibility_major_violation">明らかに組み合わせられない機材を表示</option>
+          <option value="affiliate_rank_influence">広告報酬を理由に順位が変化</option>
+          <option value="privacy_leak">入力内容や個人情報が外部へ漏れた</option>
+        </select>
+      </label>
+      <div class="button-row">
+        <button type="button" id="console-stop" class="danger">テストをすぐに停止</button>
+        <button type="button" id="console-abandon" class="secondary">途中離脱として確定</button>
+      </div>
+    </section>
+
+    <section class="panel" id="facilitator-review" hidden>
+      <h2>担当者レビュー</h2>
+      <p>参加者の回答保存後に、推薦理由を本人の言葉で説明してもらいます。説明内容そのものは記録しません。</p>
+      <fieldset>
+        <legend>推薦理由を自分の言葉で正しく説明できたか</legend>
+        <label><input type="radio" name="facilitator_understood" value="yes"> はい</label>
+        <label><input type="radio" name="facilitator_understood" value="no"> いいえ</label>
+      </fieldset>
+      <label>介助レベル
+        <select id="assistance-level">
+          <option value="none">なし（自力）</option>
+          <option value="navigation_only">進み方のみ案内</option>
+          <option value="substantive">判断内容を案内</option>
+        </select>
+      </label>
+      <fieldset>
+        <legend>安全性・プライバシー（1件でもテスト停止）</legend>
+        <label><input type="checkbox" name="console_safety" value="dangerous_recommendation"> 危険な誤推薦</label>
+        <label><input type="checkbox" name="console_safety" value="hard_avoid_violation"> 必ず避けたい条件に違反</label>
+        <label><input type="checkbox" name="console_safety" value="game_input_contamination"> 別のゲーム・入力方法が混入</label>
+        <label><input type="checkbox" name="console_safety" value="compatibility_major_violation"> 重大な組み合わせ違反</label>
+        <label><input type="checkbox" name="console_safety" value="affiliate_rank_influence"> 広告報酬による順位変化</label>
+        <label><input type="checkbox" name="console_safety" value="privacy_leak"> プライバシー上の事故</label>
+      </fieldset>
+      <button type="button" id="finalize-review">担当者レビューを確定</button>
+    </section>
+
+    <aside class="method-note">
+      <h2>判定境界</h2>
+      <p>重大な問題を確認した場合は、入力不備の有無にかかわらずすぐに停止します。停止後は次の参加者を開始できません。修正前後の結果は混ぜず、別のテストとしてやり直します。</p>
+      <p>通過条件は、10人全員の確認、誘導なしで完了した人が7人以上、理由を理解できた人が7人以上、重大な違反が0件です。30人テストへ自動で進むことはありません。</p>
+    </aside>
+  </main>
+  <script src="../validation-engine.js"></script>
+  <script src="../private-validation-store.js"></script>
+  <script src="./validation-console.js"></script>
+</body>
+</html>

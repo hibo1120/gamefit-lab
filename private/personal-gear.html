@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>GameFit 非公開テスト — 買い替え判断</title>
+  <link rel="stylesheet" href="./personal-gear.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">GAMEFIT 非公開テスト</p>
+      <h1>買い替える前に、次の一手を考える</h1>
+      <p>GameFitのテスト版です。今のゲーム環境と好みから、買い替えるなら何を優先するかを確認できます。購入する必要はありません。入力中に内容が自動送信されることはありません。</p>
+      <div class="privacy-banner" role="note">
+        <strong>共有端末では使用しないでください。</strong>
+        <p>入力内容はこのブラウザ内だけに保存され、外部へ自動送信されません。氏名・メールアドレス・自由記述は収集しません。</p>
+        <p>参加者番号付きの記録は、この画面を最後まで進められるか、結果の理由を理解できるか、安全上の問題がないかを確認するために使います。このページは少人数の非公開テストにだけ使います。</p>
+        <details>
+          <summary>保存期間と削除方法</summary>
+          <p>現在の機材や好みは削除するまでこのブラウザ内に保存され、判定・回答の履歴は365日を過ぎたものから次に保存したときに削除されます。下のボタンからいつでも削除できます。</p>
+          <p>最後に、参加者番号、カテゴリ、ゲーム、入力方法、判定、操作時間、選択式回答を含む結果を自分で書き出し、担当者が案内した方法で渡します。氏名・メールアドレス・自由記述は含みません。</p>
+          <p>このブラウザ内の参加者番号付き記録は、30日を過ぎて次にこのページを開いたときに削除されます。書き出したファイルは、担当者が受領したことを確認してからご自身で削除してください。担当者が受領したファイルは、10人テストの終了後30日以内に手動で削除します。途中でも参加の中止や記録の削除を依頼できます。</p>
+          <p>外部URLで配布する場合、ページの配信事業者がIPアドレスなど通常のアクセス情報を処理することがあります。機材・好み・回答内容は配信事業者へ送信しません。</p>
+        </details>
+      </div>
+      <div class="privacy-actions" aria-label="保存データ管理">
+        <button type="button" id="export-data" class="secondary">入力内容を書き出す</button>
+        <button type="button" id="reset-data" class="secondary">入力を初期化</button>
+        <button type="button" id="delete-data" class="danger">入力内容を削除</button>
+      </div>
+      <p class="privacy-action-note">「入力を初期化」は入力を消して初期値へ戻します。「入力内容を削除」は、好みと判定履歴をこのブラウザから削除します。参加者番号付きテスト記録は担当者が別画面で管理します。</p>
+      <p id="storage-status" class="status" aria-live="polite"></p>
+    </header>
+
+    <section class="panel operator-only" id="validation-setup">
+      <p class="step-number">テスト開始前の確認</p>
+      <h2>テストを始める前に</h2>
+      <p>購入は不要です。途中でいつでも中止できます。表示された内容を見ながら、ご自身で進めてください。</p>
+      <label id="tester-id-field">参加者番号
+        <select id="tester-id"></select>
+      </label>
+      <label>機材への詳しさ
+        <select id="tester-expertise">
+          <option value="beginner">あまり詳しくない</option>
+          <option value="intermediate">ある程度わかる</option>
+          <option value="enthusiast">かなり詳しい</option>
+        </select>
+      </label>
+      <fieldset id="purchase-contexts">
+        <legend>当てはまる状況（複数可）</legend>
+        <label><input type="checkbox" name="purchase_context" value="actively_deciding"> 購入を迷っている</label>
+        <label><input type="checkbox" name="purchase_context" value="current_gear_dissatisfied"> 現在の機材に不満がある</label>
+        <label><input type="checkbox" name="purchase_context" value="recently_considered_upgrade"> 最近買い替えを検討した</label>
+        <label><input type="checkbox" name="purchase_context" value="no_purchase_may_be_best"> 買い替え不要の可能性もある</label>
+      </fieldset>
+      <label class="check-row"><input type="checkbox" id="tester-independent"> このサービスの開発には参加しておらず、表示される結果を事前に知らない</label>
+      <label class="check-row"><input type="checkbox" id="tester-consent"> 参加者番号付き記録の項目・利用目的、ブラウザ内と書き出し後の保存期間・削除方法、担当者への受け渡し、参加中止の方法を確認し、参加に同意する</label>
+      <button type="button" id="begin-validation">入力内容を確認してテストを始める</button>
+      <p id="validation-setup-status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" id="validation-session" hidden>
+      <p class="step-number">テスト中</p>
+      <h2>テスト中 <span id="active-tester-id"></span></h2>
+      <p>説明を読んで自力で進めてください。購入は不要です。困った場合は、どこで止まったかだけ記録します。</p>
+      <p id="validation-session-status" class="status" aria-live="polite"></p>
+    </section>
+
+    <ol class="steps" aria-label="診断ステップ">
+      <li data-step-indicator="setup" data-short="機材" class="active">現在の機材</li>
+      <li data-step-indicator="taste" data-short="好み">好みと苦手</li>
+      <li data-step-indicator="context" data-short="条件">ゲームと入力方法</li>
+      <li data-step-indicator="recommend" data-short="結果">次に見直すもの</li>
+      <li data-step-indicator="feedback" data-short="調整">結果を調整</li>
+    </ol>
+
+    <section class="panel" data-step="setup">
+      <p class="step-number">ステップ 1 / 5</p>
+      <h2>現在の機材</h2>
+      <label>機材の種類
+        <select id="category">
+          <option value="mouse">マウス</option>
+          <option value="keyboard">キーボード</option>
+          <option value="monitor">モニター</option>
+          <option value="mousepad">マウスパッド</option>
+          <option value="audio">オーディオ</option>
+          <option value="controller">コントローラー</option>
+          <option value="network">ネットワーク機器</option>
+          <option value="cable">ケーブル</option>
+        </select>
+      </label>
+      <label>現在使っている製品
+        <select id="current-product"></select>
+      </label>
+      <label>予算帯
+        <select id="budget">
+          <option value="10000">〜1万円</option>
+          <option value="30000">〜3万円</option>
+          <option value="60000">〜6万円</option>
+          <option value="120000">〜12万円</option>
+          <option value="250000">〜25万円</option>
+        </select>
+      </label>
+      <button type="button" id="to-taste">好みの入力へ進む</button>
+    </section>
+
+    <section class="panel" data-step="taste" hidden>
+      <p class="step-number">ステップ 2 / 5</p>
+      <h2>好みと苦手</h2>
+      <p>苦手だった特徴があれば、1つ選んでください。特にない場合は「特になし」で進めます。</p>
+      <label>苦手な特徴
+        <select id="avoid-attribute"></select>
+      </label>
+      <label>避けたい条件
+        <select id="avoid-value"></select>
+      </label>
+      <label class="check-row"><input type="checkbox" id="hard-avoid"> この条件は必ず避けたい</label>
+      <div class="button-row">
+        <button type="button" data-back="setup" class="secondary">戻る</button>
+        <button type="button" id="save-taste">ゲームと入力方法へ進む</button>
+      </div>
+    </section>
+
+    <section class="panel" data-step="context" hidden>
+      <p class="step-number">ステップ 3 / 5</p>
+      <h2>ゲームと入力方法</h2>
+      <label>ゲーム
+        <select id="game">
+          <option value="apex">Apex Legends</option>
+          <option value="valorant">VALORANT</option>
+        </select>
+      </label>
+      <label>操作方法
+        <select id="input-method">
+          <option value="mnk">マウス・キーボード</option>
+          <option value="controller">コントローラー</option>
+        </select>
+      </label>
+      <label>遊んでいる機種
+        <select id="platform">
+          <option value="windows_pc">Windows PC</option>
+          <option value="ps5">PlayStation 5</option>
+          <option value="xbox_series">Xbox Series</option>
+        </select>
+      </label>
+      <p id="context-warning" class="warning" role="alert" hidden></p>
+      <div class="button-row">
+        <button type="button" data-back="taste" class="secondary">戻る</button>
+        <button type="button" id="to-recommend">結果を見る</button>
+      </div>
+    </section>
+
+    <section class="panel" data-step="recommend" hidden>
+      <p class="step-number">ステップ 4 / 5</p>
+      <h2>次に見直すもの</h2>
+      <div id="decision-summary" class="decision" aria-live="polite"></div>
+      <div id="recommendations" class="cards"></div>
+      <div class="button-row">
+        <button type="button" data-back="context" class="secondary">入力内容を見直す</button>
+        <button type="button" id="to-feedback">結果について回答する</button>
+      </div>
+    </section>
+
+    <section class="panel" data-step="feedback" hidden>
+      <p class="step-number">ステップ 5 / 5</p>
+      <h2>結果は合っていますか？</h2>
+      <fieldset>
+        <legend>最初の結果は自分に合っていますか？</legend>
+        <label><input type="radio" name="verdict" value="agree"> 合っている</label>
+        <label><input type="radio" name="verdict" value="disagree"> 違う</label>
+        <label><input type="radio" name="verdict" value="unsure"> わからない</label>
+      </fieldset>
+      <div id="disagree-details" hidden>
+        <fieldset id="reason-codes"><legend>なぜ違いますか？</legend></fieldset>
+        <fieldset id="direction-codes"><legend>どの方向に変えたいですか？</legend></fieldset>
+      </div>
+      <button type="button" id="rerank">回答を保存</button>
+      <p id="feedback-status" class="status" aria-live="polite"></p>
+      <div id="reranked" class="cards"></div>
+      <button type="button" id="accept-rerank" hidden>見直した候補なら合う</button>
+      <div id="session-review" hidden>
+        <h3>最後の確認</h3>
+        <fieldset>
+          <legend>候補が出た理由を、自分の言葉で説明できる程度に理解できましたか？</legend>
+          <label><input type="radio" name="reason_understood" value="yes"> はい</label>
+          <label><input type="radio" name="reason_understood" value="no"> いいえ</label>
+        </fieldset>
+        <label>診断を始める前は、どうしたいと考えていましたか？
+          <select id="intended-judgment">
+            <option value="keep_current">今の機材を使い続ける</option>
+            <option value="fix_setup_first">設定・接続を先に直す</option>
+            <option value="compare_more">さらに比較する</option>
+            <option value="buy_candidate">候補の購入を検討する</option>
+            <option value="avoid_candidate">候補を避ける</option>
+            <option value="unsure">まだ分からない</option>
+          </select>
+        </label>
+        <fieldset id="ux-issues">
+          <legend>使いにくかった点（複数可）</legend>
+          <label><input type="checkbox" name="ux_issue" value="none"> 問題なし</label>
+          <label><input type="checkbox" name="ux_issue" value="navigation"> 進み方が分かりにくい</label>
+          <label><input type="checkbox" name="ux_issue" value="wording"> 言葉が分かりにくい</label>
+          <label><input type="checkbox" name="ux_issue" value="reason_unclear"> 候補が出た理由が分かりにくい</label>
+          <label><input type="checkbox" name="ux_issue" value="too_much_detail"> 情報が多すぎる</label>
+          <label><input type="checkbox" name="ux_issue" value="too_little_detail"> 情報が足りない</label>
+          <label><input type="checkbox" name="ux_issue" value="missing_current_product"> 今使っている製品が一覧になかった</label>
+          <label><input type="checkbox" name="ux_issue" value="mobile_layout"> 画面の崩れ・読みにくさ</label>
+          <label><input type="checkbox" name="ux_issue" value="storage_controls"> 保存・削除の説明</label>
+          <label><input type="checkbox" name="ux_issue" value="other"> その他（自由記述は収集しません）</label>
+        </fieldset>
+        <button type="button" id="finish-validation">回答を保存して担当者確認へ</button>
+        <div id="tester-export" hidden>
+          <p>最後まで回答できました。氏名などを含まない参加者番号付きの結果をファイルに保存し、担当者が案内した方法で渡してください。</p>
+          <button type="button" id="export-session" class="secondary">このテスト結果を書き出す</button>
+          <p id="session-export-status" class="status" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="method-note operator-only">
+      <h2>運営者向けの注意</h2>
+      <p>判断材料の多さは、テスト用データをもとにした仮評価です。購入後の実績がないため、「高精度」「実証済み」とは扱いません。</p>
+      <p>確認できていない性能差は補いません。今の機材と比べられない場合は、買い替えを急がず追加情報を求めます。</p>
+      <p>保存形式の版: <span id="schema-version"></span> · 外部送信なし · 全体モデルへの学習なし</p>
+      <div class="privacy-actions">
+        <button type="button" id="export-validation" class="secondary">10人テスト記録を書き出す</button>
+        <button type="button" id="delete-validation" class="danger">10人テスト記録を削除</button>
+      </div>
+      <p id="validation-report-status" class="status" aria-live="polite"></p>
+    </aside>
+  </main>
+
+  <script src="../preference-engine.js"></script>
+  <script src="../normalization-engine.js"></script>
+  <script src="../data/game-dna.js"></script>
+  <script src="../evidence-engine.js"></script>
+  <script src="../current-gear-delta.js"></script>
+  <script src="../compatibility-engine.js"></script>
+  <script src="../fix-before-buy.js"></script>
+  <script src="../data/decision-briefs.js"></script>
+  <script src="../decision-brief-engine.js"></script>
+  <script src="../decision-readiness-engine.js"></script>
+  <script src="../price-timing-engine.js"></script>
+  <script src="../personal-gear-engine.js"></script>
+  <script src="../feedback-engine.js"></script>
+  <script src="../storage-engine.js"></script>
+  <script src="../validation-engine.js"></script>
+  <script src="../private-validation-store.js"></script>
+  <script src="../data/personal-gear-fixtures.js"></script>
+  <script src="../ui-copy-ja.js"></script>
+  <script src="./personal-gear.js"></script>
+</body>
+</html>
