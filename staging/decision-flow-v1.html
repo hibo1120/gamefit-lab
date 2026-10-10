@@ -43,12 +43,13 @@
 
       <section class="step-panel" data-step-panel="1">
         <p class="field-label">遊んでいるゲーム <span>必須</span></p>
+        <p class="field-note">カード下部は<strong>GameFitが現在判定できる操作方法</strong>です。ゲーム自体の対応デバイスとは別です。</p>
         <div class="choice-grid game-grid" id="game-choices">
-          <button class="choice" type="button" data-game="valorant"><strong>VALORANT</strong><small>競技FPS</small></button>
-          <button class="choice" type="button" data-game="apex"><strong>Apex Legends</strong><small>Battle Royale</small></button>
-          <button class="choice" type="button" data-game="cs2"><strong>Counter-Strike 2</strong><small>競技FPS</small></button>
-          <button class="choice" type="button" data-game="overwatch2"><strong>Overwatch 2</strong><small>Hero Shooter</small></button>
-          <button class="choice" type="button" data-game="fortnite"><strong>Fortnite</strong><small>Battle Royale</small></button>
+          <button class="choice" type="button" data-game="valorant" aria-pressed="false"><strong>VALORANT</strong><small class="support-label">GameFit対応: MnKのみ</small></button>
+          <button class="choice" type="button" data-game="apex" aria-pressed="false"><strong>Apex Legends</strong><small class="support-label">GameFit対応: MnK / Controller</small></button>
+          <button class="choice" type="button" data-game="cs2" aria-pressed="false"><strong>Counter-Strike 2</strong><small class="support-label">GameFit対応: MnKのみ</small></button>
+          <button class="choice" type="button" data-game="overwatch2" aria-pressed="false"><strong>Overwatch 2</strong><small class="support-label">GameFit対応: MnKのみ</small></button>
+          <button class="choice" type="button" data-game="fortnite" aria-pressed="false"><strong>Fortnite</strong><small class="support-label">GameFit対応: MnKのみ</small></button>
         </div>
       </section>
 
@@ -67,7 +68,7 @@
         <div class="choice-grid" id="primary-categories"></div>
 
         <details class="more-gear">
-          <summary>その他の機材を見る</summary>
+          <summary>モニター・オーディオなどを見る</summary>
           <div class="choice-grid choice-grid-small" id="secondary-categories"></div>
         </details>
 
@@ -100,8 +101,8 @@
           <div><dt>見直す機材</dt><dd id="summary-category"></dd></div>
           <div><dt>現在機材</dt><dd id="summary-product"></dd></div>
         </dl>
-        <a class="button button-primary" href="./decision-result-v1.html">結果ページのstagingを見る</a>
-        <p class="staging-note">このページは入力UXの設計検証用です。実推薦エンジンや実ユーザーデータには接続していません。</p>
+        <a class="button button-primary" href="./decision-result-v1.html">結果レイアウト例を見る</a>
+        <p class="staging-note">このページは入力UXの設計検証用です。リンク先の結果も合成レイアウト例で、ここで選んだ内容から計算された推薦ではありません。実推薦エンジンや実ユーザーデータには接続していません。</p>
       </section>
     </section>
 

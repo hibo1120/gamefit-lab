@@ -45,7 +45,7 @@ test("game input mapping is exact and has no default fallback",()=>{
 
 test("primary and secondary gear choices use progressive disclosure",()=>{
   assert.match(html,/<details class="more-gear">/);
-  assert.match(html,/その他の機材を見る/);
+  assert.match(html,/モニター・オーディオなどを見る/);
   assert.match(js,/mnk:Object\.freeze\(\{ primary:Object\.freeze\(\["mouse","keyboard"\]\), secondary:Object\.freeze\(\["mousepad","monitor","audio","network","cable"\]\) \}\)/);
   assert.match(js,/controller:Object\.freeze\(\{ primary:Object\.freeze\(\["controller"\]\), secondary:Object\.freeze\(\["monitor","audio","network","cable"\]\) \}\)/);
 });
@@ -83,4 +83,31 @@ test("result summary contains no Role or budget field",()=>{
   const summary=html.match(/<dl class="summary-list">[\s\S]*?<\/dl>/)?.[0]||"";
   assert.doesNotMatch(summary,/Role|予算|武器|戦闘スタイル/);
   for(const label of ["ゲーム","操作方法","見直す機材","現在機材"]) assert.equal(summary.includes(label),true,label);
+});
+
+
+test("game cards disclose GameFit input coverage before selection",()=>{
+  for(const label of [
+    "GameFit対応: MnKのみ",
+    "GameFit対応: MnK / Controller"
+  ]) assert.equal(html.includes(label),true,label);
+  assert.match(html,/ゲーム自体の対応デバイスとは別です/);
+  assert.equal((html.match(/aria-pressed="false"/g)||[]).length,5);
+});
+
+test("single-input games do not silently imply broader support",()=>{
+  assert.match(js,/GameFitの現在対応:/);
+  assert.match(js,/ほかの操作方法はまだ判定しません/);
+});
+
+test("current product suggestions are category scoped",()=>{
+  assert.match(js,/const DEMO_PRODUCTS/);
+  assert.match(js,/mouse:Object\.freeze\(\["Razer Viper V3 Pro","Logitech G PRO X SUPERLIGHT 2"\]\)/);
+  assert.match(js,/keyboard:Object\.freeze\(\["Wooting 80HE","SteelSeries Apex Pro Mini Gen 3"\]\)/);
+  assert.match(js,/renderDemoProducts\(value\)/);
+});
+
+test("staging result handoff is explicitly synthetic",()=>{
+  assert.match(html,/結果レイアウト例を見る/);
+  assert.match(html,/ここで選んだ内容から計算された推薦ではありません/);
 });

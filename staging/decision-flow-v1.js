@@ -19,6 +19,16 @@
     mousepad:"マウスパッド", monitor:"モニター", audio:"オーディオ",
     network:"ネットワーク", cable:"ケーブル"
   });
+  const DEMO_PRODUCTS = Object.freeze({
+    mouse:Object.freeze(["Razer Viper V3 Pro","Logitech G PRO X SUPERLIGHT 2"]),
+    keyboard:Object.freeze(["Wooting 80HE","SteelSeries Apex Pro Mini Gen 3"]),
+    controller:Object.freeze(["Xbox Wireless Controller","DualSense Wireless Controller"]),
+    mousepad:Object.freeze(["ARTISAN FX Zero","SteelSeries QcK"]),
+    monitor:Object.freeze(["ZOWIE XL2566X+","ASUS ROG Swift OLED PG27AQDP"]),
+    audio:Object.freeze(["HyperX Cloud III","Sennheiser HD 560S"]),
+    network:Object.freeze(["ASUS RT-AX86U Pro","TP-Link Archer BE550"]),
+    cable:Object.freeze(["DisplayPort cable","HDMI cable"])
+  });
   const CATEGORY_SETS = Object.freeze({
     mnk:Object.freeze({ primary:Object.freeze(["mouse","keyboard"]), secondary:Object.freeze(["mousepad","monitor","audio","network","cable"]) }),
     controller:Object.freeze({ primary:Object.freeze(["controller"]), secondary:Object.freeze(["monitor","audio","network","cable"]) })
@@ -40,6 +50,7 @@
     button.type="button";
     button.className="choice";
     button.dataset.value=value;
+    button.setAttribute("aria-pressed","false");
     const strong=document.createElement("strong");
     strong.textContent=label;
     button.append(strong);
@@ -53,7 +64,21 @@
   }
 
   function selectWithin(container,button){
-    container.querySelectorAll(".choice").forEach(node=>node.classList.toggle("selected",node===button));
+    container.querySelectorAll(".choice").forEach(node=>{
+      const selected=node===button;
+      node.classList.toggle("selected",selected);
+      node.setAttribute("aria-pressed",selected ? "true" : "false");
+    });
+  }
+
+  function renderDemoProducts(category){
+    const list=byId("demo-products");
+    list.replaceChildren();
+    for(const name of DEMO_PRODUCTS[category]||[]){
+      const option=document.createElement("option");
+      option.value=name;
+      list.append(option);
+    }
   }
 
   function renderInputs(){
@@ -68,7 +93,7 @@
     if(!inputs) throw new Error("Unsupported game context");
     if(inputs.length===1){
       state.input=inputs[0];
-      summary.textContent="現在のGameFit対象: "+INPUT_LABELS[state.input];
+      summary.textContent="GameFitの現在対応: "+INPUT_LABELS[state.input]+"のみ。ほかの操作方法はまだ判定しません。";
       summary.hidden=false;
       next.disabled=false;
       return;
@@ -98,8 +123,12 @@
     if(!set) throw new Error("Unsupported input method");
     const select=(button,value,container)=>{
       state.category=value;
-      document.querySelectorAll("#primary-categories .choice,#secondary-categories .choice").forEach(node=>node.classList.remove("selected"));
-      button.classList.add("selected");
+      document.querySelectorAll("#primary-categories .choice,#secondary-categories .choice").forEach(node=>{
+        const selected=node===button;
+        node.classList.toggle("selected",selected);
+        node.setAttribute("aria-pressed",selected ? "true" : "false");
+      });
+      renderDemoProducts(value);
       gearBlock.hidden=false;
       byId("current-product").focus();
       updateFinish();
@@ -155,5 +184,5 @@
     byId("flow-result").hidden=false;
   });
 
-  window.GameFitDecisionFlowStaging=Object.freeze({GAME_INPUTS,CATEGORY_SETS});
+  window.GameFitDecisionFlowStaging=Object.freeze({GAME_INPUTS,CATEGORY_SETS,DEMO_PRODUCTS});
 })();

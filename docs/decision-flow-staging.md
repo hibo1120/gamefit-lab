@@ -110,19 +110,21 @@ Purchase comparisonが必要な場合だけBudgetを追加質問する。
 
 ### 懸念2: Secondary categoryが見つからない
 対策:
-- 「その他の機材を見る」を明示。
+- disclosure labelを「モニター・オーディオなどを見る」へ変更し、開いた先を推測させない。
 - category miss / open rateを計測対象にする。
 
 ### 懸念3: 対応Inputが少ないゲームで失望
 対策:
 - GAME_INPUTSはexact allowlist。
+- game cardの時点で「GameFit対応: MnKのみ / MnK・Controller」を明示し、ゲーム自体のdevice supportとは別だと説明する。
+- single-input gameでも「ほかの操作方法はまだ判定しない」と表示し、silent assumptionをしない。
 - unsupported inputへ別game/inputをfallbackしない。
-- productionでは対応外を明示する。
 
-### 懸念4: Product searchで一覧にない
+### 懸念4: Product searchで一覧にない / 別カテゴリ候補が混ざる
 対策:
 - 「一覧にない」を正式導線。
 - 近似SKUへ勝手に置換しない。
+- stagingの候補一覧も選択カテゴリごとに差し替え、マウス選択時にキーボード等をsuggestしない。
 
 ### 懸念5: Budget deferで購入候補が遅くなる
 対策:
@@ -202,3 +204,34 @@ C:
 - Weapon / combat style required input: NO-GO
 - Production adoption: HOLD
 - Private Validation変更: NO-GO
+
+
+## 9. 01〜07 follow-up review
+
+### 01 ポート
+**TEST継続。** 入口で対応範囲を明示し、secondary disclosureのlabelを具体化したため、以前より「進んでから対応外に気づく」リスクは低下。ただしproduction GOではない。
+
+### 02 スカウト
+RTINGSは比較ページでVerdict / Main DifferencesをFull Comparisonより前に置く。NN/gもsecondary featureのprogressive disclosureでは、次階層に何があるか明確なlabelを求める。今回の「モニター・オーディオなどを見る」はその原則へ寄せた。
+
+### 03 ビルダー
+Game cardにGameFit側の対応inputを事前表示。product suggestionはcategory scopedへ変更。結果遷移は「計算結果」ではなく合成レイアウト例と明示。
+
+### 04 レッド
+残存リスク:
+- MnK-only表示によりControllerユーザーが早期離脱する可能性。ただし未対応なのに進ませるより安全。
+- Secondary categoryを隠すことでMonitor等の発見率が落ちる可能性。open/miss率で判断。
+- sample product名がブランド誘導に見える可能性。productionではcatalog searchへ置換し、stagingでは性能主張をしない。
+
+### 05 メジャー
+追加guardrail:
+- game card selection後のunsupported-intent abandonment
+- secondary disclosure open rate / category correction rate
+- wrong-category product suggestion rate = 0を必須
+- static result exampleを実推薦と誤認した率 = 0を目標
+
+### 06 ガード
+外部assetsなし。sample product名は識別例のみで性能・推奨主張なし。対応input表示は「GameFit coverage」と明記し、game vendorの公式device supportと混同しない。
+
+### 07 オプス
+category-scoped suggestionsはstatic staging mapなので追加運用は軽微。productionではcatalogから生成し、手書き二重管理にしない。
