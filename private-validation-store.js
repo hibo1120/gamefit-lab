@@ -10,9 +10,14 @@
   const MAX_BYTES = 512 * 1024;
   const RETENTION_DAYS = 30;
   const TESTER_IDS = Object.freeze(Array.from({ length:10 }, (_,index)=>`t${String(index+1).padStart(2,"0")}`));
+  const PREFLIGHT_ID = "t00";
+  const SESSION_IDS = Object.freeze([PREFLIGHT_ID,...TESTER_IDS]);
   const COMMON = Object.freeze({
     source:"private_tester", content_id:"private-validation-v1", entry_offer:"diagnosis",
     campaign:"pgi-n10-2026-10", cohort:"n10", locale:"ja", traffic_class:"tester", build_id:"pgi-n10-preflight-v3"
+  });
+  const PREFLIGHT_COMMON = Object.freeze({
+    ...COMMON, campaign:"pgi-t00-2026-10", cohort:"internal", traffic_class:"internal_qa"
   });
   const PARTICIPANT_ONLY_EVENTS = Object.freeze(new Set([
     "landing_viewed","tester_profile_recorded","my_setup_started","gear_taste_completed","next_upgrade_reached",
@@ -24,15 +29,18 @@
   function createState() { return { schema_version:SCHEMA_VERSION, active_tester_id:null, testers:{}, events:[], updated_at:null }; }
   function isIso(value) { return typeof value === "string" && Number.isFinite(Date.parse(value)); }
   function isTesterId(value) { return TESTER_IDS.includes(value); }
+  function isPreflightId(value) { return value===PREFLIGHT_ID; }
+  function isSessionId(value) { return SESSION_IDS.includes(value); }
+  function commonFor(testerId) { return isPreflightId(testerId)?PREFLIGHT_COMMON:COMMON; }
 
   function validateState(state) {
     const errors=[];
     if (!state || typeof state!=="object" || Array.isArray(state)) return ["validation state must be an object"];
     if (state.schema_version!==SCHEMA_VERSION) errors.push("validation schema version is unsupported");
-    if (state.active_tester_id!==null&&!isTesterId(state.active_tester_id)) errors.push("active tester id is invalid");
+    if (state.active_tester_id!==null&&!isSessionId(state.active_tester_id)) errors.push("active tester id is invalid");
     if (!state.testers||typeof state.testers!=="object"||Array.isArray(state.testers)) errors.push("testers must be an object");
     else for (const [testerId,row] of Object.entries(state.testers)) {
-      if (!isTesterId(testerId)) errors.push("tester id is invalid");
+      if (!isSessionId(testerId)) errors.push("tester id is invalid");
       if (!row||!isIso(row.started_at)||!isIso(row.updated_at)||!["in_progress","awaiting_review","completed","abandoned","stopped"].includes(row.status)) errors.push(`${testerId} metadata is invalid`);
     }
     if (!Array.isArray(state.events)) errors.push("events must be an array");
@@ -90,7 +98,7 @@
       ...payload,
       journey_id:testerId,
       category:overrides.category||"unknown", game_id:overrides.game_id||"unknown", input_method:overrides.input_method||"unknown",
-      ...COMMON, sequence, elapsed_ms:elapsedMs
+      ...commonFor(testerId), sequence, elapsed_ms:elapsedMs
     };
   }
 
@@ -112,7 +120,8 @@
     if (loaded.read_only) throw new Error(loaded.error||"validation storage is unavailable");
     const state=loaded.state;
     const testerId=input?.tester_id;
-    if (!isTesterId(testerId)) throw new Error("tester_id must be t01 through t10");
+    if (!isSessionId(testerId)) throw new Error("tester_id must be t00 through t10");
+    if (isPreflightId(testerId)&&TESTER_IDS.some(id=>state.testers[id])) throw new Error("T00 preflight must run before the real tester cohort starts");
     if (validation.evaluateCohortGate(state.events,10).status==="STOP") throw new Error("validation is locked after a confirmed STOP incident; fix and start a new cohort version");
     if (state.active_tester_id) throw new Error("another tester session is active");
     if (state.testers[testerId]) throw new Error("tester_id has already been used; do not replace a failed participant");
@@ -123,8 +132,11 @@
     appendEvent(state,testerId,"landing_viewed",{},nowMs);
     appendEvent(state,testerId,"tester_profile_recorded",{
       expertise:input.expertise, purchase_contexts:input.purchase_contexts,
-      independence_confirmed:input.independence_confirmed, developer_or_contributor:input.developer_or_contributor,
-      answer_aware:input.answer_aware, consent_confirmed:input.consent_confirmed, data_origin:"observed_participant"
+      independence_confirmed:isPreflightId(testerId)?false:input.independence_confirmed,
+      developer_or_contributor:isPreflightId(testerId)?true:input.developer_or_contributor,
+      answer_aware:isPreflightId(testerId)?true:input.answer_aware,
+      consent_confirmed:input.consent_confirmed,
+      data_origin:isPreflightId(testerId)?"internal_qa":"observed_participant"
     },nowMs);
     return save(storage,state,new Date(nowMs).toISOString());
   }
@@ -184,12 +196,21 @@
   }
 
   function report(state) {
-    const gate=validation.evaluateCohortGate(state?.events||[],10);
-    const profiles=(state?.events||[]).filter(event=>event.name==="tester_profile_recorded");
+    const realEvents=(state?.events||[]).filter(event=>isTesterId(event?.properties?.journey_id));
+    const gate=validation.evaluateCohortGate(realEvents,10);
+    const profiles=realEvents.filter(event=>event.name==="tester_profile_recorded");
     const expertise=Object.fromEntries(["beginner","intermediate","enthusiast"].map(key=>[key,profiles.filter(event=>event.properties.expertise===key).length]));
     const purchaseContexts=Object.fromEntries([...new Set(profiles.flatMap(event=>event.properties.purchase_contexts||[]))].map(key=>[key,profiles.filter(event=>(event.properties.purchase_contexts||[]).includes(key)).length]));
-    const rows=Object.values(state?.testers||{});
-    return { gate, composition:{ expertise, purchase_contexts:purchaseContexts }, finalized:rows.filter(row=>["completed","abandoned","stopped"].includes(row.status)).length, awaiting_review:rows.filter(row=>row.status==="awaiting_review").length, active_tester_id:state?.active_tester_id||null };
+    const rows=TESTER_IDS.map(id=>state?.testers?.[id]).filter(Boolean);
+    const preflightRow=state?.testers?.[PREFLIGHT_ID]||null;
+    return {
+      gate,
+      composition:{ expertise, purchase_contexts:purchaseContexts },
+      finalized:rows.filter(row=>["completed","abandoned","stopped"].includes(row.status)).length,
+      awaiting_review:rows.filter(row=>row.status==="awaiting_review").length,
+      active_tester_id:state?.active_tester_id||null,
+      preflight:{ tester_id:PREFLIGHT_ID, status:preflightRow?.status||"not_run", excluded_from_n10:true }
+    };
   }
 
   function exportState(state) {
@@ -201,7 +222,7 @@
   function exportTester(state,testerId) {
     const errors=validateState(state);
     if (errors.length) throw new Error(errors.join("; "));
-    if (!isTesterId(testerId)||!state.testers[testerId]) throw new Error("tester record is unavailable");
+    if (!isSessionId(testerId)||!state.testers[testerId]) throw new Error("tester record is unavailable");
     return JSON.stringify({
       schema_version:SCHEMA_VERSION,
       tester_id:testerId,
@@ -218,12 +239,13 @@
     const allowedTop=new Set(["schema_version","tester_id","tester","events","notice"]);
     if (!payload||typeof payload!=="object"||Array.isArray(payload)||Object.keys(payload).some(key=>!allowedTop.has(key))) throw new Error("tester export shape is invalid");
     if (payload.schema_version!==SCHEMA_VERSION) throw new Error("tester export schema version is unsupported");
-    if (!isTesterId(payload.tester_id)) throw new Error("tester export id is invalid");
+    if (!isSessionId(payload.tester_id)) throw new Error("tester export id is invalid");
     const testerKeys=payload.tester&&typeof payload.tester==="object"&&!Array.isArray(payload.tester)?Object.keys(payload.tester):[];
     if (testerKeys.length!==3||testerKeys.some(key=>!["started_at","updated_at","status"].includes(key))) throw new Error("tester export metadata shape is invalid");
     if (payload.tester.status!=="awaiting_review"||!isIso(payload.tester.started_at)||!isIso(payload.tester.updated_at)) throw new Error("tester export is not awaiting facilitator review");
     if (!Array.isArray(payload.events)||!payload.events.length) throw new Error("tester export events are missing");
     const testerId=payload.tester_id;
+    const expectedCommon=commonFor(testerId);
     payload.events.forEach((event,index)=>{
       const eventKeys=event&&typeof event==="object"&&!Array.isArray(event)?Object.keys(event):[];
       if (eventKeys.length!==2||eventKeys.some(key=>!["name","properties"].includes(key))) throw new Error("tester export event envelope is invalid");
@@ -231,7 +253,7 @@
       const errors=validation.validateEvent(event);
       if (errors.length) throw new Error(`tester export events[${index}]: ${errors.join("; ")}`);
       const properties=event.properties||{};
-      if (properties.journey_id!==testerId||properties.build_id!==COMMON.build_id||properties.source!==COMMON.source||properties.content_id!==COMMON.content_id||properties.entry_offer!==COMMON.entry_offer||properties.campaign!==COMMON.campaign||properties.cohort!==COMMON.cohort||properties.locale!==COMMON.locale||properties.traffic_class!==COMMON.traffic_class) throw new Error("tester export provenance does not match this cohort build");
+      if (properties.journey_id!==testerId||properties.build_id!==expectedCommon.build_id||properties.source!==expectedCommon.source||properties.content_id!==expectedCommon.content_id||properties.entry_offer!==expectedCommon.entry_offer||properties.campaign!==expectedCommon.campaign||properties.cohort!==expectedCommon.cohort||properties.locale!==expectedCommon.locale||properties.traffic_class!==expectedCommon.traffic_class) throw new Error("tester export provenance does not match this cohort build");
       if (properties.sequence!==index) throw new Error("tester export event sequence is invalid");
     });
     const selfReviews=payload.events.filter(event=>event.name==="tester_self_review_recorded");
@@ -253,7 +275,19 @@
     return save(storage,state,now);
   }
 
+  function deleteTesterSession(storage,testerId,now=new Date().toISOString()) {
+    if (!isSessionId(testerId)) throw new Error("tester id is invalid");
+    const loaded=load(storage);
+    if (loaded.read_only) throw new Error(loaded.error||"validation storage is unavailable");
+    const state=loaded.state;
+    if (!state.testers[testerId]) return state;
+    delete state.testers[testerId];
+    state.events=state.events.filter(event=>event.properties.journey_id!==testerId);
+    if (state.active_tester_id===testerId) state.active_tester_id=null;
+    return save(storage,state,now);
+  }
+
   function deleteAll(storage) { storage.removeItem(STORAGE_KEY); }
 
-  return { STORAGE_KEY,SCHEMA_VERSION,MAX_BYTES,RETENTION_DAYS,TESTER_IDS,COMMON,createState,validateState,parse,pruneExpired,load,save,startTester,capture,captureMany,submitTesterReview,stopTester,finishTester,report,exportState,exportTester,parseTesterExport,importTesterExport,deleteAll };
+  return { STORAGE_KEY,SCHEMA_VERSION,MAX_BYTES,RETENTION_DAYS,TESTER_IDS,PREFLIGHT_ID,SESSION_IDS,COMMON,PREFLIGHT_COMMON,createState,validateState,parse,pruneExpired,load,save,startTester,capture,captureMany,submitTesterReview,stopTester,finishTester,report,exportState,exportTester,parseTesterExport,importTesterExport,deleteTesterSession,deleteAll };
 });

@@ -88,7 +88,7 @@ URL構造:
 - `Cache-Control: no-store`
 - `connect-src 'none'`, `frame-ancestors 'none'`
 - 本番トップ・sitemapからリンクしない
-- `preview-dist`には担当者管理画面を含めない。`/private/validation-console.html`とextensionless routeは`_redirects`でも404側へ送り、担当者管理画面はローカルcheckoutだけで使用
+- `preview-dist`には担当者管理画面を含めない。`/private/validation-console.html`とextensionless routeは実ファイルを持たず、無リンク・inline codeなしのpreview専用404を返す。担当者管理画面はローカルcheckoutだけで使用
 
 費用: Cloudflare Pages Free範囲を想定。公式のFree limitでは月500 builds、1 concurrent build、1 projectあたり20,000 filesであり、本テスト規模は範囲内。ただし契約・課金画面が出た場合は停止する。
 
@@ -116,7 +116,7 @@ URL構造:
 
 入力はlocalStorageだけに保存し、画面コードにfetch、XHR、WebSocket、sendBeacon、PostHogを含めない。CSPでもconnectを禁止する。参加者slotはURL fragmentで渡し、URL自体に個人名・連絡先を入れない。ただし返送チャネル上では担当者がslotと参加者を一時的に対応付けられるため、厳密な匿名ではなく仮名化記録として扱う。
 
-この条件では、購入要求も自由記述もなく、漏えい時の主な対象はUIと公開仕様由来fixtureであるため、最大10人のunlisted testは比例的と判断する。ただし、URL漏えいを許容できない場合や未公開知財を秘密として扱う場合はAccessが必須となり、deploy前に再承認する。実URLではT01配布前にT00を使い、HTTPS、headers、no-store、console redirect、外部通信0、export→返送→import→担当者review→Gateの1往復を確認する。
+この条件では、購入要求も自由記述もなく、漏えい時の主な対象はUIと公開仕様由来fixtureであるため、最大10人のunlisted testは比例的と判断する。ただし、URL漏えいを許容できない場合や未公開知財を秘密として扱う場合はAccessが必須となり、deploy前に再承認する。実URLではT01配布前にT00を使い、HTTPS、headers、no-store、console pathの実404、外部通信0、export→返送→import→担当者review→Gateの1往復を確認する。
 
 ## 10人Gate
 
@@ -175,7 +175,7 @@ URL modeの想定人間工数:
 
 - preview作成・header確認: 45〜90分（初回のみ）
 - T01〜T10 URL割当と案内: 30〜60分
-- 1人あたり質問対応・JSON受領・安全確認: 15〜25分
+- 1人あたり選考・契約確認・質問対応・JSON受領・安全確認: 15〜30分の運営工数（Tester画面は募集条件どおり5〜10分以内をT00/T01で実測）
 - 10人集計・四役review: 2〜3時間
 - 合計目安: 6〜9時間
 
@@ -196,7 +196,7 @@ Cloudflare公式ではpreview URLは標準でpublic、`X-Robots-Tag: noindex`付
 - 参加者本人の1slotだけを書き出す機能を追加。
 - 担当者のローカル管理画面へ1slotずつ取り込み、build・出所・連番・重複・未知metadata・担当者専用eventを拒否してからレビュー確定する導線を追加。
 - event外側も`name` / `properties`の完全一致とし、連絡先や自由記述を追加して取り込む経路を拒否。
-- preview上の担当者管理画面は`_redirects`で404へ送り、ローカルの信頼済みcheckoutでだけ使用。
+- preview上の担当者管理画面はbundleへ含めず、実URLで404を確認し、ローカルの信頼済みcheckoutでだけ使用。
 - dedicated preview全体へnoindex、no-store、CSP、frame denialを適用し、`preview-dist`だけを配信する。
 - allowlist preview bundle化に伴いbuild IDをv3へ更新し、変更前cohortとの混在を防止。
 
@@ -216,7 +216,7 @@ Cloudflare公式ではpreview URLは標準でpublic、`X-Robots-Tag: noindex`付
 
 Syntheticで再現したP0/P1は0。残る最大リスクはreal testerの理解度、URL漏えい、結果ファイル回収、ホスティング事業者のrequest metadataである。
 
-独立レッドが発見したURL結果の中央集約欠落、管理画面のpreview露出、仮名化記録を匿名と呼ぶ問題、event envelope/metadataへの未知値混入、保持期間表示の不一致は修正して回帰化した。最終差分の既知P0/P1は0。残るP2はSyntheticの自己循環、JSONに暗号署名がないこと、実deployでのheader/redirect未確認である。
+独立レッドが発見したURL結果の中央集約欠落、管理画面のpreview露出、仮名化記録を匿名と呼ぶ問題、event envelope/metadataへの未知値混入、保持期間表示の不一致は修正して回帰化した。T00専用identityと10人集計除外、参加者端末からの番号付き記録削除、CrowdWorks保持境界も追加した。残るP2はSyntheticの自己循環、JSONに暗号署名がないこと、実deployでのheader/404未確認である。
 
 ## ①ポート
 

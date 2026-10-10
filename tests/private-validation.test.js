@@ -124,6 +124,48 @@ test("remote participant exports import one slot at a time and require facilitat
   assert.throws(()=>store.importTesterExport(facilitator,payload),/already been imported/);
 });
 
+test("T00 is an internal preflight round trip and never enters the 10-person metrics", () => {
+  const operator=new MemoryStorage();
+  store.startTester(operator,{ tester_id:"t00",expertise:"enthusiast",purchase_contexts:["no_purchase_may_be_best"],consent_confirmed:true },"2026-10-10T00:00:00.000Z");
+  store.capture(operator,"my_setup_started",{},"2026-10-10T00:00:01.000Z");
+  store.submitTesterReview(operator,{ category:"mouse",game_id:"apex",input_method:"mnk",self_reported_reason_understood:true,intended_judgment:"keep_current",ux_issue_codes:["none"] },"2026-10-10T00:01:00.000Z");
+  const participantState=store.load(operator).state;
+  assert.equal(participantState.events[0].properties.traffic_class,"internal_qa");
+  assert.equal(participantState.events[0].properties.cohort,"internal");
+  assert.equal(participantState.events[1].properties.data_origin,"internal_qa");
+  assert.equal(store.report(participantState).finalized,0);
+  assert.equal(store.report(participantState).awaiting_review,0);
+  assert.equal(store.report(participantState).gate.report.counts.landings,0);
+  assert.equal(store.report(participantState).preflight.status,"awaiting_review");
+
+  const payload=store.exportTester(participantState,"t00");
+  const facilitator=new MemoryStorage();
+  const imported=store.importTesterExport(facilitator,payload,"2026-10-10T00:02:00.000Z");
+  assert.equal(imported.active_tester_id,"t00");
+  assert.equal(store.report(imported).finalized,0);
+  store.finishTester(facilitator,{ category:"mouse",game_id:"apex",input_method:"mnk",flow_completed:true,reason_understood:true,intended_judgment:"keep_current",assistance_level:"none",severe_error:false,privacy_incident:false,game_input_contamination:false,hard_avoid_violation:false,compatibility_major_violation:false,affiliate_rank_influence:false,ux_issue_codes:["none"] },[],"2026-10-10T00:03:00.000Z");
+  const completed=store.load(facilitator).state;
+  assert.equal(store.report(completed).preflight.status,"completed");
+  assert.equal(store.report(completed).finalized,0);
+  assert.equal(store.report(completed).gate.status,"INCONCLUSIVE");
+  assert.throws(()=>store.importTesterExport(facilitator,payload),/already been imported/);
+});
+
+test("T00 can be removed from browser storage without deleting another tester", () => {
+  const storage=new MemoryStorage();
+  store.startTester(storage,{ tester_id:"t00",expertise:"enthusiast",purchase_contexts:["no_purchase_may_be_best"],consent_confirmed:true },"2026-10-10T00:00:00.000Z");
+  let state=store.deleteTesterSession(storage,"t00","2026-10-10T00:01:00.000Z");
+  assert.equal(state.testers.t00,undefined);
+  assert.equal(state.events.some(event=>event.properties.journey_id==="t00"),false);
+  assert.equal(state.active_tester_id,null);
+  assert.equal(store.report(state).finalized,0);
+});
+
+test("internal T00 incidents do not create a false STOP in the real cohort gate", () => {
+  const event={ name:"safety_incident_recorded",properties:{ ...common("t00",0,{ incident_type:"privacy_leak",confirmed:true }),campaign:"pgi-t00-2026-10",cohort:"internal",traffic_class:"internal_qa" } };
+  assert.equal(validation.evaluateCohortGate([event],10).status,"INCONCLUSIVE");
+});
+
 test("remote import rejects wrong build, extra fields, sequence changes and facilitator events", () => {
   const participant=new MemoryStorage();
   store.startTester(participant,{ tester_id:"t02",expertise:"intermediate",purchase_contexts:["actively_deciding"],independence_confirmed:true,developer_or_contributor:false,answer_aware:false,consent_confirmed:true },"2026-10-10T00:00:00.000Z");

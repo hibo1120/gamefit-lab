@@ -27,6 +27,8 @@ For the dedicated test project:
 - Do not enable Analytics, Functions, Workers, or Affiliate functionality.
 - Distribute only the unique deployment-hash URL, not a branch alias.
 
+The project may be created only if these controls can be fixed before its first deployment. Do not temporarily publish `main` or the feature branch as a production deployment and disable it afterward. If the dashboard creation flow requires a first production deployment, stop without creating the project; the API is only an alternative after a separately authorized credential path is available.
+
 ## T00 safety gate
 
 Before T00, verify on the real deployment URL:
@@ -41,8 +43,9 @@ Before T00, verify on the real deployment URL:
 - `/private/validation-console.html` and `/private/validation-console` are unavailable.
 - Known internal paths such as `/docs/`, `/tests/`, `/scripts/`, `/.git/`, and `/.env` are unavailable.
 - Main GitHub Pages is unchanged.
+- The exact tuple of Pages project, deployment hash URL, feature branch, Git commit SHA, and build ID is recorded.
 
-Only after this gate passes may T00 run. T00 remains internal QA and never counts toward the ten real testers.
+Only after this gate passes may `#T00` run. T00 uses the `t00` identity with `internal_qa` traffic and `internal` cohort provenance. Export it, import it into the local facilitator console, reject a duplicate and a wrong-build copy, finalize the review, remove the browser-held T00 record, and confirm the real-test report remains `0/10` and `INCONCLUSIVE`. T00 remains internal QA and never counts toward the ten real testers. Record page-open through JSON-export time; if the operator path exceeds the advertised ten-minute maximum, do not invite T01.
 
 ## Build identity
 

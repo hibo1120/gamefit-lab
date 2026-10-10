@@ -30,7 +30,7 @@ After a separate preview-deployment approval, distribute one pseudonymous hash-f
 
 through `#T10`. A URL fragment is read only in the browser and is not sent as part of the HTTP request. Do not put a name, email address, social handle, or contact identifier in the URL. Use the deployment-hash URL rather than the branch alias. The page remains unlinked, has HTML and HTTP `noindex`, sends no input or analytics, and stores answers only in localStorage. The hosting provider can still process ordinary request metadata such as IP address; the page discloses that boundary. The tester result is not strictly anonymous: the fixed slot and the one-to-one return channel can be associated during operations, so call it a participant-number/pseudonymous record.
 
-The Cloudflare preview build is generated into `preview-dist` from an explicit allowlist. The facilitator console, docs, tests, scripts, exports, and other internal-only files are not copied into the deployment package. The preview also redirects `/private/validation-console.html` and its extensionless route to the custom 404 as a second layer of defense. Run the facilitator console only from a local trusted checkout; never give its URL to a participant. The console imports one participant JSON at a time, rejects another build, reused slot, non-contiguous sequence, facilitator-only event, unknown metadata key, or sensitive free-form field, and then requires the facilitator review before the next import. These are structural checks, not a cryptographic signature; an exported file is not tamper-proof.
+The Cloudflare preview build is generated into `preview-dist` from an explicit allowlist. The facilitator console, docs, tests, scripts, exports, and other internal-only files are not copied into the deployment package. Missing internal routes, including `/private/validation-console.html`, must return the preview-specific inert 404 with no links, inline code, or navigation. Run the facilitator console only from a local trusted checkout; never give its URL to a participant. The console imports one participant JSON at a time, rejects another build, reused slot, non-contiguous sequence, facilitator-only event, unknown metadata key, or sensitive free-form field, and then requires the facilitator review before the next import. These are structural checks, not a cryptographic signature; an exported file is not tamper-proof.
 
 `noindex`, an unlinked page, and an opaque URL are not access control. If link leakage or source-code visibility is unacceptable, stop and use Cloudflare Access or a facilitator-controlled session instead. Access introduces login and identity processing and must receive a separate privacy/operations review.
 
@@ -56,9 +56,13 @@ Target mix, with overlap allowed:
 
 Recruit privately from real or potential users who did not build GameFit and do not know the expected answer. Keep scheduling/contact information outside GameFit and delete it after scheduling. Never add names, email addresses, social handles, phone numbers, free text, exact address, IP, device IDs, or serial numbers to the validation JSON.
 
+For the current build, eligible exact paths are VALORANT + mouse/keyboard, Apex Legends + mouse/keyboard, and Apex Legends + controller. Do not assign CS2, Overwatch 2, Fortnite, or another input method to a near-match profile. Hold those applicants for a later approved build. For the three-person pilot, prefer one beginner, one intermediate user, and one enthusiast; cover both supported games and Apex controller when possible; allow at most one unlisted-current-product/`CLARIFY` case. Never select for likely agreement, purchase intent, or expensive gear.
+
 ## Neutral invitation draft
 
-> ゲーミング機材の買い替え判断ツールについて、非公開の使いやすさ・安全性テストを行っています。購入や費用負担は不要で、所要は15〜25分です。氏名・メールは結果に保存せず、参加者番号と選択式回答だけを記録します。途中で中止・削除を依頼できます。公開募集ではなく10人で終了します。参加できる場合は、担当者の端末、画面共有、または案内する非公開テストURLから自力操作をお願いします。
+> ゲーミング機材の買い替え判断ツールについて、少人数の使いやすさ・安全性テストを行っています。購入や費用負担は不要です。氏名・メールはGameFitの結果に保存せず、参加者番号と選択式回答だけを記録します。途中で中止・削除を依頼できます。公開募集ではなく10人で終了します。参加できる場合は、案内するテストURLから自力操作をお願いします。
+
+The CrowdWorks listing currently states 5–10 minutes. Do not send T01 until T00 demonstrates page-open through JSON export within 10 minutes. Record operator support time separately. If T01 exceeds 10 minutes for product-caused reasons, pause T02/T03 and align scope, listing, and compensation through a separate human-approved CrowdWorks change.
 
 Do not promise benefit, a correct recommendation, discounts, payment, or access to a future public product.
 
@@ -85,7 +89,7 @@ If the tester asks where to click, first reply: “今見えている情報だ�
 9. In the facilitator console, record assistance and each safety flag separately. Finalize.
 10. Local/facilitated mode: export the participant-number ledger after each finalized tester to an encrypted local project folder; do not email or upload it. URL mode: the tester exports only their slot record and returns it through the one-to-one channel approved with the preview. Keep scheduling/contact data outside the result folder. Import the file into the local facilitator console, confirm the build and slot, ask the participant to explain the result in their own words without storing the words, and complete the facilitator review. Ask the participant to delete their downloaded copy after receipt; remove the channel attachment when the service permits and delete the local result within 30 days after the cohort ends.
 
-Before inviting T01, run a T00 round trip on the approved preview: complete a DONT or disagree→rerank path, export, return, import, reject a duplicate/wrong-build copy, finalize a facilitator review, and confirm the Gate remains `INCONCLUSIVE`. T00 is internal QA and must never count toward the ten.
+Before inviting T01, run `#T00` on the approved preview: complete a DONT or disagree→rerank path, export, return, import, reject a duplicate/wrong-build copy, finalize a facilitator review, delete the browser-held T00 record, and confirm the Gate remains `INCONCLUSIVE` with `0/10` real testers. T00 events use `internal_qa` / `internal` provenance and must never count toward the ten.
 
 ## Immediate STOP
 
@@ -115,7 +119,21 @@ The local ledger records only a fixed participant number and structured codes:
 - self-reported intended judgment and UX/privacy issue codes;
 - facilitator teach-back result, assistance level, and individual STOP flags.
 
-The ledger excludes free text and contact data. Browser-held validation records are pruned after 30 days the next time the facilitator console loads. Exported JSON files are not automatically deleted: the facilitator must store them only in the approved test location and delete them within 30 days after the 10-person test ends. The participant-facing `入力内容を削除` control removes only the Personal Gear profile and decision history; the facilitator console has a separate validation-ledger delete control.
+The ledger excludes free text and contact data. Browser-held validation records are pruned after 30 days the next time the page loads; the result screen also lets the participant delete the current numbered record immediately. Exported JSON files are not automatically deleted: the facilitator must store local copies only in the approved test location and delete them within 30 days after the 10-person test ends. CrowdWorks says message attachments cannot be canceled/deleted by the user and contract messages/attachments/deliverables are retained for two years after contract completion; disclose that the platform copy follows CrowdWorks policy and is not covered by the operator's 30-day local-copy deletion. See [attachment deletion](https://crowdworks-help.zendesk.com/hc/ja/articles/5006064689054-) and [data retention](https://crowdworks-help.zendesk.com/hc/ja/articles/5006129224990-).
+
+## CrowdWorks pilot messages (prepare only; do not send before T00 PASS)
+
+### Selection notice
+
+> ご応募ありがとうございます。3名限定pilotの対象として選考しました。購入は不要です。契約・仮払い完了後、あなた専用のテストURLと参加者番号をこのメッセージで送ります。それまではアクセス不要です。氏名・メール・自由記述をGameFitへ入力しないでください。対象ゲーム／入力方法は［game / input］です。
+
+### URL handoff
+
+> 契約・仮払いを確認しました。テストURLは［deployment hash URL#T0X］です。認証付きページではなく、URLを知っている人が開ける非掲載URLのため、共有しないでください。共有端末は避けてください。入力内容は自動送信されませんが、配信事業者はIPアドレス等の通常アクセス情報を処理する場合があります。画面だけを見て自力で進み、最後に「このテスト結果を書き出す」でJSONを保存し、内容を編集せずCrowdWorksの1対1メッセージへ添付してください。購入・ログイン・個人情報入力は不要です。想定外の外部送信、支払い、個人情報要求が出たら停止して連絡してください。
+
+### Receipt
+
+> 参加者番号［T0X］のJSONを受領し、slot / build / schemaを確認しました。ダウンロードしたJSONとブラウザ内のテスト記録は削除してください。担当者が端末へ保存した複製は10人テスト終了後30日以内に削除します。CrowdWorks上のメッセージ・添付は同社の保存方針に従い、担当者が任意に削除できない場合があります。検収はCrowdWorksの契約内容に従って進めます。ご協力ありがとうございました。
 
 ## Blind comparison (optional secondary test)
 

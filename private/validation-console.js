@@ -42,6 +42,7 @@
     byId("console-summary").textContent=[
       `現在の判定: ${gateLabel(report.gate.status)}`,
       `確認済み: ${report.finalized}/10人（担当者確認待ち: ${report.awaiting_review}人）`,
+      `T00運営確認: ${report.preflight.status}（10人集計外）`,
       `誘導なしで最後まで完了: ${counts.flow_completed ?? 0}人`,
       `推薦理由を理解: ${quality.reasons_understood ?? 0}人`,
       `重大な問題: ${severeCount}件`,

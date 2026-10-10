@@ -33,6 +33,10 @@ test("private MVP exposes the required flow and privacy controls without public 
   assert.match(consoleHtml,/担当者専用/);
   assert.equal(index.includes("private/validation-console.html"),false);
   assert.match(script,/testerSlotFromHash/);
+  assert.match(script,/SESSION_IDS/);
+  assert.match(script,/PREFLIGHT_ID/);
+  assert.match(html,/id="delete-session"/);
+  assert.match(script,/deleteTesterSession/);
   assert.match(script,/window\.location\.hash/);
   assert.doesNotMatch(script,/URLSearchParams|location\.search/);
 });
@@ -78,11 +82,14 @@ test("internal recommendation enums have Japanese display labels", () => {
   for (const value of ["meaningful_change","limited_change","small_change","unknown"]) assert.ok(copy.maps.delta[value], value);
 });
 
-test("participant data deletion does not remove the cohort record", () => {
+test("profile deletion stays separate and the participant can delete the numbered browser record", () => {
   const handler = script.match(/byId\("delete-data"\)[\s\S]*?byId\("reset-data"\)/)?.[0] || "";
   assert.match(handler,/storageApi\.deleteAll\(storage\)/);
   assert.doesNotMatch(handler,/validationStore\.deleteAll\(storage\)/);
-  assert.match(html,/参加者番号付きテスト記録は担当者が別画面で管理します/);
+  const sessionHandler=script.match(/byId\("delete-session"\)[\s\S]*?const deleteValidationButton/)?.[0]||"";
+  assert.match(html,/参加者番号付きテスト記録は、回答後の専用ボタンから削除できます/);
+  assert.match(sessionHandler,/validationStore\.deleteTesterSession\(storage,testerId\)/);
+  assert.doesNotMatch(sessionHandler,/validationStore\.deleteAll\(storage\)/);
 });
 
 test("facilitator console imports validated participant files and stays off the preview route", () => {

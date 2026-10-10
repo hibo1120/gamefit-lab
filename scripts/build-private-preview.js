@@ -5,7 +5,6 @@ const root = path.join(__dirname, "..");
 const defaultOutput = path.join(root, "preview-dist");
 
 const STATIC_FILES = Object.freeze([
-  "404.html",
   "preference-engine.js",
   "normalization-engine.js",
   "data/game-dna.js",
@@ -38,8 +37,23 @@ const PREVIEW_HEADERS = `/*
   Content-Security-Policy: default-src 'self'; connect-src 'none'; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
 `;
 
-const PREVIEW_REDIRECTS = `/private/validation-console.html /404.html 302
-/private/validation-console /404.html 302
+const PREVIEW_REDIRECTS = ``;
+
+const PREVIEW_NOT_FOUND = `<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>ページが見つかりません | GameFit Lab テスト版</title>
+</head>
+<body>
+  <main>
+    <h1>ページが見つかりません</h1>
+    <p>このテスト版では利用できないページです。担当者から案内されたURLだけを開いてください。</p>
+  </main>
+</body>
+</html>
 `;
 
 const PREVIEW_ROBOTS = `User-agent: *
@@ -82,13 +96,14 @@ function buildPreview(outputDir = defaultOutput) {
   const testerHtml = path.join(output, "private", "personal-gear.html");
   ensureParent(testerHtml);
   fs.writeFileSync(testerHtml, participantHtml(), "utf8");
+  fs.writeFileSync(path.join(output, "404.html"), PREVIEW_NOT_FOUND, "utf8");
   fs.writeFileSync(path.join(output, "_headers"), PREVIEW_HEADERS, "utf8");
   fs.writeFileSync(path.join(output, "_redirects"), PREVIEW_REDIRECTS, "utf8");
   fs.writeFileSync(path.join(output, "robots.txt"), PREVIEW_ROBOTS, "utf8");
 
   return {
     output,
-    files: [...STATIC_FILES, "private/personal-gear.html", "_headers", "_redirects", "robots.txt"]
+    files: [...STATIC_FILES, "private/personal-gear.html", "404.html", "_headers", "_redirects", "robots.txt"]
   };
 }
 
@@ -102,6 +117,7 @@ module.exports = {
   PREVIEW_HEADERS,
   PREVIEW_REDIRECTS,
   PREVIEW_ROBOTS,
+  PREVIEW_NOT_FOUND,
   participantHtml,
   buildPreview
 };

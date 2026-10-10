@@ -78,9 +78,14 @@
       }
     }
     if (event.name === "tester_profile_recorded") {
-      if (!properties.independence_confirmed || properties.developer_or_contributor || properties.answer_aware) errors.push("tester must be independent and unaware of the expected answer");
+      const internalQa=properties.traffic_class === "internal_qa" && properties.cohort === "internal";
+      if (internalQa) {
+        if (properties.data_origin !== "internal_qa") errors.push("internal QA profile requires internal_qa origin");
+      } else {
+        if (!properties.independence_confirmed || properties.developer_or_contributor || properties.answer_aware) errors.push("tester must be independent and unaware of the expected answer");
+        if (properties.data_origin !== "observed_participant") errors.push("real tester profile requires observed_participant origin");
+      }
       if (!properties.consent_confirmed) errors.push("tester consent must be confirmed");
-      if (properties.data_origin !== "observed_participant") errors.push("real tester profile requires observed_participant origin");
     }
     if (event.name === "rerank_requested") {
       if (properties.reason_count !== properties.reason_codes?.length) errors.push("reason_count must match reason_codes");
@@ -200,7 +205,10 @@
   }
 
   function evaluateCohortGate(events,size) {
-    const rawConfirmedIncidents=(events||[]).filter(event=>event?.name==="safety_incident_recorded"&&event?.properties?.confirmed===true);
+    const rawConfirmedIncidents=(events||[]).filter(event=>
+      event?.name==="safety_incident_recorded"&&event?.properties?.confirmed===true&&
+      !["internal_qa","bot_suspected"].includes(event?.properties?.traffic_class)
+    );
     if (rawConfirmedIncidents.length) return { status:"STOP",reasons:["confirmed safety, affiliate, or privacy incident"],report:computeMetrics(events) };
     const report=computeMetrics(events);
     if (!report.valid) return { status:"INCONCLUSIVE",reasons:["invalid events"],report };

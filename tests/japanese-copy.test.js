@@ -38,9 +38,10 @@ test("privacy, retention, and local analytics copy match implementation boundari
   assert.match(privateHtml,/担当者が受領したことを確認してからご自身で削除/);
   assert.match(consoleHtml,/このブラウザ内の参加者番号付き記録は、30日を過ぎて次にこの画面を開いたときに削除/);
   assert.match(consoleHtml,/書き出したファイルは自動削除されない/);
-  assert.match(privateHtml,/担当者が受領したファイルは、10人テストの終了後30日以内に手動で削除/);
+  assert.match(privateHtml,/担当者が端末へ保存した複製は、10人テストの終了後30日以内に手動で削除/);
+  assert.match(privateHtml,/CrowdWorksのメッセージや添付ファイル.*担当者が任意に削除できない場合があります/);
   assert.match(consoleHtml,/10人テストの終了後30日以内に担当者が削除/);
-  assert.doesNotMatch(privateHtml,/30日以内に削除|30日で自動削除/);
+  assert.doesNotMatch(privateHtml,/CrowdWorks.*30日以内に.*削除|30日で自動削除/);
   assert.match(privateScript,/製品名と型番を担当者へ伝えてください/);
   assert.match(posthog,/\["localhost", "127\.0\.0\.1"\]/);
 });

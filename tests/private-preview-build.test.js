@@ -26,6 +26,7 @@ test("private preview build exposes only the explicit allowlist", () => {
     const expected = [...new Set([
       ...STATIC_FILES,
       "private/personal-gear.html",
+      "404.html",
       "_headers",
       "_redirects",
       "robots.txt"
@@ -88,8 +89,12 @@ test("generated tester page omits facilitator UI and all local dependencies exis
     assert.match(robots, /Disallow: \/$/m);
 
     const redirects = fs.readFileSync(path.join(temp, "_redirects"), "utf8");
-    assert.match(redirects, /\/private\/validation-console\.html \/404\.html 302/);
-    assert.match(redirects, /\/private\/validation-console \/404\.html 302/);
+    assert.equal(redirects,"", "missing internal routes must use the host's real 404 response");
+
+    const notFound = fs.readFileSync(path.join(temp, "404.html"), "utf8");
+    assert.match(notFound,/ページが見つかりません/);
+    assert.doesNotMatch(notFound,/<style|<script|<a\s/i);
+    assert.doesNotMatch(notFound,/gamefit-lab\/|diagnose\.html/i);
   } finally {
     fs.rmSync(temp, { recursive: true, force: true });
   }

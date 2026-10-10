@@ -172,7 +172,7 @@
 
   function testerSlotFromHash() {
     const value=String(window.location.hash||"").slice(1).toLowerCase();
-    return validationStore.TESTER_IDS.includes(value)?value:null;
+    return validationStore.SESSION_IDS.includes(value)?value:null;
   }
 
   function validationLoad() { return validationStore.load(storage); }
@@ -234,7 +234,7 @@
     setFlowDisabled(Boolean(active&&activeStatus!=="in_progress"));
     const validationReportStatus=byId("validation-report-status");
     if (validationReportStatus) validationReportStatus.textContent=report
-      ? `${report.finalized}/10人確認済み · 担当者確認待ち ${report.awaiting_review}人 · 判定 ${gateLabel(report.gate.status)} · 自動送信なし`
+      ? `${report.finalized}/10人確認済み · 担当者確認待ち ${report.awaiting_review}人 · T00 ${report.preflight.status}（10人集計外） · 判定 ${gateLabel(report.gate.status)} · 自動送信なし`
       : "参加者番号付きテスト記録を読み取れません。";
     if (activeStatus==="awaiting_review") validationStatus("回答を保存しました。担当者の安全確認が終わるまで、この画面はそのままにしてください。");
     if (stopped&&!active) byId("validation-setup-status").textContent="重大な問題が確認されたため、テストを停止しています。修正後は別のテストとしてやり直します。";
@@ -609,6 +609,17 @@
     } catch (error) { byId("session-export-status").textContent=friendlyError(error,"テスト結果を書き出せませんでした。担当者へお知らせください。"); }
   });
 
+  byId("delete-session").addEventListener("click", () => {
+    const testerId=testerSlotFromHash();
+    if (!testerId) { byId("session-export-status").textContent="削除するテスト記録を確認できませんでした。"; return; }
+    if (!window.confirm("この端末に保存された参加者番号付きテスト記録を削除します。書き出したファイルや担当者へ渡した複製は削除されません。元に戻せません。")) return;
+    try {
+      validationStore.deleteTesterSession(storage,testerId);
+      byId("session-export-status").textContent="この端末の参加者番号付きテスト記録を削除しました。書き出したファイルは別途削除してください。";
+      syncValidationUi();
+    } catch (error) { byId("session-export-status").textContent=friendlyError(error,"この端末のテスト記録を削除できませんでした。ブラウザの保存設定をご確認ください。"); }
+  });
+
   const deleteValidationButton=byId("delete-validation");
   if (deleteValidationButton) deleteValidationButton.addEventListener("click", () => {
     if (!window.confirm("参加者番号付きの10人テスト記録をすべて削除します。元に戻せません。")) return;
@@ -667,9 +678,15 @@
   for (const testerId of validationStore.TESTER_IDS) byId("tester-id").append(option(testerId,testerId.toUpperCase()));
   const linkedTester=testerSlotFromHash();
   if (linkedTester) {
+    if (linkedTester===validationStore.PREFLIGHT_ID) byId("tester-id").prepend(option(linkedTester,"T00（運営確認・10人集計外）"));
     document.body.classList.add("tester-link");
     byId("tester-id").value=linkedTester;
     byId("tester-id-field").hidden=true;
+    if (linkedTester===validationStore.PREFLIGHT_ID) {
+      byId("tester-independent").checked=true;
+      byId("tester-independent").closest("label").hidden=true;
+      byId("validation-setup-status").textContent="T00は運営確認用です。実参加者10人の集計には入りません。";
+    }
   }
   addCheckboxes(byId("reason-codes"),REASONS,"reason_code");
   addCheckboxes(byId("direction-codes"),DIRECTIONS,"direction_code");
