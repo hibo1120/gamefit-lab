@@ -34,10 +34,11 @@ test("privacy, retention, and local analytics copy match implementation boundari
   const posthog=read("posthog-init.js");
   assert.match(privateHtml,/現在の機材や好みは削除するまでこのブラウザ内に保存/);
   assert.match(privateHtml,/判定・回答の履歴は365日を過ぎたものから次に保存したときに削除/);
-  assert.match(privateHtml,/このブラウザ内の匿名テスト記録は、30日を過ぎて担当者が管理画面を開いたときに削除/);
-  assert.match(consoleHtml,/このブラウザ内の匿名記録は、30日を過ぎて次にこの画面を開いたときに削除/);
+  assert.match(privateHtml,/参加者番号付き記録は、30日を過ぎて次にこのページを開いたときに削除/);
+  assert.match(privateHtml,/担当者が受領したことを確認してからご自身で削除/);
+  assert.match(consoleHtml,/このブラウザ内の参加者番号付き記録は、30日を過ぎて次にこの画面を開いたときに削除/);
   assert.match(consoleHtml,/書き出したファイルは自動削除されない/);
-  assert.match(privateHtml,/10人テストの終了後30日以内に手動で削除/);
+  assert.match(privateHtml,/担当者が受領したファイルは、10人テストの終了後30日以内に手動で削除/);
   assert.match(consoleHtml,/10人テストの終了後30日以内に担当者が削除/);
   assert.doesNotMatch(privateHtml,/30日以内に削除|30日で自動削除/);
   assert.match(privateScript,/製品名と型番を担当者へ伝えてください/);

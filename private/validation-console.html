@@ -12,8 +12,8 @@
     <header class="hero">
       <p class="eyebrow">担当者専用 · この端末内だけで使用</p>
       <h1>10人テスト管理</h1>
-      <p>参加者には見せず、担当者が安全確認、途中離脱、テスト停止、匿名記録の書き出しを行います。</p>
-      <p class="privacy-banner"><strong>自動送信なし。</strong> 氏名・メール・連絡先・自由記述を入力しないでください。このブラウザ内の匿名記録は、30日を過ぎて次にこの画面を開いたときに削除されます。書き出したファイルは自動削除されないため、10人テストの終了後30日以内に担当者が削除します。</p>
+      <p>参加者には見せず、担当者が安全確認、途中離脱、テスト停止、参加者番号付き記録の取込・書き出しを行います。</p>
+      <p class="privacy-banner"><strong>自動送信なし。</strong> 氏名・メール・連絡先・自由記述を入力しないでください。このブラウザ内の参加者番号付き記録は、30日を過ぎて次にこの画面を開いたときに削除されます。書き出したファイルは自動削除されないため、10人テストの終了後30日以内に担当者が削除します。</p>
     </header>
 
     <section class="panel">
@@ -21,10 +21,20 @@
       <pre id="console-summary" class="decision"></pre>
       <div class="button-row">
         <button type="button" id="refresh-console" class="secondary">再読み込み</button>
-        <button type="button" id="export-console" class="secondary">匿名記録を書き出す</button>
-        <button type="button" id="delete-console" class="danger">匿名記録をすべて削除</button>
+        <button type="button" id="export-console" class="secondary">参加者番号付き記録を書き出す</button>
+        <button type="button" id="delete-console" class="danger">参加者番号付き記録をすべて削除</button>
       </div>
       <p id="console-status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" id="tester-import">
+      <h2>参加者の結果を取り込む</h2>
+      <p>参加者から受け取ったJSONを1件ずつ確認します。同じbuildで、担当者確認待ちの未使用番号だけを取り込めます。内容を置き換えたり、重複して取り込んだりはできません。</p>
+      <label>参加者番号付きJSON
+        <input type="file" id="import-tester-file" accept="application/json,.json">
+      </label>
+      <button type="button" id="import-tester">確認して取り込む</button>
+      <p id="import-status" class="status" aria-live="polite"></p>
     </section>
 
     <section class="panel" id="active-console" hidden>

@@ -14,6 +14,7 @@
       AVOID:"今回は避けた方がよさそう",
       DONT_UPGRADE:"今は買い替えを急がなくてよさそうです",
       CLARIFY:"もう少し情報が必要です",
+      CONSIDER_UPGRADE:"条件を確認しながら比較できる候補があります",
       "RE-RANK":"条件を反映した候補"
     }),
     confidence:Object.freeze({ High:"多め", Medium:"中程度", Low:"少なめ", unknown:"不足" }),

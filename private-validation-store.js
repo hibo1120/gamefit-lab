@@ -12,8 +12,13 @@
   const TESTER_IDS = Object.freeze(Array.from({ length:10 }, (_,index)=>`t${String(index+1).padStart(2,"0")}`));
   const COMMON = Object.freeze({
     source:"private_tester", content_id:"private-validation-v1", entry_offer:"diagnosis",
-    campaign:"pgi-n10-2026-10", cohort:"n10", locale:"ja", traffic_class:"tester", build_id:"pgi-n10-preflight-v1"
+    campaign:"pgi-n10-2026-10", cohort:"n10", locale:"ja", traffic_class:"tester", build_id:"pgi-n10-preflight-v2"
   });
+  const PARTICIPANT_ONLY_EVENTS = Object.freeze(new Set([
+    "landing_viewed","tester_profile_recorded","my_setup_started","gear_taste_completed","next_upgrade_reached",
+    "decision_viewed","regret_shield_viewed","why_not_opened","recommendation_feedback","dont_upgrade_response",
+    "rerank_requested","rerank_completed","save_return_intent","purchase_route_intent","tester_self_review_recorded"
+  ]));
 
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
   function createState() { return { schema_version:SCHEMA_VERSION, active_tester_id:null, testers:{}, events:[], updated_at:null }; }
@@ -190,10 +195,65 @@
   function exportState(state) {
     const errors=validateState(state);
     if (errors.length) throw new Error(errors.join("; "));
-    return JSON.stringify({ ...clone(state), report:report(state), notice:"Anonymous coded test records only. No names, email addresses, contact details, free text, IP addresses, or device identifiers." },null,2);
+    return JSON.stringify({ ...clone(state), report:report(state), notice:"Pseudonymous participant-number records only. No names, email addresses, contact details, free text, IP addresses, or device identifiers." },null,2);
+  }
+
+  function exportTester(state,testerId) {
+    const errors=validateState(state);
+    if (errors.length) throw new Error(errors.join("; "));
+    if (!isTesterId(testerId)||!state.testers[testerId]) throw new Error("tester record is unavailable");
+    return JSON.stringify({
+      schema_version:SCHEMA_VERSION,
+      tester_id:testerId,
+      tester:clone(state.testers[testerId]),
+      events:clone(state.events.filter(event=>event.properties.journey_id===testerId)),
+      notice:"Pseudonymous participant-number record only. No names, email addresses, contact details, free text, IP addresses, or device identifiers. Synthetic results are not accepted."
+    },null,2);
+  }
+
+  function parseTesterExport(raw) {
+    if (typeof raw!=="string"||!raw.trim()) throw new Error("tester export is empty");
+    if (raw.length>MAX_BYTES) throw new Error("tester export is too large");
+    const payload=JSON.parse(raw);
+    const allowedTop=new Set(["schema_version","tester_id","tester","events","notice"]);
+    if (!payload||typeof payload!=="object"||Array.isArray(payload)||Object.keys(payload).some(key=>!allowedTop.has(key))) throw new Error("tester export shape is invalid");
+    if (payload.schema_version!==SCHEMA_VERSION) throw new Error("tester export schema version is unsupported");
+    if (!isTesterId(payload.tester_id)) throw new Error("tester export id is invalid");
+    const testerKeys=payload.tester&&typeof payload.tester==="object"&&!Array.isArray(payload.tester)?Object.keys(payload.tester):[];
+    if (testerKeys.length!==3||testerKeys.some(key=>!["started_at","updated_at","status"].includes(key))) throw new Error("tester export metadata shape is invalid");
+    if (payload.tester.status!=="awaiting_review"||!isIso(payload.tester.started_at)||!isIso(payload.tester.updated_at)) throw new Error("tester export is not awaiting facilitator review");
+    if (!Array.isArray(payload.events)||!payload.events.length) throw new Error("tester export events are missing");
+    const testerId=payload.tester_id;
+    payload.events.forEach((event,index)=>{
+      const eventKeys=event&&typeof event==="object"&&!Array.isArray(event)?Object.keys(event):[];
+      if (eventKeys.length!==2||eventKeys.some(key=>!["name","properties"].includes(key))) throw new Error("tester export event envelope is invalid");
+      if (!event||!PARTICIPANT_ONLY_EVENTS.has(event.name)) throw new Error("tester export contains a facilitator-only or unsupported event");
+      const errors=validation.validateEvent(event);
+      if (errors.length) throw new Error(`tester export events[${index}]: ${errors.join("; ")}`);
+      const properties=event.properties||{};
+      if (properties.journey_id!==testerId||properties.build_id!==COMMON.build_id||properties.source!==COMMON.source||properties.content_id!==COMMON.content_id||properties.entry_offer!==COMMON.entry_offer||properties.campaign!==COMMON.campaign||properties.cohort!==COMMON.cohort||properties.locale!==COMMON.locale||properties.traffic_class!==COMMON.traffic_class) throw new Error("tester export provenance does not match this cohort build");
+      if (properties.sequence!==index) throw new Error("tester export event sequence is invalid");
+    });
+    const selfReviews=payload.events.filter(event=>event.name==="tester_self_review_recorded");
+    if (selfReviews.length!==1||payload.events.at(-1).name!=="tester_self_review_recorded") throw new Error("tester export must end with one self review");
+    return { schema_version:SCHEMA_VERSION,tester_id:testerId,tester:clone(payload.tester),events:clone(payload.events) };
+  }
+
+  function importTesterExport(storage,raw,now=new Date().toISOString()) {
+    const imported=parseTesterExport(raw);
+    const loaded=load(storage);
+    if (loaded.read_only) throw new Error(loaded.error||"validation storage is unavailable");
+    const state=loaded.state;
+    if (validation.evaluateCohortGate(state.events,10).status==="STOP") throw new Error("validation is locked after a confirmed STOP incident");
+    if (state.active_tester_id) throw new Error("finish the current facilitator review before importing another record");
+    if (state.testers[imported.tester_id]) throw new Error("tester id has already been imported; records cannot be replaced");
+    state.testers[imported.tester_id]=imported.tester;
+    state.events.push(...imported.events);
+    state.active_tester_id=imported.tester_id;
+    return save(storage,state,now);
   }
 
   function deleteAll(storage) { storage.removeItem(STORAGE_KEY); }
 
-  return { STORAGE_KEY,SCHEMA_VERSION,MAX_BYTES,RETENTION_DAYS,TESTER_IDS,COMMON,createState,validateState,parse,pruneExpired,load,save,startTester,capture,captureMany,submitTesterReview,stopTester,finishTester,report,exportState,deleteAll };
+  return { STORAGE_KEY,SCHEMA_VERSION,MAX_BYTES,RETENTION_DAYS,TESTER_IDS,COMMON,createState,validateState,parse,pruneExpired,load,save,startTester,capture,captureMany,submitTesterReview,stopTester,finishTester,report,exportState,exportTester,parseTesterExport,importTesterExport,deleteAll };
 });

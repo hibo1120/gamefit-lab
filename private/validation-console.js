@@ -54,6 +54,16 @@
   }
 
   byId("refresh-console").addEventListener("click",refresh);
+  byId("import-tester").addEventListener("click",async()=>{
+    const file=byId("import-tester-file").files?.[0];
+    if (!file) { byId("import-status").textContent="取り込むJSONファイルを選択してください。"; return; }
+    try {
+      store.importTesterExport(storage,await file.text());
+      byId("import-status").textContent="参加者番号とbuildを確認して取り込みました。続けて担当者レビューを行ってください。";
+      byId("import-tester-file").value="";
+      refresh();
+    } catch (error) { byId("import-status").textContent=friendlyError(error,"取り込めませんでした。番号の重複、build、ファイル内容を確認してください。"); }
+  });
   byId("console-stop").addEventListener("click",()=>{
     if (!window.confirm("重大な問題を確定し、10人テストをすぐに停止します。")) return;
     try { store.stopTester(storage,byId("console-stop-reason").value); refresh(); }
@@ -90,13 +100,13 @@
       const loaded=store.load(storage);
       const blob=new Blob([store.exportState(loaded.state)],{ type:"application/json" });
       const link=document.createElement("a"); link.href=URL.createObjectURL(blob); link.download="gamefit-private-validation-n10.json"; link.click(); URL.revokeObjectURL(link.href);
-      byId("console-status").textContent="匿名記録を書き出しました。";
-    } catch (error) { byId("console-status").textContent=friendlyError(error,"匿名記録を書き出せませんでした。"); }
+      byId("console-status").textContent="参加者番号付き記録を書き出しました。";
+    } catch (error) { byId("console-status").textContent=friendlyError(error,"参加者番号付き記録を書き出せませんでした。"); }
   });
   byId("delete-console").addEventListener("click",()=>{
-    if (!window.confirm("匿名10人テスト記録をすべて削除します。元に戻せません。")) return;
+    if (!window.confirm("参加者番号付きの10人テスト記録をすべて削除します。元に戻せません。")) return;
     try { store.deleteAll(storage); refresh(); }
-    catch (error) { byId("console-status").textContent=friendlyError(error,"匿名記録を削除できませんでした。ブラウザの保存設定をご確認ください。"); }
+    catch (error) { byId("console-status").textContent=friendlyError(error,"参加者番号付き記録を削除できませんでした。ブラウザの保存設定をご確認ください。"); }
   });
   refresh();
 })();

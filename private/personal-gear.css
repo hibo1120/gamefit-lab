@@ -51,8 +51,14 @@ fieldset label { margin:10px 0; color:var(--text); }
 .status { min-height:1.4em; color:var(--accent); }
 .method-note { margin-top:24px; color:var(--muted); }
 .validation-active .operator-only { display:none !important; }
+.tester-link .operator-only { display:none !important; }
+.tester-link #validation-setup { display:block !important; }
+.tester-link.validation-active #validation-setup { display:none !important; }
+.tester-link:not(.validation-active) .steps,
+.tester-link:not(.validation-active) [data-step] { display:none !important; }
 #validation-session { border-color:#426e62; }
 #session-review { margin-top:22px; padding-top:18px; border-top:1px solid var(--line); }
+#tester-export { margin-top:20px; padding-top:18px; border-top:1px solid var(--line); }
 .locked-note { color:var(--warning); }
 [hidden] { display:none !important; }
 @media (max-width:700px) {

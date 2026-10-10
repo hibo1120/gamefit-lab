@@ -11,16 +11,18 @@
   <main class="shell">
     <header class="hero">
       <p class="eyebrow">GAMEFIT 非公開テスト</p>
-      <h1>次の買い替えを考える</h1>
-      <p>今の機材や好み、遊ぶゲームをもとに、買い替えるべきかを整理します。表示されてほしい結果を意識せず、普段どおりに進めてください。</p>
+      <h1>買い替える前に、次の一手を考える</h1>
+      <p>GameFitのテスト版です。今のゲーム環境と好みから、買い替えるなら何を優先するかを確認できます。購入する必要はありません。入力中に内容が自動送信されることはありません。</p>
       <div class="privacy-banner" role="note">
         <strong>共有端末では使用しないでください。</strong>
         <p>入力内容はこのブラウザ内だけに保存され、外部へ自動送信されません。氏名・メールアドレス・自由記述は収集しません。</p>
-        <p>匿名記録は、この画面を最後まで進められるか、結果の理由を理解できるか、安全上の問題がないかを確認するために使います。このページは担当者の端末だけで使う非公開版です。</p>
+        <p>参加者番号付きの記録は、この画面を最後まで進められるか、結果の理由を理解できるか、安全上の問題がないかを確認するために使います。このページは少人数の非公開テストにだけ使います。</p>
         <details>
           <summary>保存期間と削除方法</summary>
           <p>現在の機材や好みは削除するまでこのブラウザ内に保存され、判定・回答の履歴は365日を過ぎたものから次に保存したときに削除されます。下のボタンからいつでも削除できます。</p>
-          <p>担当者はテスト終了後に匿名ID付きの記録を書き出して確認します。このブラウザ内の匿名テスト記録は、30日を過ぎて担当者が管理画面を開いたときに削除されます。書き出したファイルは、10人テストの終了後30日以内に手動で削除します。途中でも参加の中止や記録の削除を依頼できます。</p>
+          <p>最後に、参加者番号、カテゴリ、ゲーム、入力方法、判定、操作時間、選択式回答を含む結果を自分で書き出し、担当者が案内した方法で渡します。氏名・メールアドレス・自由記述は含みません。</p>
+          <p>このブラウザ内の参加者番号付き記録は、30日を過ぎて次にこのページを開いたときに削除されます。書き出したファイルは、担当者が受領したことを確認してからご自身で削除してください。担当者が受領したファイルは、10人テストの終了後30日以内に手動で削除します。途中でも参加の中止や記録の削除を依頼できます。</p>
+          <p>外部URLで配布する場合、ページの配信事業者がIPアドレスなど通常のアクセス情報を処理することがあります。機材・好み・回答内容は配信事業者へ送信しません。</p>
         </details>
       </div>
       <div class="privacy-actions" aria-label="保存データ管理">
@@ -28,15 +30,15 @@
         <button type="button" id="reset-data" class="secondary">入力を初期化</button>
         <button type="button" id="delete-data" class="danger">入力内容を削除</button>
       </div>
-      <p class="privacy-action-note">「入力を初期化」は入力を消して初期値へ戻します。「入力内容を削除」は、好みと判定履歴をこのブラウザから削除します。匿名テスト記録は担当者が別画面で管理します。</p>
+      <p class="privacy-action-note">「入力を初期化」は入力を消して初期値へ戻します。「入力内容を削除」は、好みと判定履歴をこのブラウザから削除します。参加者番号付きテスト記録は担当者が別画面で管理します。</p>
       <p id="storage-status" class="status" aria-live="polite"></p>
     </header>
 
     <section class="panel operator-only" id="validation-setup">
       <p class="step-number">テスト開始前の確認</p>
-      <h2>独立10人テストを開始</h2>
-      <p>購入は不要です。途中でいつでも中止できます。担当者は操作方法や望ましい結論を教えません。</p>
-      <label>参加者番号
+      <h2>テストを始める前に</h2>
+      <p>購入は不要です。途中でいつでも中止できます。表示された内容を見ながら、ご自身で進めてください。</p>
+      <label id="tester-id-field">参加者番号
         <select id="tester-id"></select>
       </label>
       <label>機材への詳しさ
@@ -53,9 +55,9 @@
         <label><input type="checkbox" name="purchase_context" value="recently_considered_upgrade"> 最近買い替えを検討した</label>
         <label><input type="checkbox" name="purchase_context" value="no_purchase_may_be_best"> 買い替え不要の可能性もある</label>
       </fieldset>
-      <label class="check-row"><input type="checkbox" id="tester-independent"> 開発者・実装担当ではなく、あらかじめ用意された正解や結論を知らない</label>
-      <label class="check-row"><input type="checkbox" id="tester-consent"> 匿名記録の利用目的、ブラウザ内と書き出し後の保存期間・削除方法、参加中止の方法を確認し、参加に同意する</label>
-      <button type="button" id="begin-validation">前回の入力内容を消して開始</button>
+      <label class="check-row"><input type="checkbox" id="tester-independent"> このサービスの開発には参加しておらず、表示される結果を事前に知らない</label>
+      <label class="check-row"><input type="checkbox" id="tester-consent"> 参加者番号付き記録の項目・利用目的、ブラウザ内と書き出し後の保存期間・削除方法、担当者への受け渡し、参加中止の方法を確認し、参加に同意する</label>
+      <button type="button" id="begin-validation">入力内容を確認してテストを始める</button>
       <p id="validation-setup-status" class="status" aria-live="polite"></p>
     </section>
 
@@ -209,6 +211,11 @@
           <label><input type="checkbox" name="ux_issue" value="other"> その他（自由記述は収集しません）</label>
         </fieldset>
         <button type="button" id="finish-validation">回答を保存して担当者確認へ</button>
+        <div id="tester-export" hidden>
+          <p>最後まで回答できました。氏名などを含まない参加者番号付きの結果をファイルに保存し、担当者が案内した方法で渡してください。</p>
+          <button type="button" id="export-session" class="secondary">このテスト結果を書き出す</button>
+          <p id="session-export-status" class="status" aria-live="polite"></p>
+        </div>
       </div>
     </section>
 

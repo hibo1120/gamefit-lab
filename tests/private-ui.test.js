@@ -20,14 +20,32 @@ test("private MVP exposes the required flow and privacy controls without public 
   }
   assert.match(html, /noindex,nofollow,noarchive/);
   assert.match(html, /共有端末では使用しないでください/);
+  assert.match(html,/GameFitのテスト版です/);
+  assert.match(html,/購入する必要はありません。入力中に内容が自動送信されることはありません/);
+  assert.match(html,/参加者番号、カテゴリ、ゲーム、入力方法、判定、操作時間、選択式回答/);
+  assert.match(html,/配信事業者がIPアドレスなど通常のアクセス情報を処理することがあります/);
   assert.ok(html.indexOf("decision-readiness-engine.js") < html.indexOf("personal-gear-engine.js"));
   assert.ok(html.indexOf("price-timing-engine.js") < html.indexOf("personal-gear-engine.js"));
   assert.equal(index.includes("private/personal-gear.html"), false);
-  for (const id of ["tester-id","tester-consent","begin-validation","session-review","finish-validation","export-validation","delete-validation"]) assert.match(html,new RegExp(`id="${id}"`),id);
+  for (const id of ["tester-id","tester-consent","begin-validation","session-review","finish-validation","export-session","export-validation","delete-validation"]) assert.match(html,new RegExp(`id="${id}"`),id);
   assert.match(script,/使っている製品が一覧にない/);
   assert.match(script,/特になし/);
   assert.match(consoleHtml,/担当者専用/);
   assert.equal(index.includes("private/validation-console.html"),false);
+  assert.match(script,/testerSlotFromHash/);
+  assert.match(script,/window\.location\.hash/);
+  assert.doesNotMatch(script,/URLSearchParams|location\.search/);
+});
+
+test("preview headers prohibit indexing, embedding, caching, and network sends",()=>{
+  const headers=fs.readFileSync(path.join(root,"_headers"),"utf8");
+  const robots=fs.readFileSync(path.join(root,"robots.txt"),"utf8");
+  assert.match(headers,/\/private\/\*/);
+  assert.match(headers,/X-Robots-Tag: noindex, nofollow, noarchive/);
+  assert.match(headers,/Cache-Control: no-store/);
+  assert.match(headers,/connect-src 'none'/);
+  assert.match(headers,/frame-ancestors 'none'/);
+  assert.match(robots,/Disallow: \/private\//);
 });
 
 test("private MVP has no analytics or network-send path", () => {
@@ -53,7 +71,7 @@ test("feedback UX includes every required reason and desired direction code", ()
 });
 
 test("internal recommendation enums have Japanese display labels", () => {
-  for (const value of ["SAFE / FAMILIAR","BETTER_FIT","VALUE_ALTERNATIVE","EXPLORE","AVOID","DONT_UPGRADE","CLARIFY"]) {
+  for (const value of ["SAFE / FAMILIAR","BETTER_FIT","VALUE_ALTERNATIVE","EXPLORE","AVOID","DONT_UPGRADE","CLARIFY","CONSIDER_UPGRADE"]) {
     assert.ok(copy.maps.decision[value], value);
     assert.equal(html.includes(`>${value}<`), false, value);
   }
@@ -64,5 +82,14 @@ test("participant data deletion does not remove the cohort record", () => {
   const handler = script.match(/byId\("delete-data"\)[\s\S]*?byId\("reset-data"\)/)?.[0] || "";
   assert.match(handler,/storageApi\.deleteAll\(storage\)/);
   assert.doesNotMatch(handler,/validationStore\.deleteAll\(storage\)/);
-  assert.match(html,/匿名テスト記録は担当者が別画面で管理します/);
+  assert.match(html,/参加者番号付きテスト記録は担当者が別画面で管理します/);
+});
+
+test("facilitator console imports validated participant files and stays off the preview route", () => {
+  const redirects=fs.readFileSync(path.join(root,"_redirects"),"utf8");
+  assert.match(consoleHtml,/id="import-tester-file"/);
+  assert.match(consoleHtml,/同じbuild/);
+  assert.match(consoleScript,/store\.importTesterExport\(storage,await file\.text\(\)\)/);
+  assert.match(redirects,/\/private\/validation-console\.html \/404\.html 302/);
+  assert.match(redirects,/\/private\/validation-console \/404\.html 302/);
 });

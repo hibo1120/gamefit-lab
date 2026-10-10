@@ -170,6 +170,11 @@
     return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(node => node.value);
   }
 
+  function testerSlotFromHash() {
+    const value=String(window.location.hash||"").slice(1).toLowerCase();
+    return validationStore.TESTER_IDS.includes(value)?value:null;
+  }
+
   function validationLoad() { return validationStore.load(storage); }
   function activeTesterId() { return validationLoad().state?.active_tester_id || null; }
   function validationStatus(message,warning=false) {
@@ -216,8 +221,11 @@
     const loaded=validationLoad();
     const active=loaded.state?.active_tester_id||null;
     const activeStatus=active?loaded.state.testers?.[active]?.status:null;
+    const linkedSlot=testerSlotFromHash();
+    const linkedStatus=linkedSlot?loaded.state?.testers?.[linkedSlot]?.status:null;
     byId("validation-setup").hidden=Boolean(active);
     byId("validation-session").hidden=!active;
+    byId("tester-export").hidden=!(linkedSlot&&["awaiting_review","completed","abandoned","stopped"].includes(linkedStatus));
     byId("active-tester-id").textContent=active||"";
     document.body.classList.toggle("validation-active",Boolean(active));
     const report=loaded.state?validationStore.report(loaded.state):null;
@@ -226,7 +234,7 @@
     setFlowDisabled(Boolean(active&&activeStatus!=="in_progress"));
     byId("validation-report-status").textContent=report
       ? `${report.finalized}/10人確認済み · 担当者確認待ち ${report.awaiting_review}人 · 判定 ${gateLabel(report.gate.status)} · 自動送信なし`
-      : "匿名テスト記録を読み取れません。";
+      : "参加者番号付きテスト記録を読み取れません。";
     if (activeStatus==="awaiting_review") validationStatus("回答を保存しました。担当者の安全確認が終わるまで、この画面はそのままにしてください。");
     if (stopped&&!active) byId("validation-setup-status").textContent="重大な問題が確認されたため、テストを停止しています。修正後は別のテストとしてやり直します。";
   }
@@ -519,7 +527,7 @@
       byId("validation-setup-status").textContent="状況を1つ以上選び、独立性と同意を確認してください。";
       return;
     }
-    if (!window.confirm("前回の入力内容だけを消して、新しい匿名テストを始めます。これまでの匿名テスト記録は残ります。必要な場合は、先に入力内容を書き出してください。")) return;
+    if (!window.confirm("前回の入力内容だけを消して、新しい参加者番号でテストを始めます。これまでの参加者番号付き記録は残ります。必要な場合は、先に入力内容を書き出してください。")) return;
     try {
       storageApi.deleteAll(storage);
       state=storageApi.save(storage,storageApi.createState());
@@ -563,7 +571,9 @@
         intended_judgment:byId("intended-judgment").value,
         ux_issue_codes:uxIssues
       });
-      validationStatus("回答を保存しました。担当者へ端末を戻してください。");
+      validationStatus(testerSlotFromHash()
+        ? "回答を保存しました。下のボタンから参加者番号付きのテスト結果を書き出してください。"
+        : "回答を保存しました。担当者へ端末を戻してください。");
       syncValidationUi();
     } catch (error) { validationStatus(friendlyError(error,"回答を保存できませんでした。担当者へお知らせください。"),true); }
   });
@@ -578,12 +588,27 @@
       link.download="gamefit-private-validation-n10.json";
       link.click();
       URL.revokeObjectURL(link.href);
-      byId("validation-report-status").textContent="匿名の10人テスト記録を書き出しました。";
+      byId("validation-report-status").textContent="参加者番号付きの10人テスト記録を書き出しました。";
     } catch (error) { byId("validation-report-status").textContent=friendlyError(error,"テスト記録を書き出せませんでした。"); }
   });
 
+  byId("export-session").addEventListener("click", () => {
+    try {
+      const testerId=testerSlotFromHash();
+      const loaded=validationLoad();
+      if (!testerId||!loaded.state) throw new Error(loaded.error||"テスト結果を読み取れません");
+      const blob=new Blob([validationStore.exportTester(loaded.state,testerId)],{ type:"application/json" });
+      const link=document.createElement("a");
+      link.href=URL.createObjectURL(blob);
+      link.download=`gamefit-private-validation-${testerId}.json`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      byId("session-export-status").textContent="参加者番号付きのテスト結果を書き出しました。ファイルには氏名・メールアドレス・自由記述は含まれません。担当者の受領確認後、この端末のファイルを削除してください。";
+    } catch (error) { byId("session-export-status").textContent=friendlyError(error,"テスト結果を書き出せませんでした。担当者へお知らせください。"); }
+  });
+
   byId("delete-validation").addEventListener("click", () => {
-    if (!window.confirm("匿名10人テスト記録をすべて削除します。元に戻せません。")) return;
+    if (!window.confirm("参加者番号付きの10人テスト記録をすべて削除します。元に戻せません。")) return;
     try {
       validationStore.deleteAll(storage);
       syncValidationUi();
@@ -607,7 +632,7 @@
   });
 
   byId("delete-data").addEventListener("click", () => {
-    if (!window.confirm("この画面で入力した好みと判定履歴を削除します。匿名テスト記録は削除されません。削除後は元に戻せません。")) return;
+    if (!window.confirm("この画面で入力した好みと判定履歴を削除します。参加者番号付きテスト記録は削除されません。削除後は元に戻せません。")) return;
     try {
       storageApi.deleteAll(storage);
       state = storageApi.createState();
@@ -636,6 +661,12 @@
 
   byId("schema-version").textContent = String(storageApi.SCHEMA_VERSION);
   for (const testerId of validationStore.TESTER_IDS) byId("tester-id").append(option(testerId,testerId.toUpperCase()));
+  const linkedTester=testerSlotFromHash();
+  if (linkedTester) {
+    document.body.classList.add("tester-link");
+    byId("tester-id").value=linkedTester;
+    byId("tester-id-field").hidden=true;
+  }
   addCheckboxes(byId("reason-codes"),REASONS,"reason_code");
   addCheckboxes(byId("direction-codes"),DIRECTIONS,"direction_code");
   refreshProducts();

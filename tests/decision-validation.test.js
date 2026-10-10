@@ -189,6 +189,8 @@ test("legacy hard avoids are migrated at read time and remain blocking", () => {
 
 test("private tester spec includes privacy, outcome and a no-purchase path without authorizing outreach", () => {
   assert.match(tester.privacyNotice,/localStorage/);
+  assert.match(tester.privacyNotice,/参加者番号付き/);
+  assert.doesNotMatch(tester.privacyNotice,/匿名/);
   assert.equal(tester.external_recruitment_authorized,false);
   assert.ok(tester.scenarios.some(item=>item.id === "no-purchase-needed" && item.purchase_required === false));
   assert.ok(tester.scenarios.every(item=>item.feedback_question && item.post_purchase_outcome_question));

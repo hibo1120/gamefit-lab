@@ -4,7 +4,7 @@
   if (typeof module === "object" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis, function () {
   "use strict";
-  const privacyNotice = "入力と匿名テスト記録はこのブラウザのlocalStorageだけに保存され、自動送信しません。担当者は匿名ID付きJSONだけを手動Exportして検証し、30日以内に削除します。氏名・メール・連絡先・自由記述は収集せず、参加中止と削除を依頼できます。";
+  const privacyNotice = "入力と参加者番号付きテスト記録はこのブラウザのlocalStorageだけに保存され、自動送信しません。URL参加者は氏名・メール・連絡先・自由記述を含まないJSONを自分で書き出し、案内された方法で担当者へ渡します。担当者は10人テスト終了後30日以内に受領ファイルを削除し、参加者は受領確認後に端末上のファイルを削除できます。参加中止と記録削除を依頼できます。";
   const scenarios = Object.freeze([
     Object.freeze({
       id:"no-purchase-needed", test_scenario:"現機材との差が小さい、または無料設定確認が残るケース",

@@ -85,11 +85,59 @@ test("private validation storage protects identity/context fields and awaits fac
   assert.equal(event.properties.journey_id,"t01");
   assert.equal(event.properties.source,"private_tester");
   assert.equal(event.properties.cohort,"n10");
-  assert.equal(event.properties.build_id,"pgi-n10-preflight-v1");
+  assert.equal(event.properties.build_id,"pgi-n10-preflight-v2");
   store.submitTesterReview(storage,{ category:"mouse",game_id:"apex",input_method:"mnk",self_reported_reason_understood:true,intended_judgment:"keep_current",ux_issue_codes:["none"] },"2026-10-10T00:01:00.000Z");
   state=store.load(storage).state;
   assert.equal(store.report(state).finalized,0);
   assert.equal(store.report(state).awaiting_review,1);
+  const testerExport=JSON.parse(store.exportTester(state,"t01"));
+  assert.equal(testerExport.tester_id,"t01");
+  assert.equal(Object.keys(testerExport).includes("testers"),false);
+  assert.ok(testerExport.events.every(event=>event.properties.journey_id==="t01"));
+  assert.match(testerExport.notice,/Pseudonymous participant-number record/);
+});
+
+test("remote participant exports import one slot at a time and require facilitator review", () => {
+  const participant=new MemoryStorage();
+  store.startTester(participant,{ tester_id:"t01",expertise:"beginner",purchase_contexts:["no_purchase_may_be_best"],independence_confirmed:true,developer_or_contributor:false,answer_aware:false,consent_confirmed:true },"2026-10-10T00:00:00.000Z");
+  store.capture(participant,"my_setup_started",{},"2026-10-10T00:00:01.000Z");
+  store.captureMany(participant,[
+    { name:"decision_viewed",properties:{ category:"mouse",game_id:"apex",input_method:"mnk",decision:"DONT_UPGRADE",affiliate_eligible:false,top_candidate_id:"candidate" } },
+    { name:"recommendation_feedback",properties:{ category:"mouse",game_id:"apex",input_method:"mnk",verdict:"disagree" } },
+    { name:"dont_upgrade_response",properties:{ category:"mouse",game_id:"apex",input_method:"mnk",accepted:false } },
+    { name:"why_not_opened",properties:{ category:"mouse",game_id:"apex",input_method:"mnk" } },
+    { name:"rerank_requested",properties:{ category:"mouse",game_id:"apex",input_method:"mnk",reason_count:1,direction_count:1,reason_codes:["shape"],desired_direction_codes:["safer_familiar"] } },
+    { name:"rerank_completed",properties:{ category:"mouse",game_id:"apex",input_method:"mnk",rerank_success:true,confidence_change:"unchanged" } }
+  ],"2026-10-10T00:00:30.000Z");
+  store.submitTesterReview(participant,{ category:"mouse",game_id:"apex",input_method:"mnk",self_reported_reason_understood:true,intended_judgment:"keep_current",ux_issue_codes:["none"] },"2026-10-10T00:01:00.000Z");
+  const payload=store.exportTester(store.load(participant).state,"t01");
+
+  const facilitator=new MemoryStorage();
+  const imported=store.importTesterExport(facilitator,payload,"2026-10-10T00:02:00.000Z");
+  assert.equal(imported.active_tester_id,"t01");
+  assert.equal(imported.testers.t01.status,"awaiting_review");
+  assert.equal(store.report(imported).awaiting_review,1);
+  assert.throws(()=>store.importTesterExport(facilitator,payload),/finish the current facilitator review/);
+
+  store.finishTester(facilitator,{ category:"mouse",game_id:"apex",input_method:"mnk",flow_completed:false,reason_understood:true,intended_judgment:"keep_current",assistance_level:"none",severe_error:false,privacy_incident:false,game_input_contamination:false,hard_avoid_violation:false,compatibility_major_violation:false,affiliate_rank_influence:false,ux_issue_codes:["none"] },[],"2026-10-10T00:03:00.000Z");
+  assert.equal(store.load(facilitator).state.testers.t01.status,"abandoned");
+  assert.throws(()=>store.importTesterExport(facilitator,payload),/already been imported/);
+});
+
+test("remote import rejects wrong build, extra fields, sequence changes and facilitator events", () => {
+  const participant=new MemoryStorage();
+  store.startTester(participant,{ tester_id:"t02",expertise:"intermediate",purchase_contexts:["actively_deciding"],independence_confirmed:true,developer_or_contributor:false,answer_aware:false,consent_confirmed:true },"2026-10-10T00:00:00.000Z");
+  store.submitTesterReview(participant,{ category:"controller",game_id:"apex",input_method:"controller",self_reported_reason_understood:false,intended_judgment:"compare_more",ux_issue_codes:["none"] },"2026-10-10T00:01:00.000Z");
+  const source=JSON.parse(store.exportTester(store.load(participant).state,"t02"));
+  const mutate=change=>JSON.stringify(change(JSON.parse(JSON.stringify(source))));
+  assert.throws(()=>store.parseTesterExport(mutate(value=>{ value.extra="unexpected"; return value; })),/shape is invalid/);
+  assert.throws(()=>store.parseTesterExport(mutate(value=>{ value.tester.email="forbidden@example.com"; return value; })),/metadata shape is invalid/);
+  assert.throws(()=>store.parseTesterExport(mutate(value=>{ value.events[0].free_text="participant@example.com"; return value; })),/event envelope is invalid/);
+  assert.throws(()=>store.parseTesterExport(mutate(value=>{ value.events[0].properties.build_id="other-build"; return value; })),/provenance/);
+  assert.throws(()=>store.parseTesterExport(mutate(value=>{ value.events[0].properties.locale="en"; return value; })),/provenance/);
+  assert.throws(()=>store.parseTesterExport(mutate(value=>{ value.events[0].properties.entry_offer="guide"; return value; })),/provenance/);
+  assert.throws(()=>store.parseTesterExport(mutate(value=>{ value.events[1].properties.sequence=99; return value; })),/sequence/);
+  assert.throws(()=>store.parseTesterExport(mutate(value=>{ value.events.at(-1).name="session_review_completed"; return value; })),/facilitator-only|invalid/);
 });
 
 test("a confirmed STOP locks the cohort against replacement testers", () => {

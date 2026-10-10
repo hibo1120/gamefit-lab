@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /private/
 
 Sitemap: https://hibo1120.github.io/gamefit-lab/sitemap.xml

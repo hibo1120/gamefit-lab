@@ -1,9 +1,9 @@
 # GameFit 独立10人 Private Validation Runbook
 
-Status: preflight implementation complete; real participants 0/10
+Status: tester-URL preflight implementation complete; real participants 0/10
 
-Build: `pgi-n10-preflight-v1`
-Scope: private, moderated, local-only safety/usability test. No purchase, payment, public recruitment, deployment, monetization, or expansion beyond ten.
+Build: `pgi-n10-preflight-v2`
+Scope: private, moderated safety/usability test using either a facilitator-controlled local browser or an approved unlisted preview URL. No purchase, payment, public recruitment, monetization, or expansion beyond ten.
 
 ## Purpose and interpretation
 
@@ -17,14 +17,24 @@ The Gate can return only:
 
 ## Delivery method
 
-Use a facilitator-controlled computer and a dedicated browser profile. Open only:
+Before an external preview is approved, use a facilitator-controlled computer and a dedicated browser profile. Open only:
 
 - Tester UI: `private/personal-gear.html`
 - Facilitator console in a separate tab: `private/validation-console.html`
 
-Do not ask a tester to install Node, clone a repository, or run terminal commands. That would select for technical users. Do not deploy the page. A screen-share session is acceptable only when the facilitator controls the local browser and the tester gives consent; do not record audio, video, screen, chat, IP, or meeting metadata in the result file.
+Do not ask a tester to install Node, clone a repository, or run terminal commands. That would select for technical users. A screen-share session is acceptable only when the facilitator controls the local browser and the tester gives consent; do not record audio, video, screen, chat, IP, or meeting metadata in the result file.
 
-Before each tester, the Start action asks to delete the prior Personal Gear profile while retaining the separate anonymous validation ledger. Never substitute a near-match for an unlisted current product; select “該当製品がない” and keep the resulting `CLARIFY` coverage gap.
+After a separate preview-deployment approval, distribute one pseudonymous hash-fragment slot per tester:
+
+`https://<deployment-hash>.<preview-project>.pages.dev/private/personal-gear.html#T01`
+
+through `#T10`. A URL fragment is read only in the browser and is not sent as part of the HTTP request. Do not put a name, email address, social handle, or contact identifier in the URL. Use the deployment-hash URL rather than the branch alias. The page remains unlinked, has HTML and HTTP `noindex`, sends no input or analytics, and stores answers only in localStorage. The hosting provider can still process ordinary request metadata such as IP address; the page discloses that boundary. The tester result is not strictly anonymous: the fixed slot and the one-to-one return channel can be associated during operations, so call it a participant-number/pseudonymous record.
+
+The preview redirects `/private/validation-console.html` and its extensionless route to the custom 404. Run the facilitator console only from a local trusted checkout; never give its URL to a participant. The console imports one participant JSON at a time, rejects another build, reused slot, non-contiguous sequence, facilitator-only event, unknown metadata key, or sensitive free-form field, and then requires the facilitator review before the next import. These are structural checks, not a cryptographic signature; an exported file is not tamper-proof.
+
+`noindex`, an unlinked page, and an opaque URL are not access control. If link leakage or source-code visibility is unacceptable, stop and use Cloudflare Access or a facilitator-controlled session instead. Access introduces login and identity processing and must receive a separate privacy/operations review.
+
+Before each tester, the Start action asks to delete the prior Personal Gear profile while retaining the separate participant-number validation ledger. Never substitute a near-match for an unlisted current product; select “該当製品がない” and keep the resulting `CLARIFY` coverage gap.
 
 ## Participant allocation
 
@@ -48,7 +58,7 @@ Recruit privately from real or potential users who did not build GameFit and do 
 
 ## Neutral invitation draft
 
-> ゲーミング機材の買い替え判断ツールについて、非公開の使いやすさ・安全性テストを行っています。購入や費用負担は不要で、所要は15〜25分です。氏名・メールは結果に保存せず、匿名IDと選択式回答だけを記録します。途中で中止・削除を依頼できます。公開募集ではなく10人で終了します。参加できる場合は、担当者の端末または画面共有で自力操作をお願いします。
+> ゲーミング機材の買い替え判断ツールについて、非公開の使いやすさ・安全性テストを行っています。購入や費用負担は不要で、所要は15〜25分です。氏名・メールは結果に保存せず、参加者番号と選択式回答だけを記録します。途中で中止・削除を依頼できます。公開募集ではなく10人で終了します。参加できる場合は、担当者の端末、画面共有、または案内する非公開テストURLから自力操作をお願いします。
 
 Do not promise benefit, a correct recommendation, discounts, payment, or access to a future public product.
 
@@ -73,7 +83,9 @@ If the tester asks where to click, first reply: “今見えている情報だ�
 7. The tester submits the coded self-review and returns the device.
 8. Ask the tester to explain the recommendation reason in their own words. Do not store the words. Mark only whether the explanation is materially correct.
 9. In the facilitator console, record assistance and each safety flag separately. Finalize.
-10. Export the anonymous ledger after each finalized tester to an encrypted local project folder; do not email or upload it. Verify the next tester sees a fresh Personal profile.
+10. Local/facilitated mode: export the participant-number ledger after each finalized tester to an encrypted local project folder; do not email or upload it. URL mode: the tester exports only their slot record and returns it through the one-to-one channel approved with the preview. Keep scheduling/contact data outside the result folder. Import the file into the local facilitator console, confirm the build and slot, ask the participant to explain the result in their own words without storing the words, and complete the facilitator review. Ask the participant to delete their downloaded copy after receipt; remove the channel attachment when the service permits and delete the local result within 30 days after the cohort ends.
+
+Before inviting T01, run a T00 round trip on the approved preview: complete a DONT or disagree→rerank path, export, return, import, reject a duplicate/wrong-build copy, finalize a facilitator review, and confirm the Gate remains `INCONCLUSIVE`. T00 is internal QA and must never count toward the ten.
 
 ## Immediate STOP
 
@@ -90,7 +102,7 @@ The store locks the cohort after STOP. Preserve the export, identify affected co
 
 ## Required participant record
 
-The local ledger records only a fixed anonymous ID and structured codes:
+The local ledger records only a fixed participant number and structured codes:
 
 - independent participant profile and consent;
 - flow milestones and elapsed time;
