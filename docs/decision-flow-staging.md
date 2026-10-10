@@ -129,8 +129,8 @@ Purchase comparisonが必要な場合だけBudgetを追加質問する。
 - comparison pathに入った瞬間だけBudgetを聞く。
 - A/Bでupfront vs deferredを比較するまでproduction固定しない。
 
-### 懸念6: 「3つだけ」が実際はcurrent productを含め4入力
-表現上の3つは3段階を意味するため、production copyでは誤解があれば「3ステップ」に変更する。
+### 懸念6: 「3つだけ」が入力数と誤解される
+staging確定時に「3ステップで確認します」へ修正し、入力数と段階数を混同しない表現にした。
 
 ## 5. 05メジャー — 実測計画
 
