@@ -230,7 +230,8 @@
     document.body.classList.toggle("validation-active",Boolean(active));
     const report=loaded.state?validationStore.report(loaded.state):null;
     const stopped=report?.gate?.status==="STOP";
-    byId("begin-validation").disabled=Boolean(stopped);
+    const storageUnavailable=loadResult.status==="unavailable"||loaded.status==="corrupt_or_unavailable";
+    byId("begin-validation").disabled=Boolean(stopped||storageUnavailable);
     setFlowDisabled(Boolean(active&&activeStatus!=="in_progress"));
     const validationReportStatus=byId("validation-report-status");
     if (validationReportStatus) validationReportStatus.textContent=report
@@ -694,8 +695,10 @@
   if (loadResult.status === "corrupt") setStatus("保存内容を読み取れません。自動では上書きしていません。復旧用ファイルを書き出してから、初期化または削除を行ってください。",true);
   else if (loadResult.status === "future_schema") setStatus("この画面より新しい形式で保存されたデータです。内容を書き出してから、対応する画面をご利用ください。",true);
   else if (loadResult.status === "unavailable") {
-    for (const id of ["export-data","reset-data","delete-data"]) byId(id).disabled = true;
+    for (const id of ["export-data","reset-data","delete-data","begin-validation"]) byId(id).disabled = true;
+    setFlowDisabled(true);
     setStatus("このブラウザでは入力内容を保存できません。ブラウザの保存設定をご確認ください。",true);
+    byId("validation-setup-status").textContent="このブラウザではテスト記録を保存できないため、開始できません。通常のブラウザで開き直してください。";
   }
   else if (loadResult.status === "ok") setStatus("保存済みデータをこのブラウザから読み込みました。");
   else setStatus("保存データはまだありません。外部送信は行いません。");

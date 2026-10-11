@@ -72,6 +72,9 @@
 
   function load(storage) {
     try {
+      if (!storage || typeof storage.getItem !== "function" || typeof storage.setItem !== "function" || typeof storage.removeItem !== "function") {
+        throw new Error("local storage is unavailable");
+      }
       const raw=storage?.getItem?.(STORAGE_KEY);
       if (raw===null||raw===undefined) return { status:"empty", state:createState(), read_only:false };
       const state=pruneExpired(parse(raw));

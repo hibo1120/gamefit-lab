@@ -14,6 +14,15 @@ class MemoryStorage {
   removeItem(key) { this.map.delete(key); }
 }
 
+test("private validation fails closed when local storage is missing or incomplete", () => {
+  for (const candidate of [undefined,null,{}, { getItem() { return null; } }]) {
+    const result=store.load(candidate);
+    assert.equal(result.status,"corrupt_or_unavailable");
+    assert.equal(result.read_only,true);
+    assert.equal(result.state,null);
+  }
+});
+
 function common(id,sequence,extra={}) {
   return { journey_id:id,category:"mouse",game_id:"apex",input_method:"mnk",source:"private_tester",content_id:"private-validation-v1",entry_offer:"diagnosis",campaign:"pgi-n10-2026-10",cohort:"n10",locale:"ja",traffic_class:"tester",build_id:"fixed-build",sequence,elapsed_ms:sequence*1000,...extra };
 }

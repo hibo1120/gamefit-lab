@@ -125,7 +125,11 @@ test("local storage rejects nested shape drift, future profile versions, and und
   assert.ok(errors.includes("setup must be an object"));
   assert.ok(errors.includes("profile.product_feedback must be an array"));
   assert.ok(errors.includes("feedback record type is invalid"));
-  const future = storage.load({ getItem:() => JSON.stringify({ ...storage.createState(), profile:{ ...storage.createState().profile, version:99 } }) });
+  const future = storage.load({
+    getItem:() => JSON.stringify({ ...storage.createState(), profile:{ ...storage.createState().profile, version:99 } }),
+    setItem:() => {},
+    removeItem:() => {}
+  });
   assert.equal(future.status,"future_schema");
   const pruned = storage.pruneExpiredRecords({ ...storage.createState(), feedback:[{ type:"recommendation_feedback", verdict:"agree" }] },"2026-10-10T00:00:00.000Z");
   assert.equal(pruned.feedback.length,0);

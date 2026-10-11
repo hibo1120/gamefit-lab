@@ -152,6 +152,9 @@
   function load(storage) {
     let raw;
     try {
+      if (!storage || typeof storage.getItem !== "function" || typeof storage.setItem !== "function" || typeof storage.removeItem !== "function") {
+        throw new Error("local storage is unavailable");
+      }
       raw = storage?.getItem?.(STORAGE_KEY);
     } catch (error) {
       return { status:"unavailable", state:createState(), read_only:true, recovery_required:false, error:error.message };

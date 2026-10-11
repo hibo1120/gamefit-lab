@@ -71,3 +71,11 @@ test("storage access denial enters read-only mode instead of crashing initializa
   assert.equal(result.read_only,true);
   assert.equal(result.state.schema_version,store.SCHEMA_VERSION);
 });
+
+test("missing or partial storage is unavailable instead of an empty writable state", () => {
+  for (const candidate of [undefined,null,{}, { getItem() { return null; } }]) {
+    const result = store.load(candidate);
+    assert.equal(result.status,"unavailable");
+    assert.equal(result.read_only,true);
+  }
+});
