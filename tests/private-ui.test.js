@@ -91,6 +91,7 @@ test("profile deletion stays separate and the participant can delete the numbere
   assert.match(sessionHandler,/validationStore\.deleteTesterSession\(storage,testerId\)/);
   assert.doesNotMatch(sessionHandler,/validationStore\.deleteAll\(storage\)/);
   assert.match(script,/if \(activeStatus==="awaiting_review"\)[\s\S]*?gotoStep\("feedback"\)/);
+  assert.match(html,/id="finish-validation"[^>]*>[\s\S]*?<\/button>\s*<\/div>\s*<div id="tester-export"/);
   assert.match(sessionHandler,/syncValidationUi\(\);[\s\S]*?validation-setup-status/);
 });
 
