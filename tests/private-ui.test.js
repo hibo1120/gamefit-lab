@@ -90,6 +90,8 @@ test("profile deletion stays separate and the participant can delete the numbere
   assert.match(html,/参加者番号付きテスト記録は、回答後の専用ボタンから削除できます/);
   assert.match(sessionHandler,/validationStore\.deleteTesterSession\(storage,testerId\)/);
   assert.doesNotMatch(sessionHandler,/validationStore\.deleteAll\(storage\)/);
+  assert.match(script,/if \(activeStatus==="awaiting_review"\)[\s\S]*?gotoStep\("feedback"\)/);
+  assert.match(sessionHandler,/syncValidationUi\(\);[\s\S]*?validation-setup-status/);
 });
 
 test("facilitator console imports validated participant files and stays off the preview route", () => {

@@ -237,7 +237,10 @@
     if (validationReportStatus) validationReportStatus.textContent=report
       ? `${report.finalized}/10人確認済み · 担当者確認待ち ${report.awaiting_review}人 · T00 ${report.preflight.status}（10人集計外） · 判定 ${gateLabel(report.gate.status)} · 自動送信なし`
       : "参加者番号付きテスト記録を読み取れません。";
-    if (activeStatus==="awaiting_review") validationStatus("回答を保存しました。担当者の安全確認が終わるまで、この画面はそのままにしてください。");
+    if (activeStatus==="awaiting_review") {
+      validationStatus("回答を保存しました。下のボタンから参加者番号付きのテスト結果を書き出すか、この端末の記録を削除できます。");
+      gotoStep("feedback");
+    }
     if (stopped&&!active) byId("validation-setup-status").textContent="重大な問題が確認されたため、テストを停止しています。修正後は別のテストとしてやり直します。";
   }
 
@@ -616,8 +619,8 @@
     if (!window.confirm("この端末に保存された参加者番号付きテスト記録を削除します。書き出したファイルや担当者へ渡した複製は削除されません。元に戻せません。")) return;
     try {
       validationStore.deleteTesterSession(storage,testerId);
-      byId("session-export-status").textContent="この端末の参加者番号付きテスト記録を削除しました。書き出したファイルは別途削除してください。";
       syncValidationUi();
+      byId("validation-setup-status").textContent="この端末の参加者番号付きテスト記録を削除しました。書き出したファイルは別途削除してください。";
     } catch (error) { byId("session-export-status").textContent=friendlyError(error,"この端末のテスト記録を削除できませんでした。ブラウザの保存設定をご確認ください。"); }
   });
 
