@@ -41,7 +41,7 @@
     const title = document.createElement("strong");
     title.textContent = result.game.display_name;
     summary.append(title, document.createElement("br"));
-    summary.append(`現在 ${result.current} FPS → 目標 ${result.target} FPS / ${result.monitor} Hz / RAM ${result.ram} GB / 予算 ${result.budget.toLocaleString("ja-JP")}円`);
+    summary.append(`現在 ${result.current} FPS → 目標 ${result.target} FPS / ${result.monitor} Hz / メモリ ${result.ram} GB / 予算 ${result.budget.toLocaleString("ja-JP")}円`);
     if (hardware) summary.append(document.createElement("br"), `構成メモ：${hardware}`);
     summary.append(document.createElement("br"), result.game.notes);
 
@@ -63,11 +63,7 @@
       reason.textContent = item.reasons[0];
       body.append(heading, reason);
 
-      const score = document.createElement("span");
-      score.className = "rank-score";
-      score.textContent = `${item.score} pt`;
-
-      card.append(number, body, score);
+      card.append(number, body);
       return card;
     }));
 
@@ -103,7 +99,7 @@
       status.textContent = "診断URLをコピーしました。";
       root.GameFitAnalytics?.trackResultShared(sharedContext("copy"));
     } catch (_) {
-      status.textContent = "コピーできませんでした。ブラウザーの権限をご確認ください。";
+      status.textContent = "コピーできませんでした。ブラウザの権限をご確認ください。";
     }
   });
 

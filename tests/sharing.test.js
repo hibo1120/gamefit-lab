@@ -12,7 +12,7 @@ test("X share uses the official web intent with a category-specific message and 
 
   assert.equal(shareUrl.origin, "https://x.com");
   assert.equal(shareUrl.pathname, "/intent/post");
-  assert.match(shareUrl.searchParams.get("text"), /PC買替よりモニター優先/);
+  assert.match(shareUrl.searchParams.get("text"), /PCの買い替えよりモニター優先/);
   assert.equal(shareUrl.searchParams.get("text").includes("SECRET"), false);
 
   const diagnosisUrl = new URL(shareUrl.searchParams.get("url"));

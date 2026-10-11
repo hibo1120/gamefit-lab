@@ -61,17 +61,17 @@ test("invalid inputs fail with normalized codes", () => {
 
 test("budget and game guides stay aligned with diagnosis decision boundaries", () => {
   const guide = file => fs.readFileSync(path.join(projectRoot, "guides", file), "utf8");
-  assert.match(guide("budget-30000.html"), /RAM|SSD|モニター/);
+  assert.match(guide("budget-30000.html"), /メモリ|SSD|モニター/);
   assert.match(guide("budget-30000.html"), /現状維持/);
-  assert.match(guide("budget-50000.html"), /CPU|GPU|RAM|SSD|モニター/);
+  assert.match(guide("budget-50000.html"), /CPU|GPU|メモリ|SSD|モニター/);
   assert.match(guide("budget-100000.html"), /買い替え|買替/);
-  assert.match(guide("valorant-upgrade.html"), /144fps以上/);
+  assert.match(guide("valorant-upgrade.html"), /144 FPS以上/);
   assert.match(guide("apex-upgrade.html"), /CPU|GPU/);
-  assert.match(guide("fortnite-upgrade.html"), /16GB以上のRAMとNVMe SSD/);
+  assert.match(guide("fortnite-upgrade.html"), /16 GB以上のメモリとNVMe SSD/);
   assert.match(guide("mhwilds-upgrade.html"), /SSD必須/);
   assert.match(guide("upgrade-or-replace.html"), /部分アップグレード/);
   for (const file of ["valorant-upgrade.html", "apex-upgrade.html", "fortnite-upgrade.html", "mhwilds-upgrade.html"]) {
     assert.match(guide(file), /公式/);
-    assert.match(guide(file), /GameFit|独自/);
+    assert.match(guide(file), /簡易診断|独自/);
   }
 });

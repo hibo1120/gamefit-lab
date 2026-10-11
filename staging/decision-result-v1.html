@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>GameFit UI World Staging — Decision Result</title>
+  <link rel="stylesheet" href="./decision-result-v1.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="#top" aria-label="GameFit staging top">
+        <span class="brand__mark" aria-hidden="true">GF</span>
+        <span><strong>GameFit</strong><small>Personal Gear Intelligence</small></span>
+      </a>
+      <span class="staging-badge">STAGING / 非公開設計検証</span>
+    </div>
+  </header>
+
+  <main id="top" class="shell">
+    <section class="hero" aria-labelledby="hero-title">
+      <p class="eyebrow">GAMEFIT DECISION</p>
+      <h1 id="hero-title">今の機材、変えるべき？</h1>
+      <p class="hero__lead">ゲームと今の機材から、<strong>「買う」「買わない」「先に直す」</strong>を整理します。細かなRoleや戦闘スタイルは最初に聞きません。</p>
+      <div class="hero__actions">
+        <a class="button button--primary" href="#decision">判断の見せ方を見る</a>
+        <a class="button button--ghost" href="#principles">設計原則</a>
+      </div>
+      <ul class="trust-strip" aria-label="GameFitの判断原則">
+        <li>高い製品を優先しない</li>
+        <li>Affiliateは順位に不使用</li>
+        <li>「買わない」も正式な答え</li>
+      </ul>
+    </section>
+
+    <section id="decision" class="decision-card" aria-labelledby="decision-title">
+      <div class="decision-card__meta">
+        <span class="context-chip">VALORANT</span>
+        <span class="context-chip">マウス・キーボード</span>
+        <span class="context-chip">マウス</span>
+      </div>
+      <div class="decision-card__headline">
+        <div>
+          <p class="eyebrow">結論</p>
+          <h2 id="decision-title">今は買い替えを急がなくてよさそうです</h2>
+          <p class="decision-card__lead">現在の機材との差が小さく、購入前に無料で確認できる項目が残っています。</p>
+        </div>
+        <div class="confidence" aria-label="判断材料の多さは中程度"><span>判断材料</span><strong>中程度</strong></div>
+      </div>
+      <ul class="reason-list">
+        <li><span class="reason-icon" aria-hidden="true">1</span><span><strong>差が小さい</strong><small>確認できた仕様では、買い替えるほどの変化がまだ弱いです。</small></span></li>
+        <li><span class="reason-icon" aria-hidden="true">2</span><span><strong>無料で先に試せる</strong><small>USB接続やポーリングレート設定を先に確認できます。</small></span></li>
+        <li><span class="reason-icon" aria-hidden="true">3</span><span><strong>好みとの一致は未確定</strong><small>人気やPro使用率だけでは、あなたに合うとは判断しません。</small></span></li>
+      </ul>
+      <div class="decision-card__actions">
+        <a class="button button--primary" href="#fix-first">先に確認すること</a>
+        <a class="button button--ghost" href="#details">理由を詳しく見る</a>
+      </div>
+    </section>
+
+    <section id="fix-first" class="callout callout--warning" aria-labelledby="fix-title">
+      <div class="callout__icon" aria-hidden="true">!</div>
+      <div>
+        <p class="eyebrow">FIX BEFORE BUY</p>
+        <h2 id="fix-title">買う前に、まず無料で確認</h2>
+        <p>ハブを外してPCへ直接接続し、実際のポーリングレートと安定性を確認してください。ここで改善するなら買い替えを急ぐ理由は弱くなります。</p>
+      </div>
+    </section>
+
+    <section class="delta-section" aria-labelledby="delta-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">CURRENT GEAR DELTA</p><h2 id="delta-title">今の機材から、どれくらい変わる？</h2></div>
+        <span class="delta-band">差は小さめ</span>
+      </div>
+      <div class="delta-grid">
+        <article class="gear-visual">
+          <p class="gear-visual__label">現在の機材</p>
+          <div class="mouse-shape mouse-shape--current" aria-label="現在のマウス形状を抽象化したシルエット"></div>
+          <dl class="gear-stats">
+            <div><dt>重さ</dt><dd>55 g</dd></div>
+            <div><dt>長さ</dt><dd>127 mm</dd></div>
+            <div><dt>高さ</dt><dd>40 mm</dd></div>
+          </dl>
+        </article>
+        <div class="delta-arrow" aria-hidden="true">→</div>
+        <article class="gear-visual">
+          <p class="gear-visual__label">比較候補</p>
+          <div class="mouse-shape mouse-shape--candidate" aria-label="比較候補のマウス形状を抽象化したシルエット"></div>
+          <dl class="gear-stats">
+            <div><dt>重さ</dt><dd>58 g <span>+3</span></dd></div>
+            <div><dt>長さ</dt><dd>125 mm <span>-2</span></dd></div>
+            <div><dt>高さ</dt><dd>39 mm <span>-1</span></dd></div>
+          </dl>
+        </article>
+      </div>
+      <p class="delta-note">数値差はこのstaging用の合成例です。実製品の主張ではありません。GameFit本番ではEvidenceが確認できた属性だけを表示します。</p>
+    </section>
+
+    <section id="details" class="details-section" aria-labelledby="details-title">
+      <div class="section-heading"><div><p class="eyebrow">DETAILS</p><h2 id="details-title">必要な人だけ、詳しく見る</h2></div></div>
+      <details open>
+        <summary>なぜこの結論になった？</summary>
+        <div class="detail-body"><p>購入候補そのものより、現在機材との差・無料修正・好み・互換性を先に評価します。人気や価格は個人Fitの代わりにしません。</p></div>
+      </details>
+      <details>
+        <summary>Evidenceの確認状況</summary>
+        <div class="detail-body">
+          <div class="evidence-row"><span>公式仕様</span><strong>確認済み</strong></div>
+          <div class="evidence-row"><span>独立測定</span><strong>一部あり</strong></div>
+          <div class="evidence-row"><span>購入後Outcome</span><strong>未検証</strong></div>
+          <p class="fine-print">Evidence confidenceは「情報量と確認状況」を示し、満足を保証する評価ではありません。</p>
+        </div>
+      </details>
+      <details class="secondary-detail">
+        <summary>Proの使用例を見る <span class="optional-label">参考情報</span></summary>
+        <div class="detail-body">
+          <p><strong>Pro使用は推薦順位に使っていません。</strong> 同じゲームの選手が使う機材を、興味がある場合だけ参考表示します。</p>
+          <div class="pro-reference">
+            <div><span class="avatar-placeholder" aria-hidden="true">P1</span><span><strong>Player A</strong><small>最近の使用例 / synthetic</small></span></div>
+            <div><span class="avatar-placeholder" aria-hidden="true">P2</span><span><strong>Player B</strong><small>最近の使用例 / synthetic</small></span></div>
+          </div>
+          <button class="button button--subtle" type="button" disabled>Roleで絞る（対応ゲームのみ・任意）</button>
+          <p class="fine-print">Roleは診断入力には入れず、参考情報をさらに絞りたいときだけ使用する想定です。</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="compare-section" aria-labelledby="compare-title">
+      <div class="section-heading"><div><p class="eyebrow">COMPARE ONLY IF NEEDED</p><h2 id="compare-title">それでも比較するなら</h2></div></div>
+      <div class="compare-grid">
+        <article class="compare-card">
+          <span class="compare-card__tag">今の感覚に近い</span><h3>候補 A</h3><p>現在機材との差が比較的小さい、安全寄りの比較候補。</p>
+          <dl><div><dt>形状差</dt><dd>小</dd></div><div><dt>重量差</dt><dd>+3 g</dd></div><div><dt>Evidence</dt><dd>中</dd></div></dl>
+        </article>
+        <article class="compare-card">
+          <span class="compare-card__tag">違いを感じやすい</span><h3>候補 B</h3><p>変化は大きいが、好みとの相性確認が必要な比較候補。</p>
+          <dl><div><dt>形状差</dt><dd>大</dd></div><div><dt>重量差</dt><dd>-10 g</dd></div><div><dt>Evidence</dt><dd>中</dd></div></dl>
+        </article>
+      </div>
+    </section>
+
+    <section id="principles" class="principles" aria-labelledby="principles-title">
+      <p class="eyebrow">DESIGN PRINCIPLES</p>
+      <h2 id="principles-title">Gamingらしい。でも、売り込みには見せない。</h2>
+      <div class="principle-grid">
+        <article><strong>Technical Calm</strong><p>暗いgraphiteを基調に、Mintは主操作だけ。RGB的な多色演出は避ける。</p></article>
+        <article><strong>Result First</strong><p>最初に結論。Role、Pro、Evidenceの細部は後から必要な人だけ見る。</p></article>
+        <article><strong>Neutral Decision</strong><p>「買う=緑」「買わない=赤」にしない。DONT_UPGRADEも正常な成功結果。</p></article>
+        <article><strong>Personal Delta</strong><p>市場全体の比較より、「今の自分の機材から何が変わるか」を中心にする。</p></article>
+      </div>
+    </section>
+  </main>
+  <footer class="footer"><p>GameFit UI World Staging — synthetic content only / production未接続</p></footer>
+</body>
+</html>

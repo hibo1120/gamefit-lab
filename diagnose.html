@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="現在FPS、目標FPS、モニターHz、RAM、ストレージ、予算から、ゲーミング環境の次の投資先を診断します。">
+<meta name="description" content="現在のFPS、目標FPS、モニターのリフレッシュレート、メモリ、ストレージ、予算から、ゲーミング環境の次の投資先を診断します。">
 <link rel="canonical" href="https://hibo1120.github.io/gamefit-lab/diagnose.html">
 <link rel="alternate" hreflang="ja" href="https://hibo1120.github.io/gamefit-lab/diagnose.html">
 <link rel="alternate" hreflang="en" href="https://hibo1120.github.io/gamefit-lab/en/diagnose.html">
 <link rel="alternate" hreflang="x-default" href="https://hibo1120.github.io/gamefit-lab/diagnose.html">
-<meta property="og:type" content="website"><meta property="og:locale" content="ja_JP"><meta property="og:site_name" content="GameFit Lab"><meta property="og:title" content="ゲーミング環境 投資優先度診断"><meta property="og:description" content="PC買替だけでなく、モニター、RAM、ストレージ、現状維持も同じ基準で比較します。"><meta property="og:url" content="https://hibo1120.github.io/gamefit-lab/diagnose.html">
+<meta property="og:type" content="website"><meta property="og:locale" content="ja_JP"><meta property="og:site_name" content="GameFit Lab"><meta property="og:title" content="ゲーミング環境 投資優先度診断"><meta property="og:description" content="PCの買い替えだけでなく、モニター、メモリ、ストレージ、現状維持も同じ基準で比較します。"><meta property="og:url" content="https://hibo1120.github.io/gamefit-lab/diagnose.html">
 <meta name="twitter:card" content="summary"><meta name="twitter:title" content="GameFit無料診断"><meta name="twitter:description" content="次の予算をゲーミング環境のどこへ使うべきか診断します。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
 <title>ゲーミング環境 投資優先度診断 | GameFit Lab</title>
@@ -165,6 +165,7 @@ h1 {
 
 label { display: block; margin-bottom: 7px; font-size: .88rem; font-weight: 800; }
 .hint { color: var(--muted); font-size: .74rem; font-weight: 500; }
+.field-help { margin: .35rem 0 0; color: var(--muted); font-size: .78rem; line-height: 1.55; }
 
 select, input {
   width: 100%;
@@ -228,7 +229,7 @@ select:focus, input:focus {
 
 .rank-card {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   gap: 12px;
   align-items: start;
   padding: 16px;
@@ -256,14 +257,6 @@ select:focus, input:focus {
 .rank-card:not(:first-child) .rank-number { color: var(--text); background: #263d58; }
 .rank-title { margin: 1px 0 3px; font-size: 1rem; }
 .rank-reason { margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.55; }
-
-.rank-score {
-  min-width: 48px;
-  color: var(--accent);
-  font-size: .82rem;
-  font-weight: 850;
-  text-align: right;
-}
 
 .recommendation {
   margin-top: 16px;
@@ -357,7 +350,6 @@ select:focus, input:focus {
   .form-grid { grid-template-columns: 1fr; }
   .field.full { grid-column: auto; }
   .rank-card { grid-template-columns: auto 1fr; }
-  .rank-score { grid-column: 2; text-align: left; }
   .guide-grid { grid-template-columns: 1fr; }
 }
 
@@ -376,8 +368,8 @@ select:focus, input:focus {
 <main>
   <section class="shell hero">
     <div>
-      <p class="eyebrow">Gaming setup priority check</p>
-      <h1>次の1円を、<br>効く場所へ。</h1>
+      <p class="eyebrow">ゲーミング環境の見直し</p>
+      <h1>次の予算を、<br>効く場所へ。</h1>
       <p class="lead">いまのFPSと目標、モニター、メモリ、ストレージ、予算を比べて、主な投資先を同じ基準で順位付けします。</p>
     </div>
     <aside class="hero-note">
@@ -393,7 +385,7 @@ select:focus, input:focus {
           <h2>環境を入力</h2>
           <p>わかる範囲で、実際のプレイ環境に合わせてください。</p>
         </div>
-        <span class="step">01 INPUT</span>
+        <span class="step">01 入力</span>
       </div>
 
       <div class="form-grid">
@@ -405,6 +397,7 @@ select:focus, input:focus {
         <div class="field">
           <label for="currentFps">現在のおおよそのFPS</label>
           <input id="currentFps" name="currentFps" type="number" min="1" max="1000" step="1" value="100" required inputmode="numeric">
+          <p class="field-help">ゲーム内のFPS表示を見て、普段のプレイ中のおおよその値を入力してください。</p>
         </div>
 
         <div class="field">
@@ -417,6 +410,7 @@ select:focus, input:focus {
             <option value="240">240 FPS</option>
             <option value="360">360 FPS</option>
           </select>
+          <p class="field-help">迷う場合は、モニターのリフレッシュレートに近い値が目安です。</p>
         </div>
 
         <div class="field">
@@ -430,10 +424,11 @@ select:focus, input:focus {
             <option value="240">240 Hz</option>
             <option value="360">360 Hz以上</option>
           </select>
+          <p class="field-help">Windowsの「設定」→「システム」→「ディスプレイ」→「ディスプレイの詳細設定」で確認できます。</p>
         </div>
 
         <div class="field">
-          <label for="ram">RAM</label>
+          <label for="ram">メモリ（RAM）</label>
           <select id="ram" name="ram">
             <option value="4">4 GB以下</option>
             <option value="8">8 GB</option>
@@ -493,9 +488,9 @@ select:focus, input:focus {
       <div class="panel-heading">
         <div>
           <h2>優先順位</h2>
-          <p>主な5つの選択肢をスコア順に表示します。</p>
+          <p>入力内容から、主な5つの選択肢を優先順に表示します。</p>
         </div>
-        <span class="step">02 RESULT</span>
+        <span class="step">02 結果</span>
       </div>
 
       <div id="initial-state" class="initial-state">
@@ -522,25 +517,24 @@ select:focus, input:focus {
   <section class="shell details">
     <article class="info-card">
       <h2>判定の考え方</h2>
-      <p>FPSの達成度、モニターで表示できる上限、ゲーム別のRAM・ストレージ目安、予算、PCタイプを組み合わせた簡易診断です。</p>
+      <p>FPSの達成度、モニターで表示できる上限、ゲーム別のメモリ・ストレージ目安、予算、PCタイプを組み合わせた簡易診断です。順位は目安で、性能や効果を保証するものではありません。</p>
       <div id="official-source-links" class="source-links" aria-label="ゲーム別公式動作環境"></div>
     </article>
 
     <article class="info-card">
       <h2>広告について</h2>
-      <p>このサイトはアフィリエイト広告を利用する予定です。商品・サービスの紹介リンクを経由して購入された場合、当サイトが報酬を受け取ることがあります。</p>
-      <p>ただし、報酬の有無だけを理由に商品を推奨することはせず、ユーザーの目的と費用対効果を優先した情報提供を目指します。</p>
+      <p>現在、このページに広告リンクはありません。今後掲載する場合も、広告であることをリンクの近くに表示し、報酬の有無で診断結果や掲載順を変えません。</p>
     </article>
 
     <article class="info-card">
       <h2>免責事項</h2>
       <p>掲載する性能・価格・仕様等は参考情報です。実際のゲーム性能はPC構成、設定、ドライバ、ゲームアップデート等により変動します。</p>
-      <p>最終的な購入判断は各メーカーの公式情報をご確認ください。</p>
+      <p>購入前に、各メーカーの最新の公式情報をご確認ください。</p>
     </article>
 
     <article class="info-card privacy">
       <h2>プライバシー</h2>
-      <p>匿名の利用状況分析にPostHogを使用し、診断改善のためページ閲覧、診断利用、ゲーム種別、FPS帯、予算帯、推奨結果等を取得する場合があります。診断では氏名・メールアドレス等を取得せず、CPU / GPUの自由入力内容も分析データとして送信しません。</p>
+      <p>診断ページでは、改善のため、ページ閲覧、診断の開始・完了、選択したゲーム、FPS帯、予算帯、診断結果などを利用状況分析サービスのPostHogへ送信します。氏名・メールアドレスは取得せず、CPU / GPU欄の自由入力内容も送信しません。画面操作の録画機能は使用していません。</p>
     </article>
   </section>
 
