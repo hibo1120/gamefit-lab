@@ -4,13 +4,16 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const output = path.join(root, ".seo-cro-preview-dist");
 const liveLanding = "https://hibo1120.github.io/gamefit-lab/";
+const deviceUpdates = require("../data/device-updates.json");
 
 function replaceRequired(source, search, replacement, label) {
+  if (source.includes(replacement)) return source;
   if (!source.includes(search)) throw new Error(`Live landing no longer matches ${label}`);
   return source.replace(search, replacement);
 }
 
 function replaceRequiredPattern(source, pattern, replacement, label) {
+  if (source.includes(replacement)) return source;
   if (!pattern.test(source)) throw new Error(`Live landing no longer matches ${label}`);
   return source.replace(pattern, replacement);
 }
@@ -22,9 +25,23 @@ async function copyPublicFiles() {
     if (!entry.isFile() || !allowedExtensions.has(path.extname(entry.name)) || entry.name === "index.html") continue;
     await fs.copyFile(path.join(root, entry.name), path.join(output, entry.name));
   }
-  for (const directory of ["guides", "en", "data"]) {
+  for (const directory of ["guides", "en", "data", "updates"]) {
     await fs.cp(path.join(root, directory), path.join(output, directory), { recursive: true });
   }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function deviceUpdatesSection() {
+  const items = deviceUpdates.slice(0, 3).map(update => `<li><strong><a href="./updates/${escapeHtml(update.slug)}.html">${escapeHtml(update.product_name)}</a></strong><br><small>${escapeHtml(update.category_label)} / ${escapeHtml(update.decision_state)}</small><br>${escapeHtml(update.change_summary)}</li>`).join("");
+  return `<section class="device-updates-preview" aria-labelledby="device-updates-heading"><h2 id="device-updates-heading">最新Gear Updates</h2><p>新しい＝買い替えるべき、ではありません。公式情報とEvidenceの状態から、今の機材を替える意味があるかを整理します。</p><ul>${items}</ul><p><a href="./updates/">すべて見る</a></p></section>`;
 }
 
 async function build() {
@@ -65,11 +82,19 @@ async function build() {
   );
   html = replaceRequired(
     html,
+    "<h2 id=\"広告について\">広告について</h2>",
+    `${deviceUpdatesSection()}<h2 id="広告について">広告について</h2>`,
+    "Gear Updates insertion point"
+  );
+  html = replaceRequired(
+    html,
     "</head>",
     `<meta name="robots" content="noindex,nofollow,noarchive">
 <style>
 .seo-preview-banner{background:#2a1f00;color:#ffe7a3;border:1px solid #745b18;padding:.65rem 1rem;text-align:center;font:600 14px/1.4 system-ui,sans-serif}
 .search-intent-bridge{font-size:1.05rem}
+.device-updates-preview{margin-block:2rem;padding:1rem 1.2rem;border:1px solid #566b82;border-radius:12px}
+.device-updates-preview li+li{margin-top:.8rem}
 </style>
 <script>window.GameFitPageContext=Object.freeze({language:"ja",regionVersion:"jp",pageSource:"index"});</script>
 <script src="./analytics.js?preview=seo-cro-phase1"></script>

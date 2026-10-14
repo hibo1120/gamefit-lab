@@ -1,0 +1,85 @@
+[
+  {
+    "id": "device-update-razer-viper-v4-pro",
+    "slug": "razer-viper-v4-pro",
+    "product_name": "Razer Viper V4 Pro",
+    "brand": "Razer",
+    "category": "mouse",
+    "category_label": "ゲーミングマウス",
+    "announcement_date": "2026-03-24",
+    "release_date": null,
+    "availability_status": "日本公式ストアで販売中（2026-10-14確認）",
+    "official_url": "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro",
+    "official_facts": [
+      {
+        "statement": "本体重量はブラックが49g未満、ホワイトが50g。旧Viper V3 Proの公式値（ブラック54g、ホワイト55g）から軽量化されています。",
+        "evidence_type": "manufacturer_specification",
+        "source_urls": [
+          "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro",
+          "https://www.razer.com/newsroom/product-news/reshaping-esports-dominance-introducing-the-razer-viper-v3-pro-the-mouse-of-champions"
+        ]
+      },
+      {
+        "statement": "センサーはFocus Pro 35K Optical Sensor Gen-2からFocus Pro 50K Optical Sensor Gen-3へ更新され、公式仕様は最大50,000 DPI、930 IPS、90Gです。",
+        "evidence_type": "manufacturer_specification",
+        "source_urls": [
+          "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro",
+          "https://www.razer.com/newsroom/product-news/reshaping-esports-dominance-introducing-the-razer-viper-v3-pro-the-mouse-of-champions"
+        ]
+      },
+      {
+        "statement": "第2世代HyperSpeed Wirelessと、無線・有線の両方で最大8,000Hzのポーリングに対応。1,000Hz時のバッテリー持続時間はメーカー公称最大180時間で、V3 Proの公称最大95時間から伸びています。",
+        "evidence_type": "manufacturer_claim",
+        "source_urls": [
+          "https://www.razer.com/newsroom/product-news/viper-v4-pro-gigantus-v2-pro",
+          "https://www.razer.com/newsroom/product-news/reshaping-esports-dominance-introducing-the-razer-viper-v3-pro-the-mouse-of-champions"
+        ]
+      },
+      {
+        "statement": "第4世代オプティカルマウススイッチとオプティカルスクロールホイールを採用。スイッチ耐久性はメーカー公称1億回以上です。",
+        "evidence_type": "manufacturer_claim",
+        "source_urls": [
+          "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro"
+        ]
+      }
+    ],
+    "previous_model": "Razer Viper V3 Pro",
+    "change_summary": "V3 Pro比で軽量化し、センサー・無線・バッテリー・スクロール機構を更新。ただし、実使用での差はまだ独立実測で確認できていません。",
+    "who_should_care": [
+      "Viper V2 Pro以前を使い、重量・電池持ち・無線安定性のどれかに具体的な不満がある競技FPSプレイヤー",
+      "つかみ持ち・つまみ持ちでViper系の形状が合い、8,000Hz運用も含めて比較したい人",
+      "V3 Proの買い替え時期にあり、同じ系統の形状を維持したい人"
+    ],
+    "who_can_wait": [
+      "Viper V3 Proで重量・接続・電池持ちに困っていない人",
+      "マウスよりPC性能、モニター、回線、姿勢や練習に明確なボトルネックがある人",
+      "持ち方や手の大きさとの相性を試せず、スペックだけで購入を決めようとしている人"
+    ],
+    "decision_state": "WATCH",
+    "decision_reason": "公式上の更新点は明確ですが、V3 Proからの体感差、クリック感、ホイール、無線安定性は独立実測が不足しています。現行品に不満がなければ急ぐ根拠はありません。",
+    "evidence_state": "official_specs_only",
+    "evidence_summary": "メーカー公式仕様と公式発表のみ確認済み。独立レビューの実測値はまだ判断へ採用していません。",
+    "independent_sources": [],
+    "official_sources": [
+      {
+        "label": "Razer Viper V4 Pro 日本公式製品ページ",
+        "url": "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro"
+      },
+      {
+        "label": "Razer Newsroom：Viper V4 Pro発表（2026-03-24）",
+        "url": "https://www.razer.com/newsroom/product-news/viper-v4-pro-gigantus-v2-pro"
+      },
+      {
+        "label": "Razer Newsroom：Viper V3 Pro発表（旧モデル比較用）",
+        "url": "https://www.razer.com/newsroom/product-news/reshaping-esports-dominance-introducing-the-razer-viper-v3-pro-the-mouse-of-champions"
+      }
+    ],
+    "gamefit_judgment": "V3 Proからは複数の公式仕様が更新されていますが、新しいこと自体は買い替え理由になりません。今のマウスで狙いにくさや接続・電池の問題がなく、形状にも満足しているならNO RUSHです。V2 Pro以前からの更新や、具体的な不満の解消候補として比較し、独立実測が揃うまではWATCHとします。",
+    "diagnosis_cta": true,
+    "last_verified_at": "2026-10-14",
+    "seo": {
+      "title": "Razer Viper V4 ProはV3から買い替えるべき？違いと判断 | GameFit Lab",
+      "description": "Razer Viper V4 ProはV3 Proから何が変わったのか。公式仕様とメーカー公称値を分け、今すぐ買い替える必要がある人・待てる人をGameFit視点で整理します。"
+    }
+  }
+]

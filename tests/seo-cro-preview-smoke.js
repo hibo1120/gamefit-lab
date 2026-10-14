@@ -63,6 +63,9 @@ async function checkViewport(browser, origin, viewport) {
   assert.match(body, /今のPC環境に、次の1円をどこへ使うべきか？/);
   assert.match(body, /FPS不足、GPU交換、PC買い替え。/);
   assert.match(body, /現在は無料の簡易診断と判断ガイドを公開しています。/);
+  assert.match(body, /最新Gear Updates/);
+  assert.match(body, /Razer Viper V4 Pro/);
+  assert.match(body, /WATCH/);
   assert.doesNotMatch(body, /現在は公開テスト準備中です。/);
   assert.equal(await page.locator(".diagnosis-cta").count(), 1);
   assert.deepEqual(await page.evaluate(() => window.__analyticsEvents.map(item => item.event)), ["landing_page_viewed"]);
@@ -94,6 +97,8 @@ async function checkViewport(browser, origin, viewport) {
     await checkViewport(browser, origin, { width: 1440, height: 1000 });
     await checkViewport(browser, origin, { width: 390, height: 844 });
     assert.match(await (await fetch(`${origin}/robots.txt`)).text(), /Disallow: \//);
+    assert.equal((await fetch(`${origin}/updates/index.html`)).status, 200);
+    assert.equal((await fetch(`${origin}/updates/razer-viper-v4-pro.html`)).status, 200);
     assert.equal((await fetch(`${origin}/not-found.html`)).status, 404);
     process.stdout.write("SEO/CRO preview smoke: desktop=ok mobile390=ok landing-event=ok CTA-beacon=ok privacy=ok console=clean 404=ok\n");
   } finally {

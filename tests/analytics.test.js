@@ -254,6 +254,46 @@ test("guide view captures only structured guide context once", () => {
   assert.equal(JSON.stringify(calls).includes("private"), false);
 });
 
+test("device update view captures its strict allowlist once per page load", () => {
+  const { analytics, calls } = recordingEnvironment(
+    "?utm_source=google&utm_medium=organic&utm_campaign=device_radar_v0_1&utm_content=must_not_send&source=search&email=private%40example.test",
+    { language: "ja", regionVersion: "jp", pageSource: "razer-viper-v4-pro" },
+    "/gamefit-lab/updates/razer-viper-v4-pro.html"
+  );
+  const context = {
+    productSlug: "razer-viper-v4-pro",
+    brand: "Razer",
+    category: "mouse",
+    evidenceState: "official_specs_only",
+    decisionState: "WATCH",
+    freeText: "must not be sent"
+  };
+
+  assert.equal(analytics.trackDeviceUpdateViewed(context), true);
+  assert.equal(analytics.trackDeviceUpdateViewed(context), false);
+  assert.deepEqual(calls, [{
+    event: "device_update_viewed",
+    properties: {
+      product_slug: "razer-viper-v4-pro",
+      brand: "razer",
+      category: "mouse",
+      evidence_state: "official_specs_only",
+      decision_state: "WATCH",
+      utm_source: "google",
+      utm_medium: "organic",
+      utm_campaign: "device_radar_v0_1",
+      source: "search",
+      language: "ja",
+      region_version: "jp",
+      page_source: "razer-viper-v4-pro",
+      $geoip_disable: true
+    },
+    options: undefined
+  }]);
+  assert.equal(JSON.stringify(calls).includes("must_not_send"), false);
+  assert.equal(JSON.stringify(calls).includes("private"), false);
+});
+
 test("growth attribution is retained from landing through start and affiliate click", () => {
   const search = "?utm_source=youtube&utm_medium=shorts&utm_campaign=gamefit_growth_v1&utm_content=yt_s01&source=yt_s01&hardware=private";
   const { analytics, calls } = recordingEnvironment(search);
@@ -376,8 +416,8 @@ test("PostHog configuration is anonymous, explicit-only, and replay-free", () =>
   assert.doesNotMatch(config, /posthog\.identify\s*\(/);
 });
 
-test("before_send allows the two acquisition views and removes URL and free-text properties", () => {
-  for (const eventName of ["landing_page_viewed", "guide_page_viewed"]) {
+test("before_send allows acquisition and Update views while removing URL and free-text properties", () => {
+  for (const eventName of ["landing_page_viewed", "guide_page_viewed", "device_update_viewed"]) {
     const event = analyticsModule.beforeSend({
       event: eventName,
       properties: {

@@ -82,6 +82,19 @@ CPU / GPU / メモリ / モニター解像度 / リフレッシュレート /
 - [Fortniteの投資優先順位](./guides/fortnite-upgrade.html)
 - [Monster Hunter Wildsが重いとき](./guides/mhwilds-upgrade.html)
 
+<!-- DEVICE_UPDATES_START -->
+## 最新Gear Updates
+
+新しい＝買い替えるべき、ではありません。公式情報とEvidenceの状態から、今の機材を替える意味があるかを整理します。
+
+### [Razer Viper V4 Pro](./updates/razer-viper-v4-pro.html)
+
+ゲーミングマウス / **WATCH** / 公式仕様のみ<br>
+V3 Pro比で軽量化し、センサー・無線・バッテリー・スクロール機構を更新。ただし、実使用での差はまだ独立実測で確認できていません。
+
+[すべて見る](./updates/)
+<!-- DEVICE_UPDATES_END -->
+
 ## 広告について
 
 このサイトはアフィリエイト広告を利用する予定です。

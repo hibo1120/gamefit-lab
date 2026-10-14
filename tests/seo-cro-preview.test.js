@@ -15,7 +15,9 @@ test("SEO/CRO preview builder is isolated and fail-closed", () => {
   assert.match(script, /Disallow: \//);
   assert.match(script, /gamefit_seo_cro_preview_events/);
   assert.match(script, /GameFitAnalytics\.beforeSend/);
-  assert.match(script, /\["guides", "en", "data"\]/);
+  assert.match(script, /\["guides", "en", "data", "updates"\]/);
+  assert.match(script, /deviceUpdatesSection/);
+  assert.match(script, /最新Gear Updates/);
   assert.doesNotMatch(script, /["']preview-dist["']/);
   assert.doesNotMatch(script, /personal-gear/);
 });
