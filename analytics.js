@@ -19,6 +19,8 @@
   const ATTRIBUTION_PROPERTIES = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "source"];
   const PAGE_CONTEXT_PROPERTIES = ["language", "region_version", "page_source"];
   const EVENT_PROPERTIES = {
+    landing_page_viewed: [...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
+    guide_page_viewed: ["content_type", "game", "budget_band", ...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     diagnosis_page_viewed: [...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     diagnosis_started: ["game", "device_type", ...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     diagnosis_completed: [
@@ -54,6 +56,7 @@
   ]);
 
   let startedInMemory = false;
+  const viewedEventsInMemory = new Set();
   let latestDiagnosis = { game: null, topRecommendation: null, budgetBand: null };
 
   function safeSessionStorage() {
@@ -170,6 +173,39 @@
       ...pageContextProperties(),
       $geoip_disable: true
     });
+  }
+
+  function trackViewOnce(eventName, properties) {
+    if (viewedEventsInMemory.has(eventName)) return false;
+    const captured = safeCapture(eventName, properties);
+    if (captured) viewedEventsInMemory.add(eventName);
+    return captured;
+  }
+
+  function trackLandingPageViewed(context) {
+    return trackViewOnce("landing_page_viewed", {
+      ...attributionProperties(),
+      ...pageContextProperties(),
+      page_source: slugValue(context?.sourcePage || pageContextProperties().page_source),
+      $geoip_disable: true
+    });
+  }
+
+  function trackGuidePageViewed(context) {
+    const properties = {
+      content_type: "guide",
+      ...attributionProperties(),
+      ...pageContextProperties(),
+      page_source: slugValue(context?.sourcePage || pageContextProperties().page_source),
+      $geoip_disable: true
+    };
+    const game = gameValue(context?.game, null);
+    const budgetBand = enumValue(String(context?.budgetBand || ""), VALID_BUDGET_BANDS, null);
+
+    if (game) properties.game = game;
+    if (budgetBand) properties.budget_band = budgetBand;
+
+    return trackViewOnce("guide_page_viewed", properties);
   }
 
   function trackDiagnosisStarted(input) {
@@ -322,7 +358,9 @@
     trackDiagnosisCtaClicked,
     trackDiagnosisCompleted,
     trackDiagnosisStarted,
+    trackGuidePageViewed,
     trackInvalidInput,
+    trackLandingPageViewed,
     trackPageViewed,
     trackResultShared,
     createAnalytics

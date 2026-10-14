@@ -2,7 +2,22 @@
   "use strict";
 
   function bindGuideTracking() {
-    document.querySelectorAll(".diagnosis-cta").forEach(link => {
+    const links = Array.from(document.querySelectorAll(".diagnosis-cta"));
+    const pageContext = links[0]?.dataset;
+
+    if (pageContext?.contentType === "landing") {
+      window.GameFitAnalytics?.trackLandingPageViewed({
+        sourcePage: pageContext.sourcePage
+      });
+    } else if (pageContext?.contentType === "guide") {
+      window.GameFitAnalytics?.trackGuidePageViewed({
+        sourcePage: pageContext.sourcePage,
+        game: pageContext.game,
+        budgetBand: pageContext.budgetBand
+      });
+    }
+
+    links.forEach(link => {
       link.addEventListener("click", () => {
         window.GameFitAnalytics?.trackDiagnosisCtaClicked({
           sourcePage: link.dataset.sourcePage,
