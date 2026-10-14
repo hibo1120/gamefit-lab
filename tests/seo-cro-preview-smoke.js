@@ -65,7 +65,7 @@ async function checkViewport(browser, origin, viewport) {
   assert.match(body, /現在は無料の簡易診断と判断ガイドを公開しています。/);
   assert.match(body, /最新Gear Updates/);
   assert.match(body, /Razer Viper V4 Pro/);
-  assert.match(body, /WATCH/);
+  assert.match(body, /追加検証を待つ/);
   assert.doesNotMatch(body, /現在は公開テスト準備中です。/);
   assert.equal(await page.locator(".diagnosis-cta").count(), 1);
   assert.deepEqual(await page.evaluate(() => window.__analyticsEvents.map(item => item.event)), ["landing_page_viewed"]);

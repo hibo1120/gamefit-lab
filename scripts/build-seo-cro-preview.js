@@ -5,6 +5,7 @@ const root = path.resolve(__dirname, "..");
 const output = path.join(root, ".seo-cro-preview-dist");
 const liveLanding = "https://hibo1120.github.io/gamefit-lab/";
 const deviceUpdates = require("../data/device-updates.json");
+const { DECISION_LABELS } = require("./generate-device-updates.js");
 
 function replaceRequired(source, search, replacement, label) {
   if (source.includes(replacement)) return source;
@@ -40,8 +41,8 @@ function escapeHtml(value) {
 }
 
 function deviceUpdatesSection() {
-  const items = deviceUpdates.slice(0, 3).map(update => `<li><strong><a href="./updates/${escapeHtml(update.slug)}.html">${escapeHtml(update.product_name)}</a></strong><br><small>${escapeHtml(update.category_label)} / ${escapeHtml(update.decision_state)}</small><br>${escapeHtml(update.change_summary)}</li>`).join("");
-  return `<section class="device-updates-preview" aria-labelledby="device-updates-heading"><h2 id="device-updates-heading">最新Gear Updates</h2><p>新しい＝買い替えるべき、ではありません。公式情報とEvidenceの状態から、今の機材を替える意味があるかを整理します。</p><ul>${items}</ul><p><a href="./updates/">すべて見る</a></p></section>`;
+  const items = deviceUpdates.slice(0, 3).map(update => `<li><strong><a href="./updates/${escapeHtml(update.slug)}.html">${escapeHtml(update.product_name)}</a></strong><br><small>${escapeHtml(update.category_label)} / ${escapeHtml(DECISION_LABELS[update.decision_state])}</small><br>${escapeHtml(update.change_summary)}</li>`).join("");
+  return `<section class="device-updates-preview" aria-labelledby="device-updates-heading"><h2 id="device-updates-heading">最新Gear Updates</h2><p>新しい＝買い替えるべき、ではありません。公式情報と根拠の状態から、今の機材を替える意味があるかを整理します。</p><ul>${items}</ul><p><a href="./updates/">すべて見る</a></p></section>`;
 }
 
 async function build() {

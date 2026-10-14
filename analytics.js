@@ -25,6 +25,7 @@
   const EVENT_PROPERTIES = {
     landing_page_viewed: [...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     guide_page_viewed: ["content_type", "game", "budget_band", ...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
+    device_update_index_viewed: ["visible_item_count", ...DEVICE_UPDATE_ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     device_update_viewed: ["product_slug", "brand", "category", "evidence_state", "decision_state", ...DEVICE_UPDATE_ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     diagnosis_page_viewed: [...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     diagnosis_started: ["game", "device_type", ...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
@@ -231,6 +232,24 @@
     });
   }
 
+  function trackDeviceUpdateIndexViewed(context) {
+    const attribution = attributionProperties();
+    const updateAttribution = Object.fromEntries(DEVICE_UPDATE_ATTRIBUTION_PROPERTIES.flatMap(key => (
+      Object.hasOwn(attribution, key) ? [[key, attribution[key]]] : []
+    )));
+    const requestedCount = Number(context?.visibleItemCount);
+    const visibleItemCount = Number.isInteger(requestedCount) && requestedCount >= 0 && requestedCount <= 3
+      ? requestedCount
+      : 0;
+
+    return trackViewOnce("device_update_index_viewed", {
+      visible_item_count: visibleItemCount,
+      ...updateAttribution,
+      ...pageContextProperties(),
+      $geoip_disable: true
+    });
+  }
+
   function trackDiagnosisStarted(input) {
     const storage = safeSessionStorage();
     let alreadyStarted = startedInMemory;
@@ -381,6 +400,7 @@
     trackDiagnosisCtaClicked,
     trackDiagnosisCompleted,
     trackDiagnosisStarted,
+    trackDeviceUpdateIndexViewed,
     trackDeviceUpdateViewed,
     trackGuidePageViewed,
     trackInvalidInput,

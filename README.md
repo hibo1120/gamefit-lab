@@ -63,7 +63,7 @@ Playwrightを利用できる環境では `node tests/browser-smoke.js` でPC幅�
 
 ## Gear Updates / Device Radar
 
-初期版は大量の記事を作らず、公式一次情報と買い替え判断を結び付けられる製品だけを1〜3件公開します。外部製品画像、Affiliate購入リンク、自動公開は使いません。メーカー公称値、独立実測、複数独立ソースを別のEvidence状態として扱い、プロ使用はAdoption signalに限ります。
+初期版は大量の記事を作らず、公式一次情報と買い替え判断を結び付けられる製品だけを1〜3件公開します。外部製品画像、Affiliate購入リンク、自動公開は使いません。メーカー公称値、採用済みの独立実測、複数の独立した出所を別の根拠状態として扱い、プロ使用はAdoption signalに限ります。
 
 製品を追加・更新するときは `data/device-updates.json` だけを編集し、次を実行します。
 
@@ -73,7 +73,7 @@ node scripts/generate-device-updates.js --check
 node --test tests/*.test.js
 ```
 
-Generatorはスキーマ、HTTPS Source、公式事実、重複slug、判断・Evidence状態、独立Source数、画像・Affiliateフィールド不使用を検証し、`updates/`、トップの最大3件、`sitemap.xml`を同期します。公開前に公式URL、発売・販売状況、旧モデルとの関係、独立実測の有無、`last_verified_at`を人間が確認してください。
+Generatorは実在日、資格情報やlocal/IPを含まないHTTPS URL、公式事実、重複slug、判断と根拠状態、独立ソースの出所・提供元・転載元・独立性・測定方法・対象claim、画像・Affiliateフィールド不使用を検証し、`updates/`、トップの最大3件、`sitemap.xml`を同期します。発表日、世界ローンチ、国内発売、国内予約、現在の販売確認は別フィールドです。`last_verified_at`は確認日、`content_updated_at`は記事の実質更新日で、sitemapの`lastmod`には後者だけを使います。
 
 ## ゲームの追加方法
 
@@ -128,11 +128,12 @@ Generatorはスキーマ、HTTPS Source、公式事実、重複slug、判断・E
 | `diagnosis_completed` | 診断成功 | FPS帯、目標FPS、Hz、RAM、ストレージ、予算、結果 |
 | `diagnosis_invalid_input` | 入力エラー | 正規化済み`reason` |
 | `diagnosis_cta_clicked` | ガイドから診断へ遷移 | ガイド、ゲーム、予算帯 |
-| `device_update_viewed` | Gear Update詳細表示（1読込1回） | 製品slug、ブランド、カテゴリ、Evidence、判断状態、許可済みUTM、`source`、言語・地域版・ページ |
+| `device_update_index_viewed` | Gear Updates一覧表示（1読込1回） | 表示件数、許可済みUTM、`source`、言語・地域版・ページ |
+| `device_update_viewed` | Gear Update詳細表示（1読込1回） | 製品slug、ブランド、カテゴリ、根拠状態、判断状態、許可済みUTM、`source`、言語・地域版・ページ |
 | `affiliate_clicked` | 表示済み広告CTAのクリック | 広告主、カテゴリ、結果、予算帯、UTM、`source` |
 | `result_shared` | X共有または診断URLコピー | `platform`, `game`, `top_recommendation` |
 
-CPU/GPUの自由入力値は画面内の構成メモにだけ使い、Analyticsへ送りません。`analytics.js` の許可リストにないpropertiesとイベントは `beforeSend` で破棄します。PostHogが未読込・停止・例外の場合も診断とリンク遷移は継続します。
+CPU/GPUの自由入力値は画面内の構成メモにだけ使い、Analyticsへ送りません。`analytics.js` の許可リストにないpropertiesとイベントは `beforeSend` で破棄します。localhost、127.0.0.1、または`?qa=1`ではPostHog SDKを読み込まず、イベントをブラウザ内にだけ捕捉します。PostHogが未読込・停止・例外の場合も診断とリンク遷移は継続します。未到達イベントは「計測経路未確認」と「実利用0」を分けて扱います。
 
 全イベントに `language`（`ja` / `en`）、`region_version`（`jp` / `global`）、`page_source` を付けます。日本版とGlobal版は同じイベント名と推薦カテゴリを使うため、同じファネルで比較できます。英語版の予算は `$100 / $300 / $500 / $1,000 / $1,500 / $2,000+` の独立した意思決定帯で、円からの為替換算ではありません。`en/locale.js` がこの表示帯を共有診断エンジンの相対予算帯へ接続し、スコア規則のコピーを防ぎます。
 
@@ -175,7 +176,7 @@ PostHogでは`utm_source`、`utm_medium`、`utm_campaign`、`utm_content`、`sou
 - 結果共有文にCPU/GPU自由入力値が含まれず、X IntentとコピーURLのUTMが正しい。
 - Growth URLの媒体、campaign、content IDが`content_calendar.csv`と一致する。
 - PC幅と390px幅で横スクロールや重なりがない。
-- Gear Updates一覧・詳細が表示され、1読込につき`device_update_viewed`が1回だけ送られ、氏名・メール・URL全文・Query String全文・自由文を含まない。
+- Gear Updates一覧・詳細が表示され、1読込につき一覧は`device_update_index_viewed`、詳細は`device_update_viewed`が1回だけ捕捉され、氏名・メール・URL全文・Query String全文・自由文を含まない。
 - Gear Updatesに外部画像やAffiliate購入リンクがなく、メーカー公称と独立実測が混同されていない。
 - ブラウザーのコンソールエラー、内部リンク404がない。
 - `sitemap.xml`と`robots.txt`がHTTP 200である。

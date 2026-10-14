@@ -4,11 +4,19 @@
     "slug": "razer-viper-v4-pro",
     "product_name": "Razer Viper V4 Pro",
     "brand": "Razer",
+    "manufacturer_provider_id": "razer",
+    "manufacturer_domain": "razer.com",
     "category": "mouse",
     "category_label": "ゲーミングマウス",
     "announcement_date": "2026-03-24",
-    "release_date": "2026-03-24",
-    "availability_status": "日本公式ストアで販売中（2026-10-14確認）",
+    "global_launch_date": "2026-03-24",
+    "jp_release_date": null,
+    "jp_release_date_status": "公式・正規代理店の原情報では国内発売日を確認できていません",
+    "jp_preorder_date": null,
+    "jp_preorder_date_status": "公式・正規代理店の原情報では国内予約開始日を確認できていません",
+    "sales_status": "jp_official_purchase_route_observed",
+    "sales_status_label": "日本公式製品ページと日本向け購入導線を確認。国内発売日とは別の確認です",
+    "sales_status_verified_at": "2026-10-15",
     "official_url": "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro",
     "official_facts": [
       {
@@ -45,7 +53,7 @@
       }
     ],
     "previous_model": "Razer Viper V3 Pro",
-    "change_summary": "V3 Pro比で軽量化し、センサー・無線・バッテリー・スクロール機構を更新。ただし、実使用での差はまだ独立実測で確認できていません。",
+    "change_summary": "V3 Pro比で軽量化し、センサー・無線・バッテリー・スクロール機構を更新。独立レビューは存在しますが、その内容は現在の買い替え判断へまだ採用していません。",
     "who_should_care": [
       "Viper V2 Pro以前を使い、重量・電池持ち・無線接続のどれかに具体的な不満があり、比較候補を探している競技FPSプレイヤー",
       "つかみ持ち・つまみ持ちでViper系の形状が合い、8,000Hz運用も含めて比較したい人",
@@ -57,35 +65,80 @@
       "持ち方や手の大きさとの相性を試せず、スペックだけで購入を決めようとしている人"
     ],
     "decision_state": "WATCH",
-    "decision_reason": "公式上の更新点は明確ですが、V3 Proからの体感差、クリック感、ホイール、無線安定性は独立実測が不足しています。現行品に不満がなければ急ぐ根拠はありません。",
+    "decision_claim_scopes": ["click_latency", "sensor_latency", "wireless_stability", "shape", "build_quality", "battery_runtime"],
+    "decision_reason": "公式上の更新点は明確です。独立レビューの存在は確認しましたが、測定条件と対象claimの正規化が未完了で、現在の判断へは未採用です。現行品に不満がなければ急ぐ根拠はありません。",
     "evidence_state": "official_specs_only",
-    "evidence_summary": "メーカー公式仕様と公式発表のみ確認済み。独立レビューの実測値はまだ判断へ採用していません。",
-    "independent_sources": [],
+    "evidence_summary": "現在の判断へ採用しているのはメーカー公式仕様と公式発表のみです。独立レビューは存在を確認済みですが、存在確認と判断への採用を分けています。",
+    "independent_sources": [
+      {
+        "source_id": "rtings-viper-v4-pro-review",
+        "label": "RTINGS：Razer Viper V4 Pro Mouse Review（原著レビュー）",
+        "url": "https://www.rtings.com/mouse/reviews/razer/viper-v4-pro",
+        "provider_id": "rtings",
+        "origin_provider_id": "rtings",
+        "source_origin_id": "rtings-viper-v4-pro-2026-04-24",
+        "publisher_group": "rtings",
+        "source_type": "independent_lab",
+        "independence_status": "confirmed",
+        "methodology_family": "rtings-mouse-methodology-v1.5.2",
+        "claim_scopes": ["click_latency", "sensor_latency", "shape", "build_quality", "click_sound"],
+        "adoption_status": "discovered_not_adopted",
+        "reviewed_at": "2026-10-15",
+        "republication_of_source_id": null
+      },
+      {
+        "source_id": "pcgamer-viper-v4-pro-review",
+        "label": "PC Gamer：Razer Viper V4 Pro review（原著レビュー）",
+        "url": "https://www.pcgamer.com/hardware/gaming-mice/razer-viper-v4-pro-review/",
+        "provider_id": "pc-gamer",
+        "origin_provider_id": "pc-gamer",
+        "source_origin_id": "pcgamer-viper-v4-pro-2026-04-07",
+        "publisher_group": "future-plc",
+        "source_type": "specialist_review",
+        "independence_status": "unverified",
+        "methodology_family": "editorial-mouse-review-with-mousetester",
+        "claim_scopes": ["tracking_consistency", "wireless_stability", "shape", "build_quality", "skates"],
+        "adoption_status": "discovered_not_adopted",
+        "reviewed_at": "2026-10-15",
+        "republication_of_source_id": null
+      }
+    ],
     "official_sources": [
       {
         "label": "Razer Viper V4 Pro 日本公式製品ページ",
-        "url": "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro"
+        "url": "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro",
+        "provider_id": "razer",
+        "source_origin_id": "razer-jp-viper-v4-pro-product"
       },
       {
         "label": "Razer Newsroom：Viper V4 Pro公式ローンチ（2026-03-24）",
-        "url": "https://www.razer.com/newsroom/product-news/viper-v4-pro-gigantus-v2-pro"
+        "url": "https://www.razer.com/newsroom/product-news/viper-v4-pro-gigantus-v2-pro",
+        "provider_id": "razer",
+        "source_origin_id": "razer-newsroom-viper-v4-pro-launch"
       },
       {
         "label": "Razer Support：Viper V4 Pro 公式技術仕様",
-        "url": "https://mysupport.razer.com/app/answers/detail/a_id/20775"
+        "url": "https://mysupport.razer.com/app/answers/detail/a_id/20775",
+        "provider_id": "razer",
+        "source_origin_id": "razer-support-viper-v4-pro-20775"
       },
       {
         "label": "Razer Support：Viper V3 Pro 公式技術仕様・FAQ",
-        "url": "https://mysupport.razer.com/app/answers/detail/a_id/14044"
+        "url": "https://mysupport.razer.com/app/answers/detail/a_id/14044",
+        "provider_id": "razer",
+        "source_origin_id": "razer-support-viper-v3-pro-14044"
       },
       {
         "label": "Razer Newsroom：Viper V3 Pro発表（旧モデル比較用）",
-        "url": "https://www.razer.com/newsroom/product-news/reshaping-esports-dominance-introducing-the-razer-viper-v3-pro-the-mouse-of-champions"
+        "url": "https://www.razer.com/newsroom/product-news/reshaping-esports-dominance-introducing-the-razer-viper-v3-pro-the-mouse-of-champions",
+        "provider_id": "razer",
+        "source_origin_id": "razer-newsroom-viper-v3-pro-launch"
       }
     ],
-    "gamefit_judgment": "V3 Proからは複数の公式仕様が更新されていますが、新しいこと自体は買い替え理由になりません。今のマウスで狙いにくさや接続・電池の問題がなく、形状にも満足しているならNO RUSHです。V2 Pro以前からの更新や、具体的な不満の解消候補として比較し、独立実測が揃うまではWATCHとします。",
+    "gamefit_judgment": "V3 Proからは複数の公式仕様が更新されていますが、新しいこと自体は買い替え理由になりません。今のマウスで狙いにくさや接続・電池の問題がなく、形状にも満足しているなら急いで買い替える必要はありません。V2 Pro以前からの更新や、具体的な不満の解消候補として比較し、独立実測をGameFitの判断へ採用できるまでは追加検証を待ちます。",
     "diagnosis_cta": true,
-    "last_verified_at": "2026-10-14",
+    "last_verified_at": "2026-10-15",
+    "content_updated_at": "2026-10-15",
     "seo": {
       "title": "Razer Viper V4 ProはV3から買い替えるべき？違いと判断 | GameFit Lab",
       "description": "Razer Viper V4 ProはV3 Proから何が変わったのか。公式仕様とメーカー公称値を分け、今すぐ買い替える必要がある人・待てる人をGameFit視点で整理します。"
