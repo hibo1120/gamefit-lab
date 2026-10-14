@@ -7,46 +7,47 @@
     "category": "mouse",
     "category_label": "ゲーミングマウス",
     "announcement_date": "2026-03-24",
-    "release_date": null,
+    "release_date": "2026-03-24",
     "availability_status": "日本公式ストアで販売中（2026-10-14確認）",
     "official_url": "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro",
     "official_facts": [
       {
-        "statement": "本体重量はブラックが49g未満、ホワイトが50g。旧Viper V3 Proの公式値（ブラック54g、ホワイト55g）から軽量化されています。",
+        "statement": "本体重量はRazer公式技術仕様でブラック約49g、ホワイト約50g（ケーブル・ドングル除く）。旧Viper V3 Proの公式値はブラック54g、ホワイト55gで、約5g軽量化されています。",
         "evidence_type": "manufacturer_specification",
         "source_urls": [
-          "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro",
-          "https://www.razer.com/newsroom/product-news/reshaping-esports-dominance-introducing-the-razer-viper-v3-pro-the-mouse-of-champions"
+          "https://mysupport.razer.com/app/answers/detail/a_id/20775",
+          "https://mysupport.razer.com/app/answers/detail/a_id/14044"
         ]
       },
       {
-        "statement": "センサーはFocus Pro 35K Optical Sensor Gen-2からFocus Pro 50K Optical Sensor Gen-3へ更新され、公式仕様は最大50,000 DPI、930 IPS、90Gです。",
+        "statement": "センサーはViper V3 ProのFocus Pro 35K Optical Sensor Gen-2（最大35,000 DPI、750 IPS、70G）から、Focus Pro 50K Optical Sensor Gen-3（最大50,000 DPI、930 IPS、90G）へ更新されています。",
         "evidence_type": "manufacturer_specification",
         "source_urls": [
-          "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro",
-          "https://www.razer.com/newsroom/product-news/reshaping-esports-dominance-introducing-the-razer-viper-v3-pro-the-mouse-of-champions"
+          "https://mysupport.razer.com/app/answers/detail/a_id/20775",
+          "https://mysupport.razer.com/app/answers/detail/a_id/14044"
         ]
       },
       {
-        "statement": "第2世代HyperSpeed Wirelessと、無線・有線の両方で最大8,000Hzのポーリングに対応。1,000Hz時のバッテリー持続時間はメーカー公称最大180時間で、V3 Proの公称最大95時間から伸びています。",
+        "statement": "Viper V4 Proは無線・有線の両方で最大8,000Hzに対応し、メーカー公称バッテリー持続時間は1,000Hzで最大180時間、8,000Hzで最大45時間です。Viper V3 Proは8,000Hzの有線動作には非対応で、1,000Hz最大95時間、8,000Hz最大17時間です。",
         "evidence_type": "manufacturer_claim",
         "source_urls": [
-          "https://www.razer.com/newsroom/product-news/viper-v4-pro-gigantus-v2-pro",
-          "https://www.razer.com/newsroom/product-news/reshaping-esports-dominance-introducing-the-razer-viper-v3-pro-the-mouse-of-champions"
+          "https://mysupport.razer.com/app/answers/detail/a_id/20775",
+          "https://mysupport.razer.com/app/answers/detail/a_id/14044"
         ]
       },
       {
-        "statement": "第4世代オプティカルマウススイッチとオプティカルスクロールホイールを採用。スイッチ耐久性はメーカー公称1億回以上です。",
+        "statement": "Viper V4 Proは第4世代オプティカルマウススイッチ（メーカー公称1億クリック）とオプティカルスクロールホイールを採用。Viper V3 Proは第3世代スイッチ（メーカー公称9,000万クリック）です。",
         "evidence_type": "manufacturer_claim",
         "source_urls": [
-          "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro"
+          "https://mysupport.razer.com/app/answers/detail/a_id/20775",
+          "https://mysupport.razer.com/app/answers/detail/a_id/14044"
         ]
       }
     ],
     "previous_model": "Razer Viper V3 Pro",
     "change_summary": "V3 Pro比で軽量化し、センサー・無線・バッテリー・スクロール機構を更新。ただし、実使用での差はまだ独立実測で確認できていません。",
     "who_should_care": [
-      "Viper V2 Pro以前を使い、重量・電池持ち・無線安定性のどれかに具体的な不満がある競技FPSプレイヤー",
+      "Viper V2 Pro以前を使い、重量・電池持ち・無線接続のどれかに具体的な不満があり、比較候補を探している競技FPSプレイヤー",
       "つかみ持ち・つまみ持ちでViper系の形状が合い、8,000Hz運用も含めて比較したい人",
       "V3 Proの買い替え時期にあり、同じ系統の形状を維持したい人"
     ],
@@ -66,8 +67,16 @@
         "url": "https://www.razer.com/jp-jp/gaming-mice/razer-viper-v4-pro"
       },
       {
-        "label": "Razer Newsroom：Viper V4 Pro発表（2026-03-24）",
+        "label": "Razer Newsroom：Viper V4 Pro公式ローンチ（2026-03-24）",
         "url": "https://www.razer.com/newsroom/product-news/viper-v4-pro-gigantus-v2-pro"
+      },
+      {
+        "label": "Razer Support：Viper V4 Pro 公式技術仕様",
+        "url": "https://mysupport.razer.com/app/answers/detail/a_id/20775"
+      },
+      {
+        "label": "Razer Support：Viper V3 Pro 公式技術仕様・FAQ",
+        "url": "https://mysupport.razer.com/app/answers/detail/a_id/14044"
       },
       {
         "label": "Razer Newsroom：Viper V3 Pro発表（旧モデル比較用）",
