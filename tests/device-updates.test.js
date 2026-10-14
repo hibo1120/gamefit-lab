@@ -92,6 +92,7 @@ test("detail pages disclose evidence limits, one diagnosis CTA, and official-onl
     assert.match(html, /何が変わった？/);
     assert.match(html, /誰に関係する？/);
     assert.match(html, /今すぐ買い替える必要は？/);
+    assert.match(html, /公式ローンチ日/);
     assert.match(html, /GameFit判断/);
     assert.match(html, /プロ選手の採用例も、性能証明や個人への適合証明として扱っていません/);
     assert.equal((html.match(/class="diagnosis-cta"/g) || []).length, update.diagnosis_cta ? 1 : 0);
@@ -100,7 +101,7 @@ test("detail pages disclose evidence limits, one diagnosis CTA, and official-onl
 
     const externalUrls = [...html.matchAll(/href="(https:[^"]+)"/gi)].map(match => new URL(match[1]));
     assert.ok(externalUrls.length >= 1);
-    for (const url of externalUrls) assert.ok(["www.razer.com", "hibo1120.github.io"].includes(url.hostname), `unexpected source ${url.hostname}`);
+    for (const url of externalUrls) assert.ok(["www.razer.com", "mysupport.razer.com", "hibo1120.github.io"].includes(url.hostname), `unexpected source ${url.hostname}`);
   }
 });
 
