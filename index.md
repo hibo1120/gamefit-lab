@@ -5,12 +5,18 @@
 <link rel="alternate" hreflang="en" href="https://hibo1120.github.io/gamefit-lab/en/">
 <link rel="alternate" hreflang="x-default" href="https://hibo1120.github.io/gamefit-lab/">
 <script>document.querySelectorAll('link[rel="canonical"],link[rel="alternate"]').forEach(function(link){document.head.append(link);});</script>
+<script>window.GameFitPageContext = Object.freeze({ language: "ja", regionVersion: "jp", pageSource: "index" });</script>
+<script src="./analytics.js"></script>
+<script src="./posthog-init.js"></script>
+<script src="./guide.js" defer></script>
 
 [JP](./) / [EN](./en/)
 
 # GameFit Lab
 
 ## 今のPC環境に、次の1円をどこへ使うべきか？
+
+FPS不足、GPU交換、PC買い替え。ゲーム・現在のPC環境・予算から、まずどこを変えるべきか整理します。
 
 GameFit Labは、ゲーミングPCを単純に買い替えるのではなく、
 
@@ -54,13 +60,13 @@ CPU / GPU / メモリ / モニター解像度 / リフレッシュレート /
 
 ## 現在のステータス
 
-現在は公開テスト準備中です。
+現在は無料の簡易診断と判断ガイドを公開しています。
 
-診断ロジック、製品情報、価格情報を順次追加しています。
+診断結果は目安です。実際の利用状況を少人数から確認し、診断ロジックと情報を段階的に改善しています。
 
 ## 無料診断
 
-[ゲーミング環境の投資優先順位を無料診断する](./diagnose.html)
+<a class="diagnosis-cta" data-source-page="index" data-content-type="landing" href="./diagnose.html?utm_source=gamefit&amp;utm_medium=website&amp;utm_campaign=seo_cro_phase1&amp;source=index">ゲーミング環境の投資優先順位を無料診断する</a>
 
 現在FPS、目標FPS、モニターHz、RAM、ストレージ、予算などから、
 「現状維持／モニター／RAM／PC性能／PC買替」の優先順位を表示します。
@@ -94,6 +100,6 @@ CPU / GPU / メモリ / モニター解像度 / リフレッシュレート /
 
 ## プライバシー
 
-匿名の利用状況分析にPostHogを使用し、診断改善のためページ閲覧、診断利用、ゲーム種別、FPS帯、予算帯、推奨結果等を取得する場合があります。
+匿名の利用状況分析にPostHogを使用し、改善のためトップ・判断ガイド・診断の閲覧、診断CTAの利用、ゲーム種別、FPS帯、予算帯、推奨結果等を取得する場合があります。
 
-診断では氏名・メールアドレス等を取得せず、CPU / GPUの自由入力内容も分析データとして送信しません。
+氏名・メールアドレス等は取得せず、CPU / GPUの自由入力内容、閲覧URL全文、Query String全文も分析データとして送信しません。

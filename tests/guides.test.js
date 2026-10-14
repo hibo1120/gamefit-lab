@@ -95,7 +95,22 @@ test("every guide CTA preserves campaign parameters and page context", () => {
     assert.equal(attr(attributes, "data-content-type"), "guide");
     assert.equal(attr(attributes, "data-game"), context.game || null);
     assert.equal(attr(attributes, "data-budget-band"), context.budget || null);
+    assert.match(html, /<script src="\.\.\/analytics\.js"><\/script><script src="\.\.\/posthog-init\.js"><\/script><script src="\.\.\/guide\.js" defer><\/script>/, `${file}: tracking scripts missing or out of order`);
   }
+});
+
+test("Japanese landing preserves its hero while adding one tracked, contextual diagnosis route", () => {
+  const index = fs.readFileSync(path.join(projectRoot, "index.md"), "utf8");
+  const ctas = [...index.matchAll(/class="diagnosis-cta"/g)];
+
+  assert.match(index, /## 今のPC環境に、次の1円をどこへ使うべきか？/);
+  assert.match(index, /FPS不足、GPU交換、PC買い替え。ゲーム・現在のPC環境・予算から、まずどこを変えるべきか整理します。/);
+  assert.equal(ctas.length, 1);
+  assert.match(index, /data-source-page="index" data-content-type="landing"/);
+  assert.match(index, /utm_campaign=seo_cro_phase1/);
+  assert.match(index, /現在は無料の簡易診断と判断ガイドを公開しています。/);
+  assert.doesNotMatch(index, /現在は公開テスト準備中です。/);
+  assert.match(index, /<script src="\.\/analytics\.js"><\/script>[\s\S]*<script src="\.\/posthog-init\.js"><\/script>[\s\S]*<script src="\.\/guide\.js" defer><\/script>/);
 });
 
 test("guides link to related guides and contain no affiliate destinations", () => {

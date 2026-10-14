@@ -49,6 +49,14 @@ async function verifyViewport(browser, origin, viewport) {
   }));
   const page = await context.newPage();
   await page.addInitScript(() => {
+    window.__analyticsEvents = [];
+    window.posthog = {
+      __SV: 1,
+      init() {},
+      capture(event, properties, options) {
+        window.__analyticsEvents.push({ event, properties, options });
+      }
+    };
     window.__openedShareUrl = "";
     window.__copiedDiagnosisUrl = "";
     window.open = url => {
@@ -73,6 +81,25 @@ async function verifyViewport(browser, origin, viewport) {
   page.on("requestfailed", request => {
     if (request.url().startsWith(origin)) errors.push(`request failed: ${request.url()}`);
   });
+
+  const landingResponse = await page.goto(`${origin}/gamefit-lab/en/?utm_source=google&utm_medium=organic&utm_campaign=seo_cro_phase1&source=en_index&email=private%40example.test`, { waitUntil: "networkidle" });
+  assert.equal(landingResponse.status(), 200);
+  assert.equal(await page.locator(".diagnosis-cta").count(), 1);
+  assert.deepEqual(await page.evaluate(() => window.__analyticsEvents.map(item => item.event)), ["landing_page_viewed"]);
+  assert.equal(await page.evaluate(() => JSON.stringify(window.__analyticsEvents).includes("private")), false);
+
+  const guideResponse = await page.goto(`${origin}/gamefit-lab/guides/budget-50000.html?utm_source=gamefit&utm_medium=content&utm_campaign=initial_guides&source=budget_50000&email=private%40example.test`, { waitUntil: "networkidle" });
+  assert.equal(guideResponse.status(), 200);
+  assert.deepEqual(await page.evaluate(() => window.__analyticsEvents.map(item => item.event)), ["guide_page_viewed"]);
+  const guideView = await page.evaluate(() => window.__analyticsEvents[0]);
+  assert.equal(guideView.properties.content_type, "guide");
+  assert.equal(guideView.properties.budget_band, "50000");
+  assert.equal(JSON.stringify(guideView).includes("private"), false);
+  await page.locator(".diagnosis-cta").evaluate(link => link.addEventListener("click", event => event.preventDefault()));
+  await page.locator(".diagnosis-cta").click();
+  const guideEvents = await page.evaluate(() => window.__analyticsEvents);
+  assert.deepEqual(guideEvents.map(item => item.event), ["guide_page_viewed", "diagnosis_cta_clicked"]);
+  assert.deepEqual(guideEvents[1].options, { transport: "sendBeacon", send_instantly: true });
 
   const response = await page.goto(`${origin}/gamefit-lab/diagnose.html`, { waitUntil: "networkidle" });
   assert.equal(response.status(), 200);
@@ -164,7 +191,7 @@ async function verifyViewport(browser, origin, viewport) {
     browser = await launchBrowser();
     await verifyViewport(browser, origin, { width: 1440, height: 1000 });
     await verifyViewport(browser, origin, { width: 390, height: 844 });
-    assert.match(fs.readFileSync(path.join(projectRoot, "index.md"), "utf8"), /\(\.\/diagnose\.html\)/);
+    assert.match(fs.readFileSync(path.join(projectRoot, "index.md"), "utf8"), /href="\.\/diagnose\.html\?/);
     assert.equal((await fetch(`${origin}/gamefit-lab/sitemap.xml`)).status, 200);
     assert.equal((await fetch(`${origin}/gamefit-lab/robots.txt`)).status, 200);
     for (const route of [

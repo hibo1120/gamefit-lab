@@ -198,6 +198,62 @@ test("UTM and source attribution are retained on page view and completion", () =
   }
 });
 
+test("landing view captures the privacy-safe acquisition denominator once", () => {
+  const { analytics, calls } = recordingEnvironment(
+    "?utm_source=google&utm_medium=organic&utm_campaign=seo_cro_phase1&source=home&email=private%40example.test&url=https%3A%2F%2Fprivate.example.test%2F"
+  );
+
+  assert.equal(analytics.trackLandingPageViewed({ sourcePage: "index" }), true);
+  assert.equal(analytics.trackLandingPageViewed({ sourcePage: "index" }), false);
+  assert.deepEqual(calls, [{
+    event: "landing_page_viewed",
+    properties: {
+      utm_source: "google",
+      utm_medium: "organic",
+      utm_campaign: "seo_cro_phase1",
+      source: "home",
+      ...JP_CONTEXT,
+      $geoip_disable: true
+    },
+    options: undefined
+  }]);
+  assert.equal(JSON.stringify(calls).includes("private"), false);
+});
+
+test("guide view captures only structured guide context once", () => {
+  const { analytics, calls } = recordingEnvironment(
+    "?utm_source=gamefit&utm_medium=content&utm_campaign=initial_guides&source=budget_50000&query=private",
+    null,
+    "/gamefit-lab/guides/budget-50000.html"
+  );
+
+  assert.equal(analytics.trackGuidePageViewed({
+    sourcePage: "budget_50000",
+    budgetBand: "50000",
+    game: "unknown-game",
+    title: "must not be sent"
+  }), true);
+  assert.equal(analytics.trackGuidePageViewed({ sourcePage: "other" }), false);
+  assert.deepEqual(calls, [{
+    event: "guide_page_viewed",
+    properties: {
+      content_type: "guide",
+      utm_source: "gamefit",
+      utm_medium: "content",
+      utm_campaign: "initial_guides",
+      source: "budget_50000",
+      language: "ja",
+      region_version: "jp",
+      page_source: "budget_50000",
+      budget_band: "50000",
+      $geoip_disable: true
+    },
+    options: undefined
+  }]);
+  assert.equal(JSON.stringify(calls).includes("must not be sent"), false);
+  assert.equal(JSON.stringify(calls).includes("private"), false);
+});
+
 test("growth attribution is retained from landing through start and affiliate click", () => {
   const search = "?utm_source=youtube&utm_medium=shorts&utm_campaign=gamefit_growth_v1&utm_content=yt_s01&source=yt_s01&hardware=private";
   const { analytics, calls } = recordingEnvironment(search);
@@ -318,4 +374,29 @@ test("PostHog configuration is anonymous, explicit-only, and replay-free", () =>
   assert.match(config, /capture_pageleave:\s*false/);
   assert.match(config, /disable_session_recording:\s*true/);
   assert.doesNotMatch(config, /posthog\.identify\s*\(/);
+});
+
+test("before_send allows the two acquisition views and removes URL and free-text properties", () => {
+  for (const eventName of ["landing_page_viewed", "guide_page_viewed"]) {
+    const event = analyticsModule.beforeSend({
+      event: eventName,
+      properties: {
+        language: "ja",
+        region_version: "jp",
+        page_source: "index",
+        content_type: "guide",
+        $current_url: "https://example.test/?email=private@example.test",
+        pathname: "/private/path",
+        query_string: "email=private@example.test",
+        free_text: "private"
+      }
+    });
+
+    assert.ok(event, eventName);
+    assert.equal(event.properties.$geoip_disable, true, eventName);
+    assert.equal(Object.hasOwn(event.properties, "$current_url"), false, eventName);
+    assert.equal(Object.hasOwn(event.properties, "pathname"), false, eventName);
+    assert.equal(Object.hasOwn(event.properties, "query_string"), false, eventName);
+    assert.equal(Object.hasOwn(event.properties, "free_text"), false, eventName);
+  }
 });
