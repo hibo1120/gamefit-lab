@@ -133,7 +133,7 @@ function escapeHtml(value) {
 }
 
 function formatDate(value) {
-  if (!value) return "公式発表では日付特定できず";
+  if (!value) return "公式ソースで日付未確認";
   const [year, month, day] = value.split("-");
   return `${Number(year)}年${Number(month)}月${Number(day)}日`;
 }
@@ -216,7 +216,7 @@ ${renderHead({ title: update.seo.title, description: update.seo.description, can
   <section class="hero"><p class="eyebrow">${escapeHtml(update.brand)} / ${escapeHtml(update.category_label)}</p><h1>${escapeHtml(update.product_name)}</h1><p class="lead">${escapeHtml(update.change_summary)}</p></section>
   <article class="article update-article">
     <div class="status-panel"><div><span class="label">GameFit判断</span><strong class="decision-large">${escapeHtml(update.decision_state)}</strong></div><div><span class="label">Evidence</span><strong>${escapeHtml(EVIDENCE_LABELS[update.evidence_state])}</strong></div></div>
-    <dl class="product-meta"><div><dt>ブランド</dt><dd>${escapeHtml(update.brand)}</dd></div><div><dt>カテゴリ</dt><dd>${escapeHtml(update.category_label)}</dd></div><div><dt>発表日</dt><dd><time datetime="${escapeHtml(update.announcement_date)}">${escapeHtml(formatDate(update.announcement_date))}</time></dd></div><div><dt>発売日</dt><dd>${escapeHtml(formatDate(update.release_date))}<br><small>${escapeHtml(update.availability_status)}</small></dd></div><div><dt>最終確認</dt><dd><time datetime="${escapeHtml(update.last_verified_at)}">${escapeHtml(formatDate(update.last_verified_at))}</time></dd></div></dl>
+    <dl class="product-meta"><div><dt>ブランド</dt><dd>${escapeHtml(update.brand)}</dd></div><div><dt>カテゴリ</dt><dd>${escapeHtml(update.category_label)}</dd></div><div><dt>発表日</dt><dd><time datetime="${escapeHtml(update.announcement_date)}">${escapeHtml(formatDate(update.announcement_date))}</time></dd></div><div><dt>公式ローンチ日</dt><dd>${escapeHtml(formatDate(update.release_date))}<br><small>${escapeHtml(update.availability_status)}</small></dd></div><div><dt>最終確認</dt><dd><time datetime="${escapeHtml(update.last_verified_at)}">${escapeHtml(formatDate(update.last_verified_at))}</time></dd></div></dl>
     <p class="note">これはレビューや購入推奨ではありません。メーカー公称値は独立実測と分けて表示し、現在の機材に不満がなければ「買わない」判断も成功として扱います。</p>
     <h2>何が変わった？</h2>
     <p>旧モデル「${escapeHtml(update.previous_model)}」との比較を、公式に確認できる範囲へ限定しています。</p>
