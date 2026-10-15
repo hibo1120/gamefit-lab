@@ -10,6 +10,8 @@ test("SEO/CRO preview builder is isolated and fail-closed", () => {
 
   assert.match(script, /\.seo-cro-preview-dist/);
   assert.match(script, /Live landing no longer matches/);
+  assert.match(script, /EXPECTED_LIVE_LANDING_SHA256/);
+  assert.match(script, /EXPECTED_THEME_SHA256/);
   assert.match(script, /GameFit SEO\/CRO Preview/);
   assert.match(script, /noindex,nofollow,noarchive/);
   assert.match(script, /Disallow: \//);
@@ -18,6 +20,9 @@ test("SEO/CRO preview builder is isolated and fail-closed", () => {
   assert.match(script, /\["guides", "en", "data", "updates"\]/);
   assert.match(script, /deviceUpdatesSection/);
   assert.match(script, /最新Gear Updates/);
+  assert.match(script, /preview-manifest\.json/);
+  assert.match(script, /settings-notebook/);
+  assert.match(script, /removeExactlyOnce/);
   assert.doesNotMatch(script, /["']preview-dist["']/);
   assert.doesNotMatch(script, /personal-gear/);
 });
