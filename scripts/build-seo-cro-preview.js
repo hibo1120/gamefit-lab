@@ -1,6 +1,7 @@
 const fs = require("node:fs/promises");
 const crypto = require("node:crypto");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 
 const root = path.resolve(__dirname, "..");
 const output = path.join(root, ".seo-cro-preview-dist");
@@ -14,6 +15,24 @@ const { DECISION_LABELS, EVIDENCE_LABELS } = require("./generate-device-updates.
 
 function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function readBuilderCheckout() {
+  const git = (...args) => execFileSync(
+    "git",
+    ["-c", `safe.directory=${root.replaceAll("\\", "/")}`, ...args],
+    { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
+  ).trim();
+
+  try {
+    return {
+      head: git("rev-parse", "HEAD"),
+      tree: git("rev-parse", "HEAD^{tree}"),
+      dirty: git("status", "--porcelain").length > 0
+    };
+  } catch (_) {
+    return { head: null, tree: null, dirty: null };
+  }
 }
 
 function replaceRequired(source, search, replacement, label) {
@@ -70,6 +89,8 @@ async function fetchPinned(url, expectedHash, label) {
 }
 
 async function writeManifest() {
+  const builderCheckout = readBuilderCheckout();
+  const builderScript = await fs.readFile(__filename);
   const files = [];
   async function walk(directory) {
     for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
@@ -92,6 +113,16 @@ async function writeManifest() {
     schema_version: 1,
     source_remote_head: SOURCE_REMOTE_HEAD,
     source_tree: SOURCE_TREE,
+    content_source: {
+      remote_head: SOURCE_REMOTE_HEAD,
+      tree: SOURCE_TREE,
+      role: "content baseline from Draft PR #3"
+    },
+    builder_checkout: {
+      ...builderCheckout,
+      script_path: "scripts/build-seo-cro-preview.js",
+      script_sha256: sha256(builderScript)
+    },
     live_shell_sha256: EXPECTED_LIVE_LANDING_SHA256,
     theme_sha256: EXPECTED_THEME_SHA256,
     preview_only: ["banner", "noindex headers", "robots disallow", "sessionStorage analytics stub"],

@@ -21,6 +21,9 @@ test("SEO/CRO preview builder is isolated and fail-closed", () => {
   assert.match(script, /deviceUpdatesSection/);
   assert.match(script, /最新Gear Updates/);
   assert.match(script, /preview-manifest\.json/);
+  assert.match(script, /content_source/);
+  assert.match(script, /builder_checkout/);
+  assert.match(script, /script_sha256/);
   assert.match(script, /Japanese document language/);
   assert.match(script, /404\.html/);
   assert.match(script, /ページが見つかりません/);
