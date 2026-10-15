@@ -1,0 +1,218 @@
+name: Language scope build-only validation
+
+on:
+  push:
+    branches:
+      - validation/language-scope-build-20261015
+
+permissions:
+  contents: read
+
+concurrency:
+  group: language-scope-build-only-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      TARGET_SHA: 10a5665cf5620a623171810802388bc2f4a5c6eb
+      TARGET_TREE: 034bec7d88270df3d221d6f5c501df82e415007b
+      JEKYLL_ACTION_SHA: 44a6e6beabd48582f863aeeb6cb2151cc1716697
+      JEKYLL_IMAGE: ghcr.io/actions/jekyll-build-pages@sha256:6791ebfd912185ed59bfb5fb102664fa872496b79f87ff8b9cfba292a7345041
+    steps:
+      - name: Checkout fixed candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 10a5665cf5620a623171810802388bc2f4a5c6eb
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+
+      - name: Verify fixed source identity and separation
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          actual_tree="$(git rev-parse 'HEAD^{tree}')"
+          test "$actual_sha" = "$TARGET_SHA"
+          test "$actual_tree" = "$TARGET_TREE"
+          test ! -e .github/workflows/language-scope-build-only.yml
+          git diff --exit-code
+          printf 'candidate_sha=%s\ncandidate_tree=%s\nworkflow_sha=%s\n' "$actual_sha" "$actual_tree" "$GITHUB_SHA"
+
+      - name: Run source regression and generator sync check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/*.test.js
+          node scripts/generate-device-updates.js --check
+          git diff --exit-code
+
+      - name: Build with the production Jekyll container
+        shell: bash
+        env:
+          INPUT_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          docker pull "$JEKYLL_IMAGE"
+          actual_digest="$(docker image inspect --format='{{index .RepoDigests 0}}' "$JEKYLL_IMAGE")"
+          test "$actual_digest" = "$JEKYLL_IMAGE"
+          printf 'jekyll_action_sha=%s\njekyll_image=%s\n' "$JEKYLL_ACTION_SHA" "$actual_digest"
+          docker run --rm \
+            -e INPUT_SOURCE=. \
+            -e INPUT_DESTINATION=./_site \
+            -e INPUT_FUTURE=false \
+            -e INPUT_BUILD_REVISION="$TARGET_SHA" \
+            -e INPUT_VERBOSE=true \
+            -e INPUT_TOKEN \
+            -e GITHUB_REPOSITORY \
+            -e GITHUB_API_URL \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -v "$GITHUB_WORKSPACE:/github/workspace" \
+            "$JEKYLL_IMAGE"
+
+      - name: Validate generated site and write evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build-evidence artifact-output
+          node <<'NODE'
+          const assert = require("node:assert/strict");
+          const crypto = require("node:crypto");
+          const fs = require("node:fs");
+          const path = require("node:path");
+
+          const root = path.resolve("_site");
+          const evidenceRoot = path.resolve("build-evidence");
+
+          function walk(directory) {
+            const files = [];
+            for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+              const absolute = path.join(directory, entry.name);
+              if (entry.isDirectory()) files.push(...walk(absolute));
+              if (entry.isFile()) files.push(absolute);
+            }
+            return files;
+          }
+
+          function read(relative) {
+            return fs.readFileSync(path.join(root, relative), "utf8");
+          }
+
+          function assertLang(relative, expected) {
+            assert.match(read(relative), new RegExp(`<html[^>]*\\blang=["']${expected}["']`, "i"), relative);
+          }
+
+          const files = walk(root).sort();
+          const relativeFiles = files.map(file => path.relative(root, file).replaceAll(path.sep, "/"));
+          const fileSet = new Set(relativeFiles);
+          assert.equal(fileSet.size, relativeFiles.length);
+
+          assertLang("index.html", "ja");
+          for (const relative of relativeFiles.filter(file => file.startsWith("en/") && file.endsWith(".html"))) {
+            assertLang(relative, "en");
+          }
+          for (const relative of [
+            "diagnose.html",
+            "guides/upgrade-or-replace.html",
+            "updates/index.html",
+            "updates/razer-viper-v4-pro.html",
+          ]) assertLang(relative, "ja");
+
+          for (const required of [
+            "index.html",
+            "diagnose.html",
+            "data/device-updates.json",
+            "en/index.html",
+            "en/diagnose.html",
+            "guides/upgrade-or-replace.html",
+            "updates/index.html",
+            "updates/razer-viper-v4-pro.html",
+            "analytics.js",
+            "posthog-init.js",
+            "device-updates.js",
+            "guide.css",
+            "updates.css",
+            "robots.txt",
+            "sitemap.xml",
+            "googlebe0dd4db5ac43ed4.html",
+            "assets/css/style.css",
+          ]) assert.ok(fileSet.has(required), `missing required output: ${required}`);
+
+          for (const relative of relativeFiles) {
+            assert.doesNotMatch(relative, /^(growth|scripts|tests)(\/|$)/, relative);
+            assert.notEqual(relative, "README.md");
+            assert.notEqual(relative, "README.html");
+            assert.doesNotMatch(relative, /^\.github(\/|$)/, relative);
+          }
+
+          const textFiles = files.filter(file => /\.(?:html|js|css|json|xml|txt|md|csv)$/i.test(file));
+          const joined = textFiles.map(file => fs.readFileSync(file, "utf8")).join("\n");
+          assert.doesNotMatch(joined, /GameFit SEO\/CRO Preview|gamefit_seo_cro_preview_events|cloudflareaccess\.com/i);
+          assert.doesNotMatch(joined, /<meta[^>]+name=["']robots["'][^>]+noindex/i);
+
+          const rootHtml = read("index.html");
+          assert.match(rootHtml, /<link rel="canonical" href="https:\/\/hibo1120\.github\.io\/gamefit-lab\/">/);
+          assert.match(rootHtml, /hreflang="ja"/);
+          assert.match(rootHtml, /hreflang="en"/);
+          assert.match(read("en/index.html"), /<meta property="og:title"/);
+          assert.match(read("posthog-init.js"), /productionOrigin/);
+          assert.doesNotMatch(read("posthog-init.js"), /gamefit_seo_cro_preview_events/);
+
+          for (const relative of relativeFiles.filter(file => file.endsWith(".html"))) {
+            const html = read(relative);
+            for (const match of html.matchAll(/(?:href|src)=["']([^"']+)["']/gi)) {
+              const raw = match[1];
+              if (/^(?:https?:|data:|mailto:|javascript:|#)/i.test(raw)) continue;
+              const clean = raw.split(/[?#]/, 1)[0];
+              if (!clean) continue;
+              let target;
+              if (clean.startsWith("/gamefit-lab/")) target = clean.slice("/gamefit-lab/".length);
+              else if (clean === "/gamefit-lab") target = "";
+              else if (clean.startsWith("/")) continue;
+              else target = path.posix.normalize(path.posix.join(path.posix.dirname(relative), clean));
+              if (!path.posix.extname(target) || target.endsWith("/")) target = path.posix.join(target, "index.html");
+              assert.ok(fileSet.has(target), `${relative} -> ${raw} (${target})`);
+            }
+          }
+
+          const manifest = files.map(file => {
+            const content = fs.readFileSync(file);
+            return {
+              path: path.relative(root, file).replaceAll(path.sep, "/"),
+              size: content.length,
+              sha256: crypto.createHash("sha256").update(content).digest("hex"),
+            };
+          });
+          const acceptance = {
+            candidate_sha: process.env.TARGET_SHA,
+            candidate_tree: process.env.TARGET_TREE,
+            workflow_sha: process.env.GITHUB_SHA,
+            file_count: manifest.length,
+            root_lang: "ja",
+            english_html_count: manifest.filter(item => item.path.startsWith("en/") && item.path.endsWith(".html")).length,
+            excluded_roots_absent: true,
+            required_assets_present: true,
+            internal_links_resolve: true,
+          };
+          fs.writeFileSync(path.join(evidenceRoot, "site-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+          fs.writeFileSync(path.join(evidenceRoot, "acceptance.json"), `${JSON.stringify(acceptance, null, 2)}\n`);
+          console.log(JSON.stringify(acceptance));
+          NODE
+          cp -a _site artifact-output/site
+          cp -a build-evidence artifact-output/evidence
+
+      - name: Upload short-lived build evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: language-scope-build-only-${{ github.run_id }}
+          path: artifact-output
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 9
+          overwrite: false
+          include-hidden-files: false
