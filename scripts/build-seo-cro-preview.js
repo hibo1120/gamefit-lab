@@ -104,6 +104,7 @@ async function writeManifest() {
 async function build() {
   const liveHtml = await fetchPinned(liveLanding, EXPECTED_LIVE_LANDING_SHA256, "live landing");
   let html = liveHtml.toString("utf8");
+  html = replaceRequired(html, '<html lang="en-US">', '<html lang="ja">', "Japanese document language");
   const stylesheetMatch = html.match(/<link rel="stylesheet" href="([^"]*\/assets\/css\/style\.css\?v=[^"]+)">/u);
   if (!stylesheetMatch) throw new Error("Live landing no longer exposes the GitHub Pages theme stylesheet");
   const themeUrl = new URL(stylesheetMatch[1], liveLanding).href;
@@ -174,6 +175,29 @@ async function build() {
   await fs.mkdir(path.join(output, "assets", "css"), { recursive: true });
   await fs.writeFile(path.join(output, "assets", "css", "style.css"), themeCss);
   await fs.writeFile(path.join(output, "index.html"), html, "utf8");
+  await fs.writeFile(path.join(output, "404.html"), `<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>ページが見つかりません | GameFit Lab Preview</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <style>
+    body { max-width: 760px; margin: 0 auto; padding: 48px 20px; }
+    .preview-notice { margin: 0 0 28px; padding: 10px 14px; border: 1px solid #d6b04c; background: #201900; color: #f5d980; }
+  </style>
+</head>
+<body>
+  <p class="preview-notice">GameFit Preview — テスト用の未公開候補です</p>
+  <main>
+    <h1>ページが見つかりません</h1>
+    <p>指定されたページは、このPreviewには存在しません。</p>
+    <p><a href="/?qa=1">Previewトップへ戻る</a></p>
+  </main>
+</body>
+</html>
+`, "utf8");
   await fs.writeFile(path.join(output, "posthog-init.js"), `(function () {
   "use strict";
   const key = "gamefit_seo_cro_preview_events";
