@@ -84,6 +84,36 @@ async function checkViewport(browser, origin, viewport) {
   await context.close();
 }
 
+async function checkQaFlow(browser, origin) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("requestfailed", request => errors.push(`request failed: ${request.url()}`));
+
+  let response = await page.goto(`${origin}/updates/index.html?qa=1`, { waitUntil: "networkidle" });
+  assert.equal(response.status(), 200);
+  const detail = page.locator(".update-card a").first();
+  assert.equal(new URL(await detail.getAttribute("href"), origin).searchParams.get("qa"), "1");
+  await detail.click();
+  await page.waitForLoadState("networkidle");
+  assert.equal(new URL(page.url()).searchParams.get("qa"), "1");
+  const external = page.locator('.source-list a[href^="https://"]').first();
+  assert.equal(new URL(await external.getAttribute("href")).searchParams.has("qa"), false);
+  const cta = page.locator(".diagnosis-cta");
+  assert.equal(new URL(await cta.getAttribute("href"), origin).searchParams.get("qa"), "1");
+  await cta.click();
+  await page.waitForLoadState("networkidle");
+  const diagnosisUrl = new URL(page.url());
+  assert.equal(diagnosisUrl.pathname, "/diagnose.html");
+  assert.equal(diagnosisUrl.searchParams.get("qa"), "1");
+  assert.equal(await page.locator("#diagnosis-form").count(), 1);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+
 (async () => {
   assert.equal(fs.existsSync(path.join(previewRoot, "index.html")), true, "run build-seo-cro-preview.js first");
   const server = await servePreview();
@@ -93,6 +123,7 @@ async function checkViewport(browser, origin, viewport) {
     browser = await launchBrowser();
     await checkViewport(browser, origin, { width: 1440, height: 1000 });
     await checkViewport(browser, origin, { width: 390, height: 844 });
+    await checkQaFlow(browser, origin);
     assert.match(await (await fetch(`${origin}/robots.txt`)).text(), /Disallow: \//);
     assert.equal((await fetch(`${origin}/assets/css/style.css`)).status, 200);
     assert.equal((await fetch(`${origin}/updates/index.html`)).status, 200);

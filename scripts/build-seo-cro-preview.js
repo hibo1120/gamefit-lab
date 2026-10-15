@@ -177,6 +177,22 @@ async function build() {
   await fs.writeFile(path.join(output, "posthog-init.js"), `(function () {
   "use strict";
   const key = "gamefit_seo_cro_preview_events";
+  const qaMode = new URLSearchParams(window.location.search || "").get("qa") === "1";
+  function preserveQaModeOnInternalLinks() {
+    if (!qaMode || !document?.querySelectorAll) return;
+    for (const anchor of document.querySelectorAll("a[href]")) {
+      try {
+        const destination = new URL(anchor.getAttribute("href"), window.location.href);
+        if (destination.origin !== window.location.origin || !["http:", "https:"].includes(destination.protocol)) continue;
+        destination.searchParams.set("qa", "1");
+        anchor.href = destination.href;
+      } catch (_) {}
+    }
+  }
+  if (qaMode) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", preserveQaModeOnInternalLinks, { once: true });
+    else preserveQaModeOnInternalLinks();
+  }
   function read() {
     try { return JSON.parse(sessionStorage.getItem(key) || "[]"); } catch (_) { return []; }
   }
@@ -194,7 +210,8 @@ async function build() {
   };
   window.GameFitPreviewAnalytics = Object.freeze({
     events: read,
-    clear() { write([]); }
+    clear() { write([]); },
+    qaMode
   });
 })();
 `, "utf8");
