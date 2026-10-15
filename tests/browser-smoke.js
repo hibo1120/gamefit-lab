@@ -74,12 +74,16 @@ async function verifyViewport(browser, origin, viewport) {
     });
   });
   const errors = [];
+  const externalRequests = [];
   page.on("console", message => {
     if (message.type() === "error" && !message.text().includes("posthog")) errors.push(message.text());
   });
   page.on("pageerror", error => errors.push(error.message));
   page.on("requestfailed", request => {
     if (request.url().startsWith(origin)) errors.push(`request failed: ${request.url()}`);
+  });
+  page.on("request", request => {
+    if (!request.url().startsWith(origin) && !request.url().startsWith("data:")) externalRequests.push(request.url());
   });
 
   const landingResponse = await page.goto(`${origin}/gamefit-lab/en/?utm_source=google&utm_medium=organic&utm_campaign=seo_cro_phase1&source=en_index&email=private%40example.test`, { waitUntil: "networkidle" });
@@ -100,6 +104,47 @@ async function verifyViewport(browser, origin, viewport) {
   const guideEvents = await page.evaluate(() => window.__analyticsEvents);
   assert.deepEqual(guideEvents.map(item => item.event), ["guide_page_viewed", "diagnosis_cta_clicked"]);
   assert.deepEqual(guideEvents[1].options, { transport: "sendBeacon", send_instantly: true });
+
+  const updateIndexResponse = await page.goto(`${origin}/gamefit-lab/updates/?utm_source=google&utm_medium=organic&utm_campaign=device_radar_v0_1&source=updates_index&email=private%40example.test`, { waitUntil: "networkidle" });
+  assert.equal(updateIndexResponse.status(), 200);
+  assert.deepEqual(await page.evaluate(() => window.__analyticsEvents.map(item => item.event)), ["device_update_index_viewed"]);
+  assert.equal((await page.evaluate(() => window.__analyticsEvents[0].properties.visible_item_count)), 1);
+  assert.equal(await page.locator(".update-card").count(), 1);
+
+  const updateResponse = await page.goto(`${origin}/gamefit-lab/updates/razer-viper-v4-pro.html?utm_source=google&utm_medium=organic&utm_campaign=external_search&utm_content=private_content&source=search&email=private%40example.test`, { waitUntil: "networkidle" });
+  assert.equal(updateResponse.status(), 200);
+  assert.equal(await page.locator("img").count(), 0);
+  assert.equal(await page.locator(".diagnosis-cta").count(), 1);
+  assert.match(await page.locator("body").innerText(), /判断根拠は公式仕様のみ/);
+  assert.match(await page.locator("body").innerText(), /追加検証を待つ/);
+  assert.doesNotMatch(await page.locator("body").innerText(), /WATCH|Evidence|Source|NO RUSH/);
+  const updateEvents = await page.evaluate(() => window.__analyticsEvents);
+  assert.deepEqual(updateEvents.map(item => item.event), ["device_update_viewed"]);
+  assert.deepEqual(updateEvents[0].properties, {
+    product_slug: "razer-viper-v4-pro",
+    brand: "razer",
+    category: "mouse",
+    evidence_state: "official_specs_only",
+    decision_state: "WATCH",
+    utm_source: "google",
+    utm_medium: "organic",
+    utm_campaign: "external_search",
+    source: "search",
+    language: "ja",
+    region_version: "jp",
+    page_source: "razer-viper-v4-pro",
+    $geoip_disable: true
+  });
+  assert.equal(JSON.stringify(updateEvents).includes("private"), false);
+  const preservedCta = new URL(await page.locator(".diagnosis-cta").getAttribute("href"), origin);
+  assert.equal(preservedCta.searchParams.get("utm_source"), "google");
+  assert.equal(preservedCta.searchParams.get("utm_medium"), "organic");
+  assert.equal(preservedCta.searchParams.get("utm_campaign"), "external_search");
+  assert.equal(preservedCta.searchParams.get("source"), "razer-viper-v4-pro");
+  await page.locator(".diagnosis-cta").evaluate(link => link.addEventListener("click", event => event.preventDefault()));
+  await page.locator(".diagnosis-cta").click();
+  assert.deepEqual(await page.evaluate(() => window.__analyticsEvents.map(item => item.event)), ["device_update_viewed", "diagnosis_cta_clicked"]);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
 
   const response = await page.goto(`${origin}/gamefit-lab/diagnose.html`, { waitUntil: "networkidle" });
   assert.equal(response.status(), 200);
@@ -180,6 +225,7 @@ async function verifyViewport(browser, origin, viewport) {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
   }
   assert.deepEqual(errors, []);
+  assert.deepEqual(externalRequests, []);
   await context.close();
 }
 
@@ -200,7 +246,9 @@ async function verifyViewport(browser, origin, viewport) {
       "/gamefit-lab/en/guides/upgrade-or-replace.html",
       "/gamefit-lab/en/guides/gpu-or-monitor.html",
       "/gamefit-lab/en/guides/budget-500.html",
-      "/gamefit-lab/en/guides/do-i-need-new-gaming-pc.html"
+      "/gamefit-lab/en/guides/do-i-need-new-gaming-pc.html",
+      "/gamefit-lab/updates/",
+      "/gamefit-lab/updates/razer-viper-v4-pro.html"
     ]) assert.equal((await fetch(`${origin}${route}`)).status, 200, route);
     assert.equal((await fetch(`${origin}/gamefit-lab/not-found.html`)).status, 404);
     process.stdout.write("browser smoke: jp+global desktop=ok mobile390=ok games=4 usd=6 invalid=ok share=ok console=clean 404=ok\n");

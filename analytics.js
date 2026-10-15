@@ -16,11 +16,17 @@
   const VALID_RECOMMENDATIONS = new Set(["keep", "monitor", "ram", "storage", "cpu_gpu", "pc_replacement", "device"]);
   const RECOMMENDATION_ALIASES = { performance: "cpu_gpu", replacement: "pc_replacement" };
   const VALID_BUDGET_BANDS = new Set(["100", "300", "500", "1000", "1500", "2000", "10000", "30000", "50000", "100000", "150000", "200000"]);
+  const VALID_UPDATE_CATEGORIES = new Set(["mouse", "keyboard", "headset", "monitor", "controller", "pc", "component"]);
+  const VALID_UPDATE_DECISIONS = new Set(["WATCH", "COMPARE", "NO_RUSH", "UPGRADE_CANDIDATE", "DONT_UPGRADE"]);
+  const VALID_UPDATE_EVIDENCE = new Set(["official_specs_only", "independent_test_available", "multiple_independent_sources"]);
   const ATTRIBUTION_PROPERTIES = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "source"];
+  const DEVICE_UPDATE_ATTRIBUTION_PROPERTIES = ["utm_source", "utm_medium", "utm_campaign", "source"];
   const PAGE_CONTEXT_PROPERTIES = ["language", "region_version", "page_source"];
   const EVENT_PROPERTIES = {
     landing_page_viewed: [...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     guide_page_viewed: ["content_type", "game", "budget_band", ...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
+    device_update_index_viewed: ["visible_item_count", ...DEVICE_UPDATE_ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
+    device_update_viewed: ["product_slug", "brand", "category", "evidence_state", "decision_state", ...DEVICE_UPDATE_ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     diagnosis_page_viewed: [...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     diagnosis_started: ["game", "device_type", ...ATTRIBUTION_PROPERTIES, ...PAGE_CONTEXT_PROPERTIES],
     diagnosis_completed: [
@@ -208,6 +214,42 @@
     return trackViewOnce("guide_page_viewed", properties);
   }
 
+  function trackDeviceUpdateViewed(context) {
+    const attribution = attributionProperties();
+    const updateAttribution = Object.fromEntries(DEVICE_UPDATE_ATTRIBUTION_PROPERTIES.flatMap(key => (
+      Object.hasOwn(attribution, key) ? [[key, attribution[key]]] : []
+    )));
+
+    return trackViewOnce("device_update_viewed", {
+      product_slug: slugValue(context?.productSlug),
+      brand: slugValue(context?.brand),
+      category: enumValue(context?.category, VALID_UPDATE_CATEGORIES, "unknown"),
+      evidence_state: enumValue(context?.evidenceState, VALID_UPDATE_EVIDENCE, "unknown"),
+      decision_state: enumValue(context?.decisionState, VALID_UPDATE_DECISIONS, "unknown"),
+      ...updateAttribution,
+      ...pageContextProperties(),
+      $geoip_disable: true
+    });
+  }
+
+  function trackDeviceUpdateIndexViewed(context) {
+    const attribution = attributionProperties();
+    const updateAttribution = Object.fromEntries(DEVICE_UPDATE_ATTRIBUTION_PROPERTIES.flatMap(key => (
+      Object.hasOwn(attribution, key) ? [[key, attribution[key]]] : []
+    )));
+    const requestedCount = Number(context?.visibleItemCount);
+    const visibleItemCount = Number.isInteger(requestedCount) && requestedCount >= 0 && requestedCount <= 3
+      ? requestedCount
+      : 0;
+
+    return trackViewOnce("device_update_index_viewed", {
+      visible_item_count: visibleItemCount,
+      ...updateAttribution,
+      ...pageContextProperties(),
+      $geoip_disable: true
+    });
+  }
+
   function trackDiagnosisStarted(input) {
     const storage = safeSessionStorage();
     let alreadyStarted = startedInMemory;
@@ -358,6 +400,8 @@
     trackDiagnosisCtaClicked,
     trackDiagnosisCompleted,
     trackDiagnosisStarted,
+    trackDeviceUpdateIndexViewed,
+    trackDeviceUpdateViewed,
     trackGuidePageViewed,
     trackInvalidInput,
     trackLandingPageViewed,

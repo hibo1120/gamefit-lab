@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
+const vm = require("node:vm");
 
 const analyticsModule = require("../analytics.js");
 const diagnosisEngine = require("../diagnosis-engine.js");
@@ -254,6 +255,74 @@ test("guide view captures only structured guide context once", () => {
   assert.equal(JSON.stringify(calls).includes("private"), false);
 });
 
+test("device update view captures its strict allowlist once per page load", () => {
+  const { analytics, calls } = recordingEnvironment(
+    "?utm_source=google&utm_medium=organic&utm_campaign=device_radar_v0_1&utm_content=must_not_send&source=search&email=private%40example.test",
+    { language: "ja", regionVersion: "jp", pageSource: "razer-viper-v4-pro" },
+    "/gamefit-lab/updates/razer-viper-v4-pro.html"
+  );
+  const context = {
+    productSlug: "razer-viper-v4-pro",
+    brand: "Razer",
+    category: "mouse",
+    evidenceState: "official_specs_only",
+    decisionState: "WATCH",
+    freeText: "must not be sent"
+  };
+
+  assert.equal(analytics.trackDeviceUpdateViewed(context), true);
+  assert.equal(analytics.trackDeviceUpdateViewed(context), false);
+  assert.deepEqual(calls, [{
+    event: "device_update_viewed",
+    properties: {
+      product_slug: "razer-viper-v4-pro",
+      brand: "razer",
+      category: "mouse",
+      evidence_state: "official_specs_only",
+      decision_state: "WATCH",
+      utm_source: "google",
+      utm_medium: "organic",
+      utm_campaign: "device_radar_v0_1",
+      source: "search",
+      language: "ja",
+      region_version: "jp",
+      page_source: "razer-viper-v4-pro",
+      $geoip_disable: true
+    },
+    options: undefined
+  }]);
+  assert.equal(JSON.stringify(calls).includes("must_not_send"), false);
+  assert.equal(JSON.stringify(calls).includes("private"), false);
+});
+
+test("device update index has a separate one-load event and bounded count", () => {
+  const { analytics, calls } = recordingEnvironment(
+    "?utm_source=google&utm_medium=organic&utm_campaign=device_radar_v0_1&source=updates_index&private=secret",
+    { language: "ja", regionVersion: "jp", pageSource: "updates_index" },
+    "/gamefit-lab/updates/"
+  );
+
+  assert.equal(analytics.trackDeviceUpdateIndexViewed({ visibleItemCount: 1, note: "do not send" }), true);
+  assert.equal(analytics.trackDeviceUpdateIndexViewed({ visibleItemCount: 2 }), false);
+  assert.deepEqual(calls, [{
+    event: "device_update_index_viewed",
+    properties: {
+      visible_item_count: 1,
+      utm_source: "google",
+      utm_medium: "organic",
+      utm_campaign: "device_radar_v0_1",
+      source: "updates_index",
+      language: "ja",
+      region_version: "jp",
+      page_source: "updates_index",
+      $geoip_disable: true
+    },
+    options: undefined
+  }]);
+  assert.equal(JSON.stringify(calls).includes("secret"), false);
+  assert.equal(JSON.stringify(calls).includes("do not send"), false);
+});
+
 test("growth attribution is retained from landing through start and affiliate click", () => {
   const search = "?utm_source=youtube&utm_medium=shorts&utm_campaign=gamefit_growth_v1&utm_content=yt_s01&source=yt_s01&hardware=private";
   const { analytics, calls } = recordingEnvironment(search);
@@ -373,11 +442,36 @@ test("PostHog configuration is anonymous, explicit-only, and replay-free", () =>
   assert.match(config, /capture_pageview:\s*false/);
   assert.match(config, /capture_pageleave:\s*false/);
   assert.match(config, /disable_session_recording:\s*true/);
+  assert.match(config, /window\.location\.hostname === "hibo1120\.github\.io"/);
+  assert.match(config, /window\.GameFitLocalAnalytics/);
+  assert.match(config, /get\("qa"\) === "1"/);
   assert.doesNotMatch(config, /posthog\.identify\s*\(/);
 });
 
-test("before_send allows the two acquisition views and removes URL and free-text properties", () => {
-  for (const eventName of ["landing_page_viewed", "guide_page_viewed"]) {
+test("qa=1 remains on internal navigation without leaking to external links", () => {
+  const config = fs.readFileSync(path.join(projectRoot, "posthog-init.js"), "utf8");
+  const anchors = [
+    { value: "./updates/item.html?utm_source=test", getAttribute() { return this.value; }, set href(value) { this.value = value; }, get href() { return this.value; } },
+    { value: "https://www.rtings.com/review", getAttribute() { return this.value; }, set href(value) { this.value = value; }, get href() { return this.value; } }
+  ];
+  const location = {
+    protocol: "https:", hostname: "hibo1120.github.io", origin: "https://hibo1120.github.io",
+    href: "https://hibo1120.github.io/gamefit-lab/updates/?qa=1", search: "?qa=1"
+  };
+  const context = {
+    URL, URLSearchParams,
+    document: { readyState: "complete", querySelectorAll() { return anchors; } },
+    window: { location, GameFitAnalytics: { beforeSend: event => event } }
+  };
+  vm.runInNewContext(config, context);
+  assert.equal(new URL(anchors[0].value).searchParams.get("qa"), "1");
+  assert.equal(new URL(anchors[0].value).searchParams.get("utm_source"), "test");
+  assert.equal(new URL(anchors[1].value).searchParams.has("qa"), false);
+  assert.equal(context.window.GameFitLocalAnalytics.qaMode, true);
+});
+
+test("before_send allows acquisition and Update views while removing URL and free-text properties", () => {
+  for (const eventName of ["landing_page_viewed", "guide_page_viewed", "device_update_index_viewed", "device_update_viewed"]) {
     const event = analyticsModule.beforeSend({
       event: eventName,
       properties: {

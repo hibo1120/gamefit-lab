@@ -1,3 +1,7 @@
+---
+lang: ja
+---
+
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AE%3C/text%3E%3C/svg%3E">
 <script>document.head.append(document.currentScript.previousElementSibling);</script>
 <link rel="canonical" href="https://hibo1120.github.io/gamefit-lab/">
@@ -82,6 +86,19 @@ CPU / GPU / メモリ / モニター解像度 / リフレッシュレート /
 - [Fortniteの投資優先順位](./guides/fortnite-upgrade.html)
 - [Monster Hunter Wildsが重いとき](./guides/mhwilds-upgrade.html)
 
+<!-- DEVICE_UPDATES_START -->
+## 最新Gear Updates
+
+新しい＝買い替えるべき、ではありません。公式情報と根拠の状態から、今の機材を替える意味があるかを整理します。
+
+### [Razer Viper V4 Pro](./updates/razer-viper-v4-pro.html)
+
+ゲーミングマウス / **追加検証を待つ** / 判断根拠は公式仕様のみ<br>
+V3 Pro比で軽量化し、センサー・無線・バッテリー・スクロール機構を更新。独立レビューは存在しますが、その内容は現在の買い替え判断へまだ採用していません。
+
+[すべて見る](./updates/)
+<!-- DEVICE_UPDATES_END -->
+
 ## 広告について
 
 このサイトはアフィリエイト広告を利用する予定です。
@@ -100,6 +117,6 @@ CPU / GPU / メモリ / モニター解像度 / リフレッシュレート /
 
 ## プライバシー
 
-匿名の利用状況分析にPostHogを使用し、改善のためトップ・判断ガイド・診断の閲覧、診断CTAの利用、ゲーム種別、FPS帯、予算帯、推奨結果等を取得する場合があります。
+匿名の利用状況分析にPostHogを使用し、改善のためトップ・判断ガイド・Gear Updates・診断の閲覧、診断CTAの利用、ゲーム種別、FPS帯、予算帯、推奨結果等を取得する場合があります。
 
 氏名・メールアドレス等は取得せず、CPU / GPUの自由入力内容、閲覧URL全文、Query String全文も分析データとして送信しません。
