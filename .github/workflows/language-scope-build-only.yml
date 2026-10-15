@@ -164,7 +164,7 @@ jobs:
           assert.doesNotMatch(read("posthog-init.js"), /gamefit_seo_cro_preview_events/);
 
           for (const relative of relativeFiles.filter(file => file.endsWith(".html"))) {
-            const html = read(relative);
+            const html = read(relative).replace(/<!--[\s\S]*?-->/g, "");
             for (const match of html.matchAll(/(?:href|src)=["']([^"']+)["']/gi)) {
               const raw = match[1];
               if (/^(?:https?:|data:|mailto:|javascript:|#)/i.test(raw)) continue;
