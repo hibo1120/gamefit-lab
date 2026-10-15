@@ -156,7 +156,7 @@ jobs:
           assert.doesNotMatch(joined, /<meta[^>]+name=["']robots["'][^>]+noindex/i);
 
           const rootHtml = read("index.html");
-          assert.match(rootHtml, /<link rel="canonical" href="https:\/\/hibo1120\.github\.io\/gamefit-lab\/">/);
+          assert.match(rootHtml, /<link rel="canonical" href="https:\/\/hibo1120\.github\.io\/gamefit-lab\/"\s*\/?>/);
           assert.match(rootHtml, /hreflang="ja"/);
           assert.match(rootHtml, /hreflang="en"/);
           assert.match(read("en/index.html"), /<meta property="og:title"/);
