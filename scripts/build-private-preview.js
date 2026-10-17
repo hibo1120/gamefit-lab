@@ -21,7 +21,10 @@ const STATIC_FILES = Object.freeze([
   "storage-engine.js",
   "validation-engine.js",
   "private-validation-store.js",
+  "data/catalog-source-registry-v1.js",
+  "data/device-catalog-v1.js",
   "data/personal-gear-fixtures.js",
+  "data/catalog-ui-adapter-v1.js",
   "ui-copy-ja.js",
   "private/personal-gear.css",
   "private/personal-gear.js"

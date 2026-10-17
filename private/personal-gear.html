@@ -90,11 +90,22 @@
           <option value="controller">コントローラー</option>
           <option value="network">ネットワーク機器</option>
           <option value="cable">ケーブル</option>
+          <option value="cpu">CPU</option>
+          <option value="gpu">GPU</option>
+          <option value="storage">ストレージ</option>
+          <option value="mic">マイク</option>
+          <option value="capture_card">キャプチャーカード</option>
+          <option value="power">電源・給電</option>
         </select>
       </label>
+      <label>製品名・型番を検索
+        <input id="product-search" type="search" autocomplete="off" placeholder="例: Basilisk / RZ01-04620 / バジリスク">
+      </label>
+      <p id="product-search-status" class="status" aria-live="polite"></p>
       <label>現在使っている製品
         <select id="current-product"></select>
       </label>
+      <p id="product-catalog-status" class="status" aria-live="polite"></p>
       <label>予算帯
         <select id="budget">
           <option value="10000">〜1万円</option>
@@ -250,7 +261,10 @@
   <script src="../storage-engine.js"></script>
   <script src="../validation-engine.js"></script>
   <script src="../private-validation-store.js"></script>
+  <script src="../data/catalog-source-registry-v1.js"></script>
+  <script src="../data/device-catalog-v1.js"></script>
   <script src="../data/personal-gear-fixtures.js"></script>
+  <script src="../data/catalog-ui-adapter-v1.js"></script>
   <script src="../ui-copy-ja.js"></script>
   <script src="./personal-gear.js"></script>
 </body>

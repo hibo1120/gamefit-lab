@@ -52,6 +52,18 @@ test("preview headers prohibit indexing, embedding, caching, and network sends",
   assert.match(robots,/Disallow: \/private\//);
 });
 
+test("local catalog search is wired without changing the recommendation boundary", () => {
+  for (const id of ["product-search","product-search-status","product-catalog-status"]) assert.match(html,new RegExp(`id="${id}"`),id);
+  for (const category of ["cpu","gpu","storage","mic","capture_card","power"]) assert.match(html,new RegExp(`option value="${category}"`),category);
+  for (const source of ["catalog-source-registry-v1.js","device-catalog-v1.js","personal-gear-fixtures.js","catalog-ui-adapter-v1.js"]) assert.ok(html.includes(source),source);
+  assert.ok(html.indexOf("device-catalog-v1.js") < html.indexOf("catalog-ui-adapter-v1.js"));
+  assert.ok(html.indexOf("personal-gear-fixtures.js") < html.indexOf("catalog-ui-adapter-v1.js"));
+  assert.match(script,/current_product_cataloged_not_recommendation_ready/);
+  assert.match(script,/似た製品の特性は流用していません/);
+  assert.match(script,/catalogAdapter\.isRecommendationProfiled/);
+  assert.doesNotMatch(script,/recommendation_eligible\s*=\s*true/);
+});
+
 test("private MVP has no analytics or network-send path", () => {
   assert.doesNotMatch(html, /https?:\/\//i);
   assert.doesNotMatch(html, /posthog|analytics\.js/i);

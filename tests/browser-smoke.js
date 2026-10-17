@@ -176,7 +176,7 @@ async function verifyPrivateGearViewport(browser, origin, viewport) {
   assert.match(await page.locator("body").innerText(), /共有端末では使用しないでください/);
   assert.match(await page.locator("body").innerText(), /外部送信: なし/);
   assert.equal(await page.locator("#schema-version").innerText(), "1");
-  assert.equal(await page.locator("#current-product option").count(), 6);
+  assert.ok(await page.locator("#current-product option").count() > 6);
 
   await page.click("#to-taste");
   await page.selectOption("#avoid-attribute", "hump");
@@ -243,6 +243,59 @@ async function verifyPrivateGearViewport(browser, origin, viewport) {
   await context.close();
 }
 
+async function verifyCatalogSearchViewport(browser, origin, viewport) {
+  const context = await browser.newContext({ viewport });
+  const page = await context.newPage();
+  const errors = [];
+  const externalRequests = [];
+  page.on("console", message => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("request", request => {
+    if (!request.url().startsWith(origin)) externalRequests.push(request.url());
+  });
+  page.on("requestfailed", request => errors.push(`request failed: ${request.url()}`));
+
+  const response = await page.goto(`${origin}/gamefit-lab/private/personal-gear.html`, { waitUntil:"networkidle" });
+  assert.equal(response.status(),200);
+  await page.selectOption("#category","mouse");
+
+  await page.focus("#product-search");
+  await page.keyboard.type("Basilisk");
+  assert.ok(await page.locator('#current-product option:not([value="not_listed"])').count() >= 5);
+  await page.fill("#product-search","バジリスク");
+  assert.ok(await page.locator('#current-product option:not([value="not_listed"])').count() >= 5);
+  await page.fill("#product-search","no-match-catalog-query");
+  assert.equal(await page.locator('#current-product option:not([value="not_listed"])').count(),0);
+  assert.match(await page.locator("#product-search-status").innerText(),/^0件/);
+
+  await page.fill("#product-search","RZ01-04620");
+  assert.deepEqual(await page.locator("#current-product option").evaluateAll(options => options.map(item => item.value)),["mouse-razer-basilisk-v3-pro","not_listed"]);
+  assert.equal((await page.locator("#current-product").innerText()).includes("35K"),false);
+  await page.selectOption("#current-product","mouse-razer-basilisk-v3-pro");
+  assert.match(await page.locator("#product-catalog-status").innerText(),/推薦条件は未確認/);
+  await page.screenshot({ path:path.join(projectRoot,"artifacts","catalog-expansion-v1-20261018",`catalog-search-${viewport.width}.png`),fullPage:true });
+
+  await page.click("#to-taste");
+  await page.click("#save-taste");
+  await page.click("#to-recommend");
+  assert.equal(await page.locator("#recommendations .card").count(),0);
+  assert.match(await page.locator("#decision-summary").innerText(),/製品名を確認済み/);
+  assert.match(await page.locator("#decision-summary").innerText(),/似た製品の特性は流用していません/);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("gamefit.personal_gear.v1")));
+  assert.equal(saved.setup.current_product_id,"mouse-razer-basilisk-v3-pro");
+  assert.equal(saved.recommendations.at(-1).decision,"CLARIFY");
+
+  await page.reload({ waitUntil:"networkidle" });
+  assert.equal(await page.locator("#category").inputValue(),"mouse");
+  assert.equal(await page.locator("#current-product").inputValue(),"mouse-razer-basilisk-v3-pro");
+  if (viewport.width === 390) assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),true);
+  assert.deepEqual(externalRequests,[]);
+  assert.deepEqual(errors,[]);
+  await context.close();
+}
+
 (async () => {
   const server = await serve();
   const origin = `http://127.0.0.1:${server.address().port}`;
@@ -253,6 +306,8 @@ async function verifyPrivateGearViewport(browser, origin, viewport) {
     await verifyViewport(browser, origin, { width: 390, height: 844 });
     await verifyPrivateGearViewport(browser, origin, { width: 1440, height: 1000 });
     await verifyPrivateGearViewport(browser, origin, { width: 390, height: 844 });
+    await verifyCatalogSearchViewport(browser, origin, { width: 1440, height: 1000 });
+    await verifyCatalogSearchViewport(browser, origin, { width: 390, height: 844 });
     assert.match(fs.readFileSync(path.join(projectRoot, "index.md"), "utf8"), /\(\.\/diagnose\.html\)/);
     assert.equal((await fetch(`${origin}/gamefit-lab/sitemap.xml`)).status, 200);
     assert.equal((await fetch(`${origin}/gamefit-lab/robots.txt`)).status, 200);
@@ -268,7 +323,7 @@ async function verifyPrivateGearViewport(browser, origin, viewport) {
       "/gamefit-lab/en/guides/do-i-need-new-gaming-pc.html"
     ]) assert.equal((await fetch(`${origin}${route}`)).status, 200, route);
     assert.equal((await fetch(`${origin}/gamefit-lab/not-found.html`)).status, 404);
-    process.stdout.write("browser smoke: jp+global+private-PGI desktop=ok mobile390=ok games=4 usd=6 privacy=ok rerank=ok external=none console=clean 404=ok\n");
+    process.stdout.write("browser smoke: jp+global+private-PGI+catalog desktop=ok mobile390=ok games=4 search=en+ja+model zero=ok save-reload=ok external=none console=clean 404=ok\n");
   } finally {
     await browser?.close();
     await new Promise(resolve => server.close(resolve));

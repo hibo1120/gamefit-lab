@@ -6,6 +6,7 @@
   const feedback = window.GameFitFeedback;
   const storageApi = window.GameFitStorage;
   const fixtures = window.GameFitPersonalGearFixtures;
+  const catalogAdapter = window.GameFitCatalogUiAdapterV1;
   const deltaEngine = window.GameFitCurrentGearDelta;
   const compatibilityEngine = window.GameFitCompatibility;
   const fixBeforeBuy = window.GameFitFixBeforeBuy;
@@ -122,12 +123,42 @@
 
   function selectedCategory() { return byId("category").value; }
 
-  function refreshProducts() {
+  function refreshProductStatus() {
+    const currentId = byId("current-product").value;
+    byId("product-catalog-status").textContent = currentId === "not_listed"
+      ? "一覧にない製品は、似た製品で代用せず確認待ちとして扱います。"
+      : catalogAdapter.statusText(currentId);
+  }
+
+  function refreshProducts(query=byId("product-search").value) {
     const select = byId("current-product");
+    const previous = select.value;
+    const rows = catalogAdapter.optionsForCategory(selectedCategory(),query);
     clear(select);
-    for (const item of fixtures.byCategory[selectedCategory()] || []) select.append(option(item.product_id, item.product_name));
+    for (const item of rows) {
+      const suffix = item.manufacturer ? ` — ${item.manufacturer}` : "";
+      select.append(option(item.product_id,`${item.product_name}${suffix}`));
+    }
     select.append(option("not_listed","使っている製品が一覧にない"));
+    if ([...select.options].some(item => item.value === previous)) select.value = previous;
+    byId("product-search-status").textContent = query
+      ? `${rows.length}件見つかりました。検索語はこのブラウザ内だけで処理します。`
+      : `${rows.length}件から選べます。既存のテスト用製品と確認済み製品名を分けて扱います。`;
+    refreshProductStatus();
     refreshTasteAttributes();
+  }
+
+  function restoreSetupSelection() {
+    const savedCategory = state.setup?.category;
+    const savedProductId = state.setup?.current_product_id;
+    if (savedCategory && [...byId("category").options].some(item => item.value === savedCategory)) {
+      byId("category").value = savedCategory;
+      refreshProducts("");
+    }
+    if (savedProductId && [...byId("current-product").options].some(item => item.value === savedProductId)) {
+      byId("current-product").value = savedProductId;
+      refreshProductStatus();
+    }
   }
 
   function refreshTasteAttributes() {
@@ -338,6 +369,7 @@
     const category = selectedCategory();
     const currentProductId = byId("current-product").value;
     const current = fixtures.products.find(item => item.product_id === currentProductId);
+    const catalogSelection = catalogAdapter.find(currentProductId);
     const gameId = byId("game").value;
     const inputMethod = byId("input-method").value;
     const platform = byId("platform").value;
@@ -356,6 +388,21 @@
       state.setup={ category,current_product_id:currentProductId,budget_band:Number(byId("budget").value),game_id:gameId,input_method:inputMethod,platform };
       state.recommendations.push({ created_at:new Date().toISOString(),model_version:"pgi-s3-fixture-v1",game_id:gameId,input_method:inputMethod,decision:"CLARIFY",original_snapshot:[] });
       persist("一覧にない製品として保存しました。");
+      if (!captureValidationBatch([
+        { name:"next_upgrade_reached" },
+        { name:"decision_viewed",properties:{ decision:"CLARIFY",affiliate_eligible:false,top_candidate_id:"none" } },
+        { name:"regret_shield_viewed",properties:{ risk_level:"unknown",confidence_label:"Low" } }
+      ])) return false;
+      gotoStep("recommend");
+      return true;
+    }
+    if (catalogSelection && !catalogAdapter.isRecommendationProfiled(currentProductId)) {
+      currentResult={ status:"clarify",decision:"CLARIFY",reason_codes:["current_product_cataloged_not_recommendation_ready"],recommendations:[] };
+      byId("decision-summary").textContent=`${catalogSelection.product_name}は製品名を確認済みです。ただし、既存の比較用テストデータとは分離しており、推薦に必要な条件が揃っていないため判定を止めました。似た製品の特性は流用していません。`;
+      renderCards(byId("recommendations"),[]);
+      state.setup={ category,current_product_id:currentProductId,budget_band:Number(byId("budget").value),game_id:gameId,input_method:inputMethod,platform };
+      state.recommendations.push({ created_at:new Date().toISOString(),model_version:"catalog-expansion-v1-local",game_id:gameId,input_method:inputMethod,decision:"CLARIFY",original_snapshot:[] });
+      persist("確認済みの製品名として保存しました。推薦データには使用していません。");
       if (!captureValidationBatch([
         { name:"next_upgrade_reached" },
         { name:"decision_viewed",properties:{ decision:"CLARIFY",affiliate_eligible:false,top_candidate_id:"none" } },
@@ -404,7 +451,12 @@
     return true;
   }
 
-  byId("category").addEventListener("change", refreshProducts);
+  byId("category").addEventListener("change", () => {
+    byId("product-search").value="";
+    refreshProducts("");
+  });
+  byId("product-search").addEventListener("input", event => refreshProducts(event.target.value));
+  byId("current-product").addEventListener("change", refreshProductStatus);
   byId("avoid-attribute").addEventListener("change", refreshTasteValues);
   byId("to-taste").addEventListener("click", () => {
     if (!captureValidation("my_setup_started",{},"setup")) return;
@@ -695,6 +747,7 @@
   addCheckboxes(byId("reason-codes"),REASONS,"reason_code");
   addCheckboxes(byId("direction-codes"),DIRECTIONS,"direction_code");
   refreshProducts();
+  restoreSetupSelection();
   if (loadResult.status === "corrupt") setStatus("保存内容を読み取れません。自動では上書きしていません。復旧用ファイルを書き出してから、初期化または削除を行ってください。",true);
   else if (loadResult.status === "future_schema") setStatus("この画面より新しい形式で保存されたデータです。内容を書き出してから、対応する画面をご利用ください。",true);
   else if (loadResult.status === "unavailable") {
