@@ -53,7 +53,7 @@ test("preview headers prohibit indexing, embedding, caching, and network sends",
 });
 
 test("local catalog search is wired without changing the recommendation boundary", () => {
-  for (const id of ["product-search","product-search-status","product-catalog-status"]) assert.match(html,new RegExp(`id="${id}"`),id);
+  for (const id of ["product-search","product-search-status","product-catalog-status","product-facts","product-identity-status","product-spec-list","product-comparison-status"]) assert.match(html,new RegExp(`id="${id}"`),id);
   for (const category of ["cpu","gpu","storage","mic","capture_card","power"]) assert.match(html,new RegExp(`option value="${category}"`),category);
   for (const source of ["catalog-source-registry-v1.js","device-catalog-v1.js","personal-gear-fixtures.js","catalog-ui-adapter-v1.js"]) assert.ok(html.includes(source),source);
   assert.ok(html.indexOf("device-catalog-v1.js") < html.indexOf("catalog-ui-adapter-v1.js"));
@@ -61,6 +61,11 @@ test("local catalog search is wired without changing the recommendation boundary
   assert.match(script,/current_product_cataloged_not_recommendation_ready/);
   assert.match(script,/似た製品の特性は流用していません/);
   assert.match(script,/catalogAdapter\.isRecommendationProfiled/);
+  assert.match(script,/catalogAdapter\.detailsFor/);
+  assert.match(script,/候補が複数あります。型番を選択してください/);
+  assert.match(script,/previous !== "not_listed" \|\| !query\.trim\(\) \|\| rows\.length === 0/);
+  assert.match(script,/同じ単位・条件の相手がある場合だけ比較でき/);
+  assert.match(script,/既存判定エンジンは別管理のfixture特性だけを使います/);
   assert.doesNotMatch(script,/recommendation_eligible\s*=\s*true/);
 });
 

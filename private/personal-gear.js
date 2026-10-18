@@ -79,6 +79,18 @@
     ["different_brand","別ブランドを試したい"],["higher_performance","性能を上げたい"],
     ["safer_familiar","慣れた感覚を優先したい"],["do_not_upgrade","買い替えたくない"]
   ];
+  const SPEC_LABELS = Object.freeze({
+    model_series:"モデル",sensor_dpi:"センサー解像度",weight:"重量",length:"長さ",width:"幅",height:"高さ",dimensions:"寸法",
+    connection_modes:"接続方式",polling_rate:"ポーリングレート",layout:"配列",actuation_range:"作動点範囲",rapid_trigger:"ラピッドトリガー",
+    switch_type:"スイッチ",surface_material:"表面素材",base_material:"裏面素材",size_variants:"サイズ展開",platforms:"対応環境",
+    back_buttons:"背面ボタン",trigger_adjustment:"トリガー調整",stick_type:"スティック方式",panel:"パネル",resolution:"解像度",
+    refresh_rate:"リフレッシュレート",response_time:"応答速度",driver_size:"ドライバー径",battery_life:"バッテリー時間",
+    sample_rate:"サンプルレート",bit_depth:"ビット深度",polar_pattern:"指向特性",interface:"インターフェース",
+    passthrough_resolution:"パススルー",form_factor:"フォームファクター",sequential_read:"シーケンシャル読込",
+    sequential_write:"シーケンシャル書込",capacity_options:"容量",core_count:"コア数",thread_count:"スレッド数",
+    boost_clock:"最大クロック",base_clock:"ベースクロック",tdp:"TDP",socket:"ソケット",memory_capacity:"メモリ容量",
+    memory_type:"メモリ種類",compute_units:"コンピュートユニット",board_power:"ボード電力"
+  });
 
   function byId(id) { return document.getElementById(id); }
   function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
@@ -123,11 +135,70 @@
 
   function selectedCategory() { return byId("category").value; }
 
+  function displayValue(value) {
+    if (Array.isArray(value)) return value.map(displayValue).join(" / ");
+    if (value && typeof value === "object") return Object.entries(value).map(([key,item]) => `${SPEC_LABELS[key] || key}: ${displayValue(item)}`).join(" / ");
+    if (typeof value === "boolean") return value ? "あり" : "なし";
+    return String(value ?? "未確認");
+  }
+
+  function renderProductDetails(productId) {
+    const identity = byId("product-identity-status");
+    const specs = byId("product-spec-list");
+    const comparison = byId("product-comparison-status");
+    clear(specs);
+    if (!productId) {
+      identity.textContent = "候補を選ぶまで製品は確定しません。";
+      comparison.textContent = "検索候補の表示だけでは保存・比較・推薦に使いません。";
+      return;
+    }
+    if (productId === "not_listed") {
+      identity.textContent = "製品名・型番は未確認です。似た製品へ自動で置き換えません。";
+      comparison.textContent = "追加確認が終わるまで比較・推薦には接続しません。";
+      return;
+    }
+    const details = catalogAdapter.detailsFor(productId);
+    if (!details) {
+      identity.textContent = "製品情報を確認できません。";
+      comparison.textContent = "比較・推薦には使いません。";
+      return;
+    }
+    if (details.catalog_identity_verified) {
+      identity.textContent = `${details.manufacturer || "メーカー未表示"} / ${details.product_id}。製品識別を${details.checked_at || "確認日未記録"}に確認しています。`;
+    } else {
+      identity.textContent = `既存fixtureのテスト用行です。新カタログの公式確認済み69件には含めません（${details.product_id}）。`;
+    }
+    for (const claim of details.claims.filter(item => item.claim_type !== "manufacturer_identity")) {
+      const term = document.createElement("dt");
+      const description = document.createElement("dd");
+      term.textContent = SPEC_LABELS[claim.field] || claim.field;
+      const conditionText = Object.keys(claim.conditions || {}).length ? `（条件: ${displayValue(claim.conditions)}）` : "";
+      description.textContent = `${displayValue(claim.value)}${claim.unit ? ` ${claim.unit}` : ""}${conditionText}`;
+      specs.append(term,description);
+    }
+    if (!details.claims.some(item => item.claim_type !== "manufacturer_identity")) {
+      const term = document.createElement("dt");
+      const description = document.createElement("dd");
+      term.textContent = "仕様";
+      description.textContent = "確認済みの仕様はまだありません。";
+      specs.append(term,description);
+    }
+    if (details.comparison_ready_scopes.length) {
+      const scopes = details.comparison_ready_scopes.map(scope => SPEC_LABELS[scope] || scope).join(" / ");
+      comparison.textContent = `比較候補の項目: ${scopes}。同じ単位・条件の相手がある場合だけ比較でき、優劣・相性・個人推薦を自動確定しません。`;
+    } else {
+      comparison.textContent = "比較候補の項目は未接続です。製品登録だけで比較・推薦可能とは扱いません。";
+    }
+    if (details.fixture_recommendation_profiled) comparison.textContent += " 既存判定エンジンは別管理のfixture特性だけを使います。";
+  }
+
   function refreshProductStatus() {
     const currentId = byId("current-product").value;
     byId("product-catalog-status").textContent = currentId === "not_listed"
       ? "一覧にない製品は、似た製品で代用せず確認待ちとして扱います。"
       : catalogAdapter.statusText(currentId);
+    byId("to-taste").disabled = currentId === "";
+    renderProductDetails(currentId);
   }
 
   function refreshProducts(query=byId("product-search").value) {
@@ -135,12 +206,22 @@
     const previous = select.value;
     const rows = catalogAdapter.optionsForCategory(selectedCategory(),query);
     clear(select);
+    const requiresExplicitChoice = Boolean(query.trim()) && rows.length > 1;
+    if (requiresExplicitChoice) {
+      const placeholder = option("","候補が複数あります。型番を選択してください");
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      select.append(placeholder);
+    }
     for (const item of rows) {
       const suffix = item.manufacturer ? ` — ${item.manufacturer}` : "";
       select.append(option(item.product_id,`${item.product_name}${suffix}`));
     }
     select.append(option("not_listed","使っている製品が一覧にない"));
-    if ([...select.options].some(item => item.value === previous)) select.value = previous;
+    const keepPrevious = !requiresExplicitChoice
+      && [...select.options].some(item => item.value === previous)
+      && (previous !== "not_listed" || !query.trim() || rows.length === 0);
+    if (keepPrevious) select.value = previous;
     byId("product-search-status").textContent = query
       ? `${rows.length}件見つかりました。検索語はこのブラウザ内だけで処理します。`
       : `${rows.length}件から選べます。既存のテスト用製品と確認済み製品名を分けて扱います。`;
@@ -459,6 +540,11 @@
   byId("current-product").addEventListener("change", refreshProductStatus);
   byId("avoid-attribute").addEventListener("change", refreshTasteValues);
   byId("to-taste").addEventListener("click", () => {
+    if (!byId("current-product").value) {
+      byId("product-catalog-status").textContent = "候補から正確な型番を選択してください。";
+      byId("current-product").focus();
+      return;
+    }
     if (!captureValidation("my_setup_started",{},"setup")) return;
     gotoStep("taste");
   });

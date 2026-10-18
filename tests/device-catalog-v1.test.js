@@ -40,6 +40,8 @@ test("identity, specifications, comparison scope, and recommendation state remai
   assert.equal(catalog.products.some(item => item.public_ui_connected), false);
   assert.equal(catalog.summarize().recommendation_eligible, 0);
   assert.equal(catalog.summarize().live_deployed, 0);
+  for (const item of catalog.products) assert.deepEqual(catalog.validateComparisonScopes(item),[],item.product_id);
+  assert.equal(catalog.find("capture-elgato-4k-x").comparison_ready_scopes.includes("capture_resolution"),false);
 });
 
 test("Basilisk identities and aliases search without substituting the 35K model", () => {
@@ -72,6 +74,18 @@ test("local selection adapter exposes real products without granting recommendat
   assert.equal(adapter.isRecommendationProfiled("mouse-razer-basilisk-v3-pro"), false);
   assert.equal(adapter.isRecommendationProfiled(fixtures.byCategory.mouse[0].product_id), true);
   assert.match(adapter.statusText("mouse-razer-basilisk-v3-pro"), /推薦条件は未確認/);
+  const fixtureOnly = adapter.find("mouse-razer-viper-v4-pro");
+  assert.equal(fixtureOnly.identity_verified,false);
+  assert.deepEqual(fixtureOnly.specs_verified_fields,[]);
+  assert.deepEqual(fixtureOnly.comparison_ready_scopes,[]);
+  assert.equal(fixtureOnly.recommendation_eligible,false);
+  assert.equal(fixtureOnly.fixture_recommendation_profiled,true);
+  assert.match(adapter.statusText(fixtureOnly.product_id),/公式確認済み69件には含めません/);
+  const details = adapter.detailsFor("mouse-razer-basilisk-v3-pro");
+  assert.equal(details.catalog_identity_verified,true);
+  assert.ok(details.claims.some(item => item.field === "sensor_dpi"));
+  assert.ok(details.comparison_ready_scopes.includes("sensor_dpi"));
+  assert.equal(details.recommendation_eligible,false);
 });
 
 test("owner-reported gear mapping keeps exact, ambiguous, and unresolved states distinct", () => {

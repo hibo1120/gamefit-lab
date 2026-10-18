@@ -50,6 +50,13 @@ fieldset label { margin:10px 0; color:var(--text); }
 .decision { padding:16px; border-left:4px solid var(--accent); background:#0b1515; white-space:pre-wrap; overflow-wrap:anywhere; }
 .warning { color:var(--warning); }
 .status { min-height:1.4em; color:var(--accent); }
+.product-facts { margin:14px 0 18px; padding:14px 16px; border:1px solid var(--line); border-radius:12px; background:#0b1019; }
+.product-facts h3 { margin:0 0 8px; font-size:1rem; }
+.product-facts p { margin:.55rem 0; color:var(--muted); overflow-wrap:anywhere; }
+.product-facts dl { display:grid; grid-template-columns:minmax(9rem,auto) 1fr; gap:7px 12px; margin:12px 0; }
+.product-facts dt { color:var(--muted); }
+.product-facts dd { margin:0; overflow-wrap:anywhere; }
+button:disabled { cursor:not-allowed; opacity:.55; }
 .method-note { margin-top:24px; color:var(--muted); }
 .validation-active .operator-only { display:none !important; }
 .tester-link .operator-only { display:none !important; }
@@ -69,6 +76,7 @@ fieldset label { margin:10px 0; color:var(--text); }
   .steps li { padding:8px 4px; font-size:0; line-height:1.35; overflow-wrap:anywhere; }
   .steps li::after { content:attr(data-short); font-size:.75rem; }
   .card dl { grid-template-columns:1fr; }
+  .product-facts dl { grid-template-columns:1fr; }
   .button-row > button,.privacy-actions > button { flex:1 1 100%; }
   .decision,.card { overflow-wrap:anywhere; }
 }

@@ -93,7 +93,7 @@
     definition("mic-elgato-wave-3-mk2","elgato-wave-3","Elgato","Elgato Wave:3 MK.2","mic","elgato_wave3",{ identity_granularity:"variant",verified_aliases:["Wave 3 MK2","Wave:3 MK.2","Wave:3 Mark 2"],comparison_ready_scopes:["sample_rate","bit_depth","polar_pattern","weight"] }),
     definition("mic-logitech-yeti-gx","logitech-yeti-gx","Logitech G","Logitech G Yeti GX","mic","logitech_yeti_gx",{ manufacturer_model_id:"988-000574",verified_aliases:["Yeti GX","Logicool G Yeti GX","イエティ GX"] }),
 
-    definition("capture-elgato-4k-x","elgato-4k-x","Elgato","Elgato Game Capture 4K X","capture_card","elgato_4k_x",{ manufacturer_model_id:"10GBH9901",verified_aliases:["4K X","Game Capture 4K X"],comparison_ready_scopes:["interface","passthrough_resolution","capture_resolution","dimensions","weight"] }),
+    definition("capture-elgato-4k-x","elgato-4k-x","Elgato","Elgato Game Capture 4K X","capture_card","elgato_4k_x",{ manufacturer_model_id:"10GBH9901",verified_aliases:["4K X","Game Capture 4K X"],comparison_ready_scopes:["interface","passthrough_resolution","dimensions","weight"] }),
     definition("capture-elgato-4k-pro","elgato-4k-pro","Elgato","Elgato Game Capture 4K Pro","capture_card","elgato_4k_x",{ verified_aliases:["4K Pro","Game Capture 4K Pro"] }),
     definition("capture-avermedia-gc553g2","avermedia-gc553g2","AVerMedia","AVerMedia Live Gamer ULTRA 2.1 GC553G2","capture_card","avermedia_gc553g2",{ manufacturer_model_id:"GC553G2",verified_aliases:["GC553G2","Live Gamer Ultra 2.1"] }),
 
@@ -369,6 +369,27 @@
     return errors;
   }
 
+  function claimsFor(productId) {
+    return claims.filter(item => item.product_id === productId);
+  }
+
+  function claimsForComparisonScope(productId, scope) {
+    const productClaims = claimsFor(productId);
+    const direct = productClaims.filter(item => item.field === scope);
+    if (direct.length) return direct;
+    if (scope === "dimensions") {
+      const components = ["length","width","height"].map(field => productClaims.find(item => item.field === field));
+      if (components.every(Boolean)) return components;
+    }
+    return [];
+  }
+
+  function validateComparisonScopes(row) {
+    return (row?.comparison_ready_scopes || [])
+      .filter(scope => claimsForComparisonScope(row.product_id,scope).length === 0)
+      .map(scope => `comparison scope has no verified claim:${scope}`);
+  }
+
   function validateCatalog() {
     const errors = [];
     const productIds = new Set();
@@ -376,6 +397,7 @@
     const aliasOwners = new Map();
     for (const row of products) {
       for (const error of validateProduct(row)) errors.push(`${row.product_id}:${error}`);
+      for (const error of validateComparisonScopes(row)) errors.push(`${row.product_id}:${error}`);
       if (productIds.has(row.product_id)) errors.push(`${row.product_id}:duplicate product_id`);
       productIds.add(row.product_id);
       for (const alias of row.verified_aliases) {
@@ -411,5 +433,5 @@
     });
   }
 
-  return { VERSION, CHECKED_AT, CATEGORIES, IDENTITY_GRANULARITIES, LIFECYCLE_STATES, CLAIM_TYPES, products, claims, byCategory, find, search, normalizeSearch, publicView, importProducts, validateProduct, validateClaim, validateCatalog, summarize };
+  return { VERSION, CHECKED_AT, CATEGORIES, IDENTITY_GRANULARITIES, LIFECYCLE_STATES, CLAIM_TYPES, products, claims, byCategory, find, search, normalizeSearch, publicView, importProducts, claimsFor, claimsForComparisonScope, validateProduct, validateClaim, validateComparisonScopes, validateCatalog, summarize };
 });

@@ -264,6 +264,11 @@ async function verifyCatalogSearchViewport(browser, origin, viewport) {
   await page.focus("#product-search");
   await page.keyboard.type("Basilisk");
   assert.ok(await page.locator('#current-product option:not([value="not_listed"])').count() >= 5);
+  assert.equal(await page.locator("#current-product").inputValue(),"");
+  assert.equal(await page.locator("#to-taste").isDisabled(),true);
+  await page.locator("#current-product").press("ArrowDown");
+  assert.notEqual(await page.locator("#current-product").inputValue(),"");
+  assert.equal(await page.locator("#to-taste").isEnabled(),true);
   await page.fill("#product-search","バジリスク");
   assert.ok(await page.locator('#current-product option:not([value="not_listed"])').count() >= 5);
   await page.fill("#product-search","no-match-catalog-query");
@@ -272,9 +277,11 @@ async function verifyCatalogSearchViewport(browser, origin, viewport) {
 
   await page.fill("#product-search","RZ01-04620");
   assert.deepEqual(await page.locator("#current-product option").evaluateAll(options => options.map(item => item.value)),["mouse-razer-basilisk-v3-pro","not_listed"]);
+  assert.equal(await page.locator("#current-product").inputValue(),"mouse-razer-basilisk-v3-pro");
   assert.equal((await page.locator("#current-product").innerText()).includes("35K"),false);
-  await page.selectOption("#current-product","mouse-razer-basilisk-v3-pro");
   assert.match(await page.locator("#product-catalog-status").innerText(),/推薦条件は未確認/);
+  assert.match(await page.locator("#product-spec-list").innerText(),/30000 dpi/);
+  assert.match(await page.locator("#product-comparison-status").innerText(),/優劣・相性・個人推薦を自動確定しません/);
   await page.screenshot({ path:path.join(projectRoot,"artifacts","catalog-expansion-v1-20261018",`catalog-search-${viewport.width}.png`),fullPage:true });
 
   await page.click("#to-taste");
