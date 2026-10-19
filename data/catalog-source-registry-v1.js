@@ -93,7 +93,22 @@
     source("razer_basilisk_line", "Razer Basilisk Gaming Mice Line", "https://www.razer.com/pc/gaming-mice/basilisk-line", { category_scope:["mouse"] }),
     source("logitech_pro_mice_catalog", "Logitech G PRO gaming mice catalog", "https://www.logitechg.com/en-us/shop/c/gaming-mice?refine=c_filterseries%3Dpro", { category_scope:["mouse"] }),
     source("logitech_superlight2", "Logitech G PRO X SUPERLIGHT 2", "https://www.logitechg.com/en-us/shop/p/pro-x2-superlight-wireless-mouse.910-006628", { category_scope:["mouse"] }),
-    source("logitech_g502_x_plus", "Logitech G G502 X PLUS", "https://www.logitechg.com/en-us/shop/p/g502-x-plus-wireless-lightforce.910-006160", { category_scope:["mouse"] }),
+    source("logitech_g502_x_plus", "Logitech G G502 X PLUS (US retail SKU 910-006160)", "https://www.logitechg.com/en-us/shop/p/g502-x-plus-wireless-lightforce.910-006160", {
+      category_scope:["mouse"], checked_at:"2026-10-19",
+      open_questions:["The current page describes both HERO 25K and an upgraded HERO 44K sensor; do not derive a numeric DPI limit from either sensor name."]
+    }),
+    source("logitech_g502_x_plus_support", "Logitech G502 X PLUS support specifications", "https://support.logi.com/hc/en-001/articles/7639125500183-Specification-G502-X-PLUS-Wireless-RGB-Gaming-Mouse", {
+      category_scope:["mouse"], checked_at:"2026-10-19",
+      open_questions:["The support article identifies product model MR0089 and a 100-25,600 DPI range, but does not state retail SKU 910-006160 or a firmware applicability boundary."]
+    }),
+    source("logitech_wireless_mouse_comparison", "Logitech G official wireless gaming mouse comparison", "https://gaming.logitech.com/en-gb/discover/a/best-wireless-gaming-mouse", {
+      category_scope:["mouse"], checked_at:"2026-10-19",
+      open_questions:["The comparison lists G502 X PLUS at 100-25,600 DPI but does not identify the retail SKU, region transition, or firmware boundary."]
+    }),
+    source("logitech_g502_x_plus_ph", "Logitech G G502 X PLUS (PH retail SKU 910-006164)", "https://www.logitechg.com/en-ph/shop/p/g502-x-plus-wireless-lightforce.910-006164", {
+      category_scope:["mouse"], checked_at:"2026-10-19",
+      open_questions:["This is a different regional retail SKU and cannot establish the sensor or maximum DPI for US SKU 910-006160."]
+    }),
     source("logitech_keyboards_catalog", "Logitech G PRO keyboards catalog", "https://www.logitechg.com/en-us/shop/c/gaming-keyboards?refine=c_filterseries%3Dpro", { category_scope:["keyboard"] }),
     source("logitech_pro_x_tkl_rapid", "Logitech G PRO X TKL RAPID", "https://www.logitechg.com/en-us/shop/p/pro-x-tkl-rapid.920-013131", { category_scope:["keyboard"] }),
     source("wooting_catalog", "Wooting products", "https://wooting.io/products", { category_scope:["keyboard"] }),

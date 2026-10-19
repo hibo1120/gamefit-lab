@@ -30,6 +30,7 @@
       manufacturer_model_id:options.manufacturer_model_id || null,
       verified_aliases:options.verified_aliases || [],
       identity_locator:options.identity_locator || "Official product page heading or official catalog listing.",
+      additional_source_ids:options.additional_source_ids || [],
       region_scope:options.region_scope || ["global_or_unspecified"],
       lifecycle_status:options.lifecycle_status || "unknown",
       comparison_ready_scopes:options.comparison_ready_scopes || []
@@ -44,7 +45,10 @@
     definition("mouse-razer-basilisk-mobile","razer-basilisk-mobile","Razer","Razer Basilisk Mobile","mouse","razer_basilisk_line",{ verified_aliases:["Basilisk Mobile","バジリスク モバイル"] }),
     definition("mouse-logitech-pro-x-superlight-2","logitech-pro-x-superlight","Logitech G","Logitech G PRO X SUPERLIGHT 2","mouse","logitech_superlight2",{ manufacturer_model_id:"910-006628",verified_aliases:["PRO X SUPERLIGHT 2","プロ X スーパーライト 2","Logicool G PRO X SUPERLIGHT 2"],comparison_ready_scopes:["weight","sensor_dpi","polling_rate"] }),
     definition("mouse-logitech-pro-x-superlight-2-dex","logitech-pro-x-superlight","Logitech G","Logitech G PRO X SUPERLIGHT 2 DEX","mouse","logitech_pro_mice_catalog",{ verified_aliases:["PRO X SUPERLIGHT 2 DEX","Logicool G PRO X SUPERLIGHT 2 DEX"] }),
-    definition("mouse-logitech-g502-x-plus","logitech-g502-x","Logitech G","Logitech G502 X PLUS","mouse","logitech_g502_x_plus",{ manufacturer_model_id:"910-006160",verified_aliases:["G502 X PLUS","Logicool G502 X PLUS"],comparison_ready_scopes:["sensor_dpi","connection_modes"] }),
+    definition("mouse-logitech-g502-x-plus","logitech-g502-x","Logitech G","Logitech G502 X PLUS","mouse","logitech_g502_x_plus",{
+      manufacturer_model_id:"910-006160",verified_aliases:["G502 X PLUS","Logicool G502 X PLUS"],comparison_ready_scopes:["connection_modes"],
+      additional_source_ids:["logitech_g502_x_plus_support","logitech_wireless_mouse_comparison","logitech_g502_x_plus_ph"]
+    }),
     definition("mouse-logitech-pro-x-superlight-2c","logitech-pro-x-superlight","Logitech G","Logitech G PRO X SUPERLIGHT 2c","mouse","logitech_pro_mice_catalog",{ verified_aliases:["PRO X SUPERLIGHT 2c","Logicool G PRO X SUPERLIGHT 2c"] }),
     definition("mouse-logitech-pro-2-lightspeed","logitech-pro-2","Logitech G","Logitech G PRO 2 LIGHTSPEED","mouse","logitech_pro_mice_catalog",{ verified_aliases:["PRO 2 LIGHTSPEED","Logicool G PRO 2 LIGHTSPEED"] }),
 
@@ -144,12 +148,11 @@
     claim("mouse-razer-basilisk-v3-pro","width",75.4,"mm","razer_basilisk_v3_pro_support","Specifications: 75.4 mm"),
     claim("mouse-razer-basilisk-v3-pro","height",42.5,"mm","razer_basilisk_v3_pro_support","Specifications: 42.5 mm"),
     claim("mouse-razer-basilisk-v3-pro","connection_modes",["2.4GHz","Bluetooth","USB wired"],null,"razer_basilisk_v3_pro_support","Specifications: wireless and wired modes",{ claim_type:"manufacturer_compatibility" }),
-    claim("mouse-razer-basilisk-v3-pro-35k","sensor_dpi",35000,"dpi","razer_basilisk_v3_pro_35k_support","Specifications: Focus Pro 35K Optical Sensor Gen-2"),
+    claim("mouse-razer-basilisk-v3-pro-35k","sensor_dpi",35000,"dpi","razer_basilisk_v3_pro_35k_support","Full Technical Specifications: Max Sensitivity 35,000 DPI"),
     claim("mouse-razer-basilisk-v3-pro-35k","model_series","RZ01-0524",null,"razer_basilisk_v3_pro_35k_support","Page heading",{ claim_type:"manufacturer_identity" }),
     claim("mouse-logitech-pro-x-superlight-2","weight",60,"g","logitech_superlight2","Description: 60 g"),
     claim("mouse-logitech-pro-x-superlight-2","sensor_dpi",44000,"dpi","logitech_superlight2","HERO 2 section: up to 44,000 DPI"),
     claim("mouse-logitech-pro-x-superlight-2","polling_rate",8000,"Hz","logitech_superlight2","LIGHTSPEED section: up to 8 kHz",{ conditions:{ connection:"LIGHTSPEED wireless",maximum:true } }),
-    claim("mouse-logitech-g502-x-plus","sensor_dpi",25000,"dpi","logitech_g502_x_plus","Description: HERO 25K Optical Sensor"),
     claim("mouse-logitech-g502-x-plus","connection_modes",["LIGHTSPEED wireless"],null,"logitech_g502_x_plus","Description",{ claim_type:"manufacturer_compatibility" }),
 
     claim("keyboard-wooting-60he-plus","layout","60_percent",null,"wooting_60he_plus","Tech Specs: GH60 (60%)"),
@@ -265,6 +268,31 @@
     claim("network-tplink-archer-ge800-v1","mesh","EasyMesh",null,"tplink_archer_ge800","Overview: EasyMesh compatibility",{ claim_type:"manufacturer_compatibility" })
   ]);
 
+  const claimHolds = Object.freeze([
+    Object.freeze({
+      hold_id:"mouse-logitech-g502-x-plus-sensor-name",
+      product_id:"mouse-logitech-g502-x-plus",
+      field:"sensor_name",
+      status:"HOLD",
+      source_ids:Object.freeze(["logitech_g502_x_plus"]),
+      source_locators:Object.freeze(["Description: HERO 25K sensor","Feature section: upgraded HERO 44K sensor"]),
+      checked_at:"2026-10-19",
+      conditions:Object.freeze({ retail_sku:"910-006160", region:"en-US", firmware_applicability:"not stated" }),
+      reason:"The same current retail page names two sensor generations, so a single sensor name is not verified for the target SKU and firmware state."
+    }),
+    Object.freeze({
+      hold_id:"mouse-logitech-g502-x-plus-max-dpi",
+      product_id:"mouse-logitech-g502-x-plus",
+      field:"max_dpi",
+      status:"HOLD",
+      source_ids:Object.freeze(["logitech_g502_x_plus","logitech_g502_x_plus_support","logitech_wireless_mouse_comparison","logitech_g502_x_plus_ph"]),
+      source_locators:Object.freeze(["US retail page: conflicting HERO 25K and HERO 44K descriptions","Support specification for model MR0089: 100-25,600 DPI","Official comparison: G502 X PLUS 100-25,600 DPI","PH retail SKU 910-006164: separate regional SKU"]),
+      checked_at:"2026-10-19",
+      conditions:Object.freeze({ retail_sku:"910-006160", support_model_number:"MR0089", region:"en-US", firmware_applicability:"not stated" }),
+      reason:"The explicit 25,600 maximum is not tied to retail SKU 910-006160 and a firmware or hardware transition boundary, while current retail material references a newer sensor generation."
+    })
+  ]);
+
   const claimsByProduct = new Map();
   for (const row of claims) {
     if (!claimsByProduct.has(row.product_id)) claimsByProduct.set(row.product_id, []);
@@ -282,7 +310,7 @@
       identity_granularity:row.identity_granularity,
       manufacturer_model_id:row.manufacturer_model_id,
       verified_aliases:Object.freeze([...row.verified_aliases]),
-      source_ids:Object.freeze([row.source_id]),
+      source_ids:Object.freeze([...new Set([row.source_id,...row.additional_source_ids])]),
       identity_evidence:Object.freeze([{ source_id:row.source_id, locator:row.identity_locator, checked_at:CHECKED_AT }]),
       checked_at:CHECKED_AT,
       region_scope:Object.freeze([...row.region_scope]),
@@ -366,11 +394,41 @@
     if (!registry.find(row?.source_id)) errors.push("source_id is missing");
     if (!validDate(row?.checked_at)) errors.push("checked_at is invalid");
     if (unsafeText(row?.source_locator)) errors.push("source_locator is unsafe");
+    if (typeof row?.value === "number" && row?.unit === "dpi") {
+      const locator = String(row.source_locator || "");
+      const normalizedLocator = locator.replace(/,/g,"");
+      const magnitudeOnly = [...locator.matchAll(/(\d+(?:\.\d+)?)\s*k\b/gi)]
+        .some(match => Number(match[1]) * 1000 === row.value);
+      const explicitValue = normalizedLocator.includes(String(row.value));
+      const explicitSpecification = /(?:max(?:imum)?\s+sensitivity|dpi\s*(?:range|limit)|up to)\s*[:\-]?\s*[\d,.]+/i.test(locator);
+      if (magnitudeOnly && !explicitValue && !explicitSpecification) errors.push("numeric DPI must not be derived from a product or sensor name");
+    }
+    return errors;
+  }
+
+  function validateClaimHold(row) {
+    const errors = [];
+    for (const key of ["hold_id","product_id","field","status","source_ids","source_locators","checked_at","conditions","reason"]) {
+      if (row?.[key] === undefined || row?.[key] === "") errors.push(`${key} is required`);
+    }
+    if (row?.status !== "HOLD") errors.push("status must be HOLD");
+    if (!find(row?.product_id)) errors.push("product_id is missing");
+    if (!Array.isArray(row?.source_ids) || row.source_ids.length === 0) errors.push("source_ids must not be empty");
+    for (const sourceId of row?.source_ids || []) if (!registry.find(sourceId)) errors.push(`source_id is missing:${sourceId}`);
+    if (!Array.isArray(row?.source_locators) || row.source_locators.length === 0) errors.push("source_locators must not be empty");
+    if (!validDate(row?.checked_at)) errors.push("checked_at is invalid");
+    if (unsafeText(row?.reason) || row?.source_locators?.some(unsafeText)) errors.push("hold text is unsafe");
+    if (claimsFor(row?.product_id).some(claimRow => claimRow.field === row.field)) errors.push("held field must not also be a verified claim");
+    if (find(row?.product_id)?.comparison_ready_scopes.includes(row?.field)) errors.push("held field must not remain comparison-ready");
     return errors;
   }
 
   function claimsFor(productId) {
     return claims.filter(item => item.product_id === productId);
+  }
+
+  function holdsFor(productId) {
+    return claimHolds.filter(item => item.product_id === productId);
   }
 
   function claimsForComparisonScope(productId, scope) {
@@ -394,6 +452,7 @@
     const errors = [];
     const productIds = new Set();
     const claimIds = new Set();
+    const holdIds = new Set();
     const aliasOwners = new Map();
     for (const row of products) {
       for (const error of validateProduct(row)) errors.push(`${row.product_id}:${error}`);
@@ -411,6 +470,11 @@
       for (const error of validateClaim(row)) errors.push(`${row.claim_id}:${error}`);
       if (claimIds.has(row.claim_id)) errors.push(`${row.claim_id}:duplicate claim_id`);
       claimIds.add(row.claim_id);
+    }
+    for (const row of claimHolds) {
+      for (const error of validateClaimHold(row)) errors.push(`${row.hold_id}:${error}`);
+      if (holdIds.has(row.hold_id)) errors.push(`${row.hold_id}:duplicate hold_id`);
+      holdIds.add(row.hold_id);
     }
     return errors;
   }
@@ -433,5 +497,5 @@
     });
   }
 
-  return { VERSION, CHECKED_AT, CATEGORIES, IDENTITY_GRANULARITIES, LIFECYCLE_STATES, CLAIM_TYPES, products, claims, byCategory, find, search, normalizeSearch, publicView, importProducts, claimsFor, claimsForComparisonScope, validateProduct, validateClaim, validateComparisonScopes, validateCatalog, summarize };
+  return { VERSION, CHECKED_AT, CATEGORIES, IDENTITY_GRANULARITIES, LIFECYCLE_STATES, CLAIM_TYPES, products, claims, claimHolds, byCategory, find, search, normalizeSearch, publicView, importProducts, claimsFor, holdsFor, claimsForComparisonScope, validateProduct, validateClaim, validateClaimHold, validateComparisonScopes, validateCatalog, summarize };
 });

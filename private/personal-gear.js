@@ -80,7 +80,7 @@
     ["safer_familiar","慣れた感覚を優先したい"],["do_not_upgrade","買い替えたくない"]
   ];
   const SPEC_LABELS = Object.freeze({
-    model_series:"モデル",sensor_dpi:"センサー解像度",weight:"重量",length:"長さ",width:"幅",height:"高さ",dimensions:"寸法",
+    model_series:"モデル",sensor_name:"センサー名",sensor_dpi:"センサー解像度",max_dpi:"最大DPI",weight:"重量",length:"長さ",width:"幅",height:"高さ",dimensions:"寸法",
     connection_modes:"接続方式",polling_rate:"ポーリングレート",layout:"配列",actuation_range:"作動点範囲",rapid_trigger:"ラピッドトリガー",
     switch_type:"スイッチ",surface_material:"表面素材",base_material:"裏面素材",size_variants:"サイズ展開",platforms:"対応環境",
     back_buttons:"背面ボタン",trigger_adjustment:"トリガー調整",stick_type:"スティック方式",panel:"パネル",resolution:"解像度",
@@ -164,7 +164,8 @@
       return;
     }
     if (details.catalog_identity_verified) {
-      identity.textContent = `${details.manufacturer || "メーカー未表示"} / ${details.product_id}。製品識別を${details.checked_at || "確認日未記録"}に確認しています。`;
+      const aliasText = details.legacy_product_ids.length ? `（旧ID ${details.legacy_product_ids.join(" / ")}も同一identityとして読取互換）` : "";
+      identity.textContent = `${details.manufacturer || "メーカー未表示"} / ${details.canonical_product_id} ${aliasText}。製品識別を${details.checked_at || "確認日未記録"}に確認しています。`;
     } else {
       identity.textContent = `既存fixtureのテスト用行です。新カタログの公式確認済み69件には含めません（${details.product_id}）。`;
     }
@@ -183,12 +184,20 @@
       description.textContent = "確認済みの仕様はまだありません。";
       specs.append(term,description);
     }
+    if (details.claim_holds.length) {
+      const term = document.createElement("dt");
+      const description = document.createElement("dd");
+      term.textContent = "確認保留";
+      description.textContent = details.claim_holds.map(item => SPEC_LABELS[item.field] || item.field).join(" / ") + "（SKU・地域・世代・firmware条件が一致するまで数値比較に使いません）";
+      specs.append(term,description);
+    }
     if (details.comparison_ready_scopes.length) {
       const scopes = details.comparison_ready_scopes.map(scope => SPEC_LABELS[scope] || scope).join(" / ");
       comparison.textContent = `比較候補の項目: ${scopes}。同じ単位・条件の相手がある場合だけ比較でき、優劣・相性・個人推薦を自動確定しません。`;
     } else {
       comparison.textContent = "比較候補の項目は未接続です。製品登録だけで比較・推薦可能とは扱いません。";
     }
+    if (details.claim_holds.length) comparison.textContent += " 保留項目は比較候補から除外しています。";
     if (details.fixture_recommendation_profiled) comparison.textContent += " 既存判定エンジンは別管理のfixture特性だけを使います。";
   }
 
@@ -236,8 +245,9 @@
       byId("category").value = savedCategory;
       refreshProducts("");
     }
-    if (savedProductId && [...byId("current-product").options].some(item => item.value === savedProductId)) {
-      byId("current-product").value = savedProductId;
+    const restoredProductId = catalogAdapter.selectionProductId(savedProductId);
+    if (restoredProductId && [...byId("current-product").options].some(item => item.value === restoredProductId)) {
+      byId("current-product").value = restoredProductId;
       refreshProductStatus();
     }
   }

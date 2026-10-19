@@ -11,9 +11,10 @@ test("source registry and catalog validate with explicit provenance", () => {
   assert.deepEqual(registry.validateRegistry(), []);
   assert.deepEqual(catalog.validateCatalog(), []);
   assert.deepEqual(ledger.validateLedger(), []);
-  assert.equal(registry.sources.length, 50);
+  assert.equal(registry.sources.length, 53);
   assert.equal(catalog.products.length, 69);
-  assert.equal(catalog.claims.length, 114);
+  assert.equal(catalog.claims.length, 113);
+  assert.equal(catalog.claimHolds.length, 2);
   for (const claim of catalog.claims) assert.ok(registry.find(claim.source_id), claim.claim_id);
 });
 
@@ -54,6 +55,50 @@ test("Basilisk identities and aliases search without substituting the 35K model"
   assert.deepEqual(catalog.search("RZ01-0524").map(item => item.product_id), [model35k.product_id]);
   assert.ok(catalog.search("Basilisk",{ category:"mouse" }).length >= 5);
   assert.ok(catalog.search("バジリスク",{ category:"mouse" }).length >= 5);
+  assert.equal(adapter.selectionProductId(original.product_id),original.product_id);
+  assert.equal(adapter.selectionProductId(model35k.product_id),model35k.product_id);
+});
+
+test("explicit canonical identity resolves the Logitech headset without fuzzy-merging variants", () => {
+  assert.deepEqual(adapter.validateCanonicalIdentities(),[]);
+  assert.equal(adapter.canonicalIdentities.length,1);
+  const legacyId = "audio-logitech-pro-x2";
+  const canonicalId = "audio-logitech-pro-x-2-lightspeed";
+  assert.equal(adapter.canonicalProductId(legacyId),canonicalId);
+  assert.equal(adapter.selectionProductId(canonicalId),legacyId);
+  assert.strictEqual(adapter.find(legacyId),adapter.find(canonicalId));
+  assert.equal(adapter.isRecommendationProfiled(legacyId),true);
+  assert.equal(adapter.isRecommendationProfiled(canonicalId),true);
+  assert.equal(adapter.optionsForCategory("audio","PRO X 2 LIGHTSPEED").length,1);
+  const details = adapter.detailsFor(canonicalId);
+  assert.equal(details.product_id,legacyId);
+  assert.equal(details.canonical_product_id,canonicalId);
+  assert.deepEqual(details.legacy_product_ids,[legacyId]);
+  assert.equal(details.fixture_recommendation_profiled,true);
+  assert.equal(details.recommendation_eligible,false);
+  assert.ok(details.claims.some(item => item.field === "driver_size"));
+
+  assert.notStrictEqual(adapter.find("mouse-razer-basilisk-v3-pro"),adapter.find("mouse-razer-basilisk-v3-pro-35k"));
+  assert.deepEqual(adapter.optionsForCategory("keyboard","Wooting 80HE").map(item => item.product_id).sort(),["keyboard-wooting-80he","keyboard-wooting-80he-plus"]);
+  assert.deepEqual(adapter.optionsForCategory("audio","PRO X").map(item => item.product_id).filter(id => id.includes("pro-x")).sort(),[
+    "audio-logitech-pro-x-se","audio-logitech-pro-x-wired","audio-logitech-pro-x-wireless","audio-logitech-pro-x2"
+  ]);
+});
+
+test("numeric DPI claims reject product-name arithmetic and keep conflicted G502 fields on HOLD", () => {
+  const inferred = {
+    ...catalog.claims.find(item => item.product_id === "mouse-razer-basilisk-v3-pro" && item.field === "sensor_dpi"),
+    claim_id:"negative-g502-name-inference", product_id:"mouse-logitech-g502-x-plus", field:"max_dpi", value:25000,
+    source_id:"logitech_g502_x_plus", source_locator:"Description: HERO 25K Optical Sensor"
+  };
+  assert.ok(catalog.validateClaim(inferred).includes("numeric DPI must not be derived from a product or sensor name"));
+  assert.deepEqual(catalog.validateClaim(catalog.claims.find(item => item.product_id === "mouse-razer-basilisk-v3-pro-35k" && item.field === "sensor_dpi")),[]);
+  const g502 = catalog.find("mouse-logitech-g502-x-plus");
+  assert.deepEqual(g502.specs_verified_fields,["connection_modes"]);
+  assert.deepEqual(g502.comparison_ready_scopes,["connection_modes"]);
+  assert.equal(catalog.claimsFor(g502.product_id).some(item => ["sensor_dpi","max_dpi","sensor_name"].includes(item.field)),false);
+  assert.deepEqual(catalog.holdsFor(g502.product_id).map(item => item.field).sort(),["max_dpi","sensor_name"]);
+  assert.ok(catalog.holdsFor(g502.product_id).every(item => item.conditions.retail_sku === "910-006160" && item.conditions.firmware_applicability === "not stated"));
 });
 
 test("catalog import is idempotent and unsafe display input fails validation", () => {
@@ -66,8 +111,8 @@ test("catalog import is idempotent and unsafe display input fails validation", (
 
 test("local selection adapter exposes real products without granting recommendation eligibility", () => {
   assert.equal(adapter.fixtureProducts.length, 48);
-  assert.equal(adapter.realProducts.length, 62);
-  assert.equal(adapter.products.length, 110);
+  assert.equal(adapter.realProducts.length, 61);
+  assert.equal(adapter.products.length, 109);
   assert.ok(catalog.products.every(item => adapter.find(item.product_id)),"all 69 catalog identities are selectable, including seven fixture-backed identities");
   assert.ok(adapter.optionsForCategory("mouse","Basilisk").length >= 5);
   assert.deepEqual(adapter.optionsForCategory("mouse","RZ01-04620").map(item => item.product_id), ["mouse-razer-basilisk-v3-pro"]);
@@ -85,7 +130,13 @@ test("local selection adapter exposes real products without granting recommendat
   assert.equal(details.catalog_identity_verified,true);
   assert.ok(details.claims.some(item => item.field === "sensor_dpi"));
   assert.ok(details.comparison_ready_scopes.includes("sensor_dpi"));
+  assert.deepEqual(details.claim_holds,[]);
   assert.equal(details.recommendation_eligible,false);
+  const g502Details = adapter.detailsFor("mouse-logitech-g502-x-plus");
+  assert.deepEqual(adapter.optionsForCategory("mouse","910-006160").map(item => item.product_id),["mouse-logitech-g502-x-plus"]);
+  assert.equal(g502Details.claims.some(item => item.field === "sensor_dpi"),false);
+  assert.deepEqual(g502Details.comparison_ready_scopes,["connection_modes"]);
+  assert.deepEqual(g502Details.claim_holds.map(item => item.field).sort(),["max_dpi","sensor_name"]);
 });
 
 test("owner-reported gear mapping keeps exact, ambiguous, and unresolved states distinct", () => {

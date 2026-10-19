@@ -62,10 +62,12 @@ test("local catalog search is wired without changing the recommendation boundary
   assert.match(script,/似た製品の特性は流用していません/);
   assert.match(script,/catalogAdapter\.isRecommendationProfiled/);
   assert.match(script,/catalogAdapter\.detailsFor/);
+  assert.match(script,/catalogAdapter\.selectionProductId/);
   assert.match(script,/候補が複数あります。型番を選択してください/);
   assert.match(script,/previous !== "not_listed" \|\| !query\.trim\(\) \|\| rows\.length === 0/);
   assert.match(script,/同じ単位・条件の相手がある場合だけ比較でき/);
   assert.match(script,/既存判定エンジンは別管理のfixture特性だけを使います/);
+  assert.match(script,/保留項目は比較候補から除外しています/);
   assert.doesNotMatch(script,/recommendation_eligible\s*=\s*true/);
 });
 

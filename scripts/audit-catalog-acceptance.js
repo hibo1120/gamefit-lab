@@ -3,6 +3,7 @@
 const catalog = require("../data/device-catalog-v1.js");
 const fixtures = require("../data/personal-gear-fixtures.js");
 const adapter = require("../data/catalog-ui-adapter-v1.js");
+const registry = require("../data/catalog-source-registry-v1.js");
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
@@ -53,6 +54,8 @@ function fixtureLineage() {
   const fixtureIds = new Set(fixtures.products.map(item => item.product_id));
   const catalogIds = new Set(catalog.products.map(item => item.product_id));
   const overlapIds = [...fixtureIds].filter(id => catalogIds.has(id)).sort();
+  const mappedCanonicalIds = adapter.canonicalIdentities.map(item => item.canonical_product_id);
+  const mappedLegacyIds = adapter.canonicalIdentities.flatMap(item => item.legacy_product_ids);
   const evidenceRows = fixtures.products.flatMap(item => item.evidence || []);
   return Object.freeze({
     checked_date:fixtures.CHECKED_DATE,
@@ -61,11 +64,59 @@ function fixtureLineage() {
     fixture_evidence_rows:evidenceRows.length,
     official_evidence_rows:evidenceRows.filter(row => row.source_type === "official" || row.source_type === "official_support").length,
     catalog_products:catalog.products.length,
+    raw_distinct_product_ids:new Set([...fixtureIds,...catalogIds]).size,
     overlap_products:overlapIds.length,
     pure_catalog_increment:catalog.products.length - overlapIds.length,
     fixture_only_not_in_catalog:fixtures.products.length - overlapIds.length,
+    explicit_canonical_identity_mappings:adapter.canonicalIdentities.length,
+    legacy_id_aliases:mappedLegacyIds.length,
+    mapped_canonical_ids:Object.freeze(mappedCanonicalIds),
+    mapped_legacy_ids:Object.freeze(mappedLegacyIds),
+    canonical_catalog_increment:catalog.products.length - overlapIds.length - mappedCanonicalIds.length,
+    fixture_only_not_in_canonical_catalog:fixtures.products.length - overlapIds.length - mappedLegacyIds.length,
+    catalog_base_models:catalog.summarize().base_models,
+    catalog_variants:catalog.summarize().variants,
+    combined_canonical_identities:adapter.products.length,
     local_ui_distinct_products:adapter.products.length,
     overlap_ids:Object.freeze(overlapIds)
+  });
+}
+
+function conservativeIdentityKey(value) {
+  return String(value || "").normalize("NFKC").toLowerCase().replace(/[\s\-_™®()]+/g,"");
+}
+
+function identityAudit() {
+  const fixtureRows = fixtures.products.map(item => ({
+    lane:"fixture", product_id:item.product_id, product_name:item.product_name, category:item.category,
+    resource_urls:[...new Set((item.evidence || []).map(row => row.source_url).filter(Boolean))]
+  }));
+  const catalogRows = catalog.products.map(item => ({
+    lane:"catalog", product_id:item.product_id, product_name:item.product_name, category:item.category,
+    resource_urls:[...new Set(item.source_ids.map(sourceId => registry.find(sourceId)?.canonical_url).filter(Boolean))]
+  }));
+  const rows = [...fixtureRows,...catalogRows];
+  const groups = new Map();
+  for (const row of rows) {
+    const key = `${row.category}:${conservativeIdentityKey(row.product_name)}`;
+    if (!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(row);
+  }
+  const sameNameDistinctIds = [...groups.values()]
+    .filter(group => new Set(group.map(item => item.product_id)).size > 1)
+    .map(group => Object.freeze({
+      product_name:group[0].product_name,
+      product_ids:Object.freeze([...new Set(group.map(item => item.product_id))].sort()),
+      shared_resource_urls:Object.freeze([...new Set(group.flatMap(item => item.resource_urls))].filter(url => group.filter(item => item.resource_urls.includes(url)).length > 1).sort())
+    }));
+  return Object.freeze({
+    same_name_distinct_id_candidates:Object.freeze(sameNameDistinctIds),
+    explicit_mappings:adapter.canonicalIdentities,
+    protected_distinct_counterexamples:Object.freeze([
+      Object.freeze(["mouse-razer-basilisk-v3-pro","mouse-razer-basilisk-v3-pro-35k"]),
+      Object.freeze(["keyboard-wooting-80he","keyboard-wooting-80he-plus"]),
+      Object.freeze(["audio-logitech-pro-x-se","audio-logitech-pro-x-wireless","audio-logitech-pro-x-wired"])
+    ])
   });
 }
 
@@ -75,6 +126,7 @@ function buildReport() {
   return Object.freeze({
     generated_for:"catalog-v1-local-acceptance-20261018",
     fixture_lineage:fixtureLineage(),
+    identity_audit:identityAudit(),
     comparison_summary:Object.freeze({
       products_with_declared_scopes:comparison.length,
       declared_scopes:scopes.length,
@@ -90,4 +142,4 @@ function buildReport() {
 
 if (require.main === module) process.stdout.write(`${JSON.stringify(buildReport(),null,2)}\n`);
 
-module.exports = { evidenceSignature, comparisonAudit, fixtureLineage, buildReport };
+module.exports = { evidenceSignature, comparisonAudit, fixtureLineage, conservativeIdentityKey, identityAudit, buildReport };
